@@ -181,8 +181,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   const containerClasses = isExpanded 
-    ? "relative h-full overflow-y-auto p-2 md:p-6 animate-in zoom-in-95 duration-300" 
-    : "relative z-10 space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-24";
+    ? "relative h-full overflow-x-hidden p-2 md:p-6 animate-in zoom-in-95 duration-300" 
+    : "relative z-10 space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-24 overflow-x-hidden";
 
   return (
     <AppBackground 
@@ -209,7 +209,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         )}
 
         
-        <div className={`relative z-30 transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isExpanded ? 'mb-6 max-w-[1920px] mx-auto' : ''}`}>
+        <div className={`relative z-30 transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] overflow-hidden  ${isExpanded ? 'mb-6 max-w-[1920px] mx-auto rounded-b-[2.5rem]' : 'rounded-[2.5rem]'}`}>
            {!isExpanded && displayMode === 'CALENDAR' && (
                <>
                   <div className="absolute -top-10 -right-10 w-48 md:w-72 h-48 md:h-72 bg-gradient-to-br from-indigo-200/40 to-purple-200/40 rounded-full blur-3xl pointer-events-none mix-blend-multiply transition-all duration-1000"></div>

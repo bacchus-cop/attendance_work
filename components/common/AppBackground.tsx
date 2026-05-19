@@ -183,7 +183,7 @@ const AppBackground: React.FC<AppBackgroundProps> = ({
     }, [theme]);
 
     return (
-        <div className={`relative w-auto min-h-screen flex flex-col ${className}`}>
+        <div className={`relative w-auto min-h-screen flex flex-col overflow-x-hidden max-w-full ${className}`}>
             {/* Background Layer */}
             <div 
                 className={`absolute inset-0 bg-gradient-to-br ${themeConfig} transition-colors duration-1000 pointer-events-none z-0`} 

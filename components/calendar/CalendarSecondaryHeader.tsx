@@ -50,9 +50,9 @@ const CalendarSecondaryHeader: React.FC<CalendarSecondaryHeaderProps> = ({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-white/40 backdrop-blur-md border-b border-gray-100 z-20"
+                    className="bg-white/80 backdrop-blur-2xl border-x border-b border-white/60 z-30 rounded-b-[2.5rem] -mt-1"
                 >
-                    <div className="max-w-[1920px] mx-auto px-4 lg:px-8 py-4">
+                    <div className="max-w-[1920px] mx-auto px-4 lg:px-8 py-5">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             
                             {/* --- FILTERS SECTION --- */}

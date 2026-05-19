@@ -141,18 +141,20 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
 
     return (
         <div className={`
-            relative z-30 transition-all duration-500 ease-in-out
+            relative transition-all duration-500 ease-in-out
             ${isExpanded 
-                ? 'bg-white/95 backdrop-blur-xl border-b border-gray-100 p-4 shadow-sm sticky top-0 md:rounded-b-[2.5rem]' 
-                : 'bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.1)] border border-white/60 p-4 lg:p-5 ring-1 ring-white/60'
+                ? 'bg-white/95 backdrop-blur-xl border-b border-white/60 p-4 sticky top-0 md:rounded-b-[2.5rem]' 
+                : showFilters
+                    ? 'bg-white/80 backdrop-blur-2xl rounded-t-[2.5rem] rounded-b-none border-x border-t border-white/60 p-4 lg:p-5 ring-1 ring-white/60 z-40'
+                    : 'bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 p-4 lg:p-5 ring-1 ring-white/60 z-30'
             }
         `}>
             
             {/* Responsive Container: Stack on Mobile, Row on Desktop */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4 lg:gap-6">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 lg:gap-6">
                 
-                {/* --- NAVIGATION --- */}
-                <div className="flex items-center gap-3 w-full lg:w-auto">
+                {/* --- NAVIGATION & MOBILE TOOLS --- */}
+                <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
                     <div className="flex items-center bg-white/50 rounded-2xl shadow-sm border border-gray-100 h-11 p-1 hover:shadow-md hover:border-indigo-200 transition-all duration-300">
                         <button 
                             onClick={handlePrev} 
@@ -164,7 +166,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                         
                         <div 
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="px-3 md:px-5 h-full flex items-center justify-center min-w-[140px] md:min-w-[160px] cursor-pointer hover:bg-slate-50/50 rounded-xl transition-all relative select-none active:scale-95 overflow-hidden"
+                            className="px-3 md:px-5 h-full flex items-center justify-center min-w-[130px] sm:min-w-[140px] md:min-w-[160px] cursor-pointer hover:bg-slate-50/50 rounded-xl transition-all relative select-none active:scale-95 overflow-hidden"
                             title={isExpanded ? "ย่อมุมมอง" : "ขยายเต็มจอ"}
                         >
                             <AnimatePresence mode="wait">
@@ -176,7 +178,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                                     transition={{ duration: 0.3, ease: "easeOut" }}
                                     className="flex items-center gap-2"
                                 >
-                                    <span className="text-sm md:text-base font-black text-slate-700 tracking-tight transition-colors whitespace-nowrap">
+                                    <span className="text-xs sm:text-sm md:text-base font-black text-slate-700 tracking-tight transition-colors whitespace-nowrap">
                                         {calendarViewType === 'WEEK' ? (
                                             <>
                                                 สัปดาห์ที่ <span className="text-indigo-500 font-bold">{format(safeDate, 'w')}</span>
@@ -190,7 +192,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                                 </motion.div>
                             </AnimatePresence>
                         </div>
-
+ 
                         <button 
                             onClick={handleNext} 
                             className="w-8 h-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-90"
@@ -199,13 +201,39 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
-                </div>
 
+                    {/* Mobile Only: Tools and Create in the same row */}
+                    <div className="lg:hidden flex items-center gap-2">
+                        <button 
+                            onClick={onToggleFilters}
+                            className={`
+                                h-11 w-11 flex items-center justify-center rounded-2xl border transition-all duration-300 shadow-sm active:scale-95
+                                ${showFilters 
+                                    ? 'bg-indigo-600 text-white border-indigo-600' 
+                                    : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-200'}
+                            `}
+                        >
+                            <SlidersHorizontal className={`w-4 h-4 ${showFilters ? 'rotate-90' : ''}`} />
+                        </button>
+                        <button 
+                            onClick={() => onSelectDate(new Date(), viewMode)}
+                            className={`
+                                h-11 w-11 flex items-center justify-center rounded-2xl transition-all duration-300 shadow-sm active:scale-95 border-2
+                                ${viewMode === 'CONTENT' 
+                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-100' 
+                                    : 'bg-emerald-50 text-emerald-600 border-emerald-100'}
+                            `}
+                        >
+                            <Plus className="w-5 h-5 stroke-[3px]" />
+                        </button>
+                    </div>
+                </div>
+ 
                 {/* --- TOGGLES ROW --- */}
-                <div className="flex items-center gap-2 lg:gap-3 lg:flex-1 justify-start overflow-x-auto scrollbar-hide py-1">
+                <div className="flex items-center gap-2 lg:gap-3 lg:flex-1 justify-start overflow-x-auto scrollbar-hide py-0.5">
                     
                     {/* Toggle Cluster 1: Board/Cal & Mode */}
-                    <div className="flex items-center gap-2 bg-slate-100/30 p-1 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-2 bg-slate-100/30 p-1 rounded-2xl border border-slate-100 shrink-0">
                         {/* 1. Display Mode Toggle (Show state NOT selected) */}
                         <button 
                             onClick={() => setDisplayMode(displayMode === 'CALENDAR' ? 'BOARD' : 'CALENDAR')}
@@ -229,7 +257,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                         <button 
                             onClick={() => setViewMode(viewMode === 'CONTENT' ? 'TASK' : 'CONTENT')}
                             className={`
-                                relative flex items-center gap-2 h-9 w-[190px] px-3 rounded-xl border transition-all duration-500 active:scale-95 shadow-sm group overflow-hidden
+                                relative flex items-center gap-2 h-9 w-[180px] sm:w-[190px] px-3 rounded-xl border transition-all duration-500 active:scale-95 shadow-sm group overflow-hidden
                                 ${viewMode === 'CONTENT' 
                                     ? 'bg-rose-400 border-rose-500 text-white shadow-rose-100' 
                                     : 'bg-sky-400 border-sky-500 text-white shadow-sky-100'}
@@ -279,21 +307,21 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                                 animate={{ opacity: 1, width: 'auto', x: 0 }}
                                 exit={{ opacity: 0, width: 0, x: 20 }}
                                 transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                                className="overflow-hidden flex items-center"
+                                className="overflow-hidden flex items-center shrink-0"
                             >
                                 <div className="hidden lg:block w-px h-6 bg-slate-200 mx-1 mr-3" />
                                 <button 
                                     onClick={toggleCalendarViewType}
-                                    className="flex items-center gap-2 h-11 px-5 bg-white hover:bg-slate-50 rounded-2xl border border-slate-200 shadow-sm transition-all active:scale-95 text-slate-600 group whitespace-nowrap"
+                                    className="flex items-center gap-2 h-9 px-4 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 shadow-sm transition-all active:scale-95 text-slate-600 group whitespace-nowrap"
                                 >
                                     {calendarViewType === 'MONTH' ? (
                                         <>
-                                            <LayoutList className="w-4 h-4 text-indigo-500 group-hover:scale-110 transition-transform" />
+                                            <LayoutList className="w-3.5 h-3.5 text-indigo-500 group-hover:scale-110 transition-transform" />
                                             <span className="text-[10px] font-black uppercase tracking-wider">Weekly</span>
                                         </>
                                     ) : (
                                         <>
-                                            <CalendarDays className="w-4 h-4 text-emerald-500 group-hover:scale-110 transition-transform" />
+                                            <CalendarDays className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
                                             <span className="text-[10px] font-black uppercase tracking-wider">Monthly</span>
                                         </>
                                     )}
@@ -303,8 +331,8 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
                     </AnimatePresence>
                 </div>
 
-                {/* --- TOOLS & CREATE --- */}
-                <div className="flex items-center gap-3 ml-auto shrink-0">
+                {/* --- TOOLS & CREATE (Desktop) --- */}
+                <div className="hidden lg:flex items-center gap-3 ml-auto shrink-0">
                     <button 
                         onClick={onToggleFilters}
                         className={`

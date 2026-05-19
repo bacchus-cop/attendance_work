@@ -246,8 +246,8 @@ const ContentStock: React.FC<ContentStockProps> = ({ tasks: globalTasks, channel
   }, [globalTasks]);
 
   return (
-    <AppBackground theme={bgTheme} pattern="icons" className="p-4 md:p-8 min-h-screen">
-      <div className="relative z-10 space-y-4 animate-in fade-in duration-500 pb-20">
+    <AppBackground theme={bgTheme} pattern="icons" className="p-4 md:p-8 min-h-screen overflow-x-hidden">
+      <div className="relative z-10 space-y-4 animate-in fade-in duration-500 pb-20 max-w-full overflow-x-hidden">
         <MentorTip variant="purple" messages={[
             "มุมมอง List แบบละเอียด ช่วยให้เช็คสถานะงานได้ครบถ้วน", 
             "ใช้ตัวกรอง Status เลือกดูเฉพาะขั้นตอนที่สนใจได้ เช่น ดูเฉพาะ 'Script' และ 'Shooting'", 
@@ -294,7 +294,8 @@ const ContentStock: React.FC<ContentStockProps> = ({ tasks: globalTasks, channel
 
                   {/* Quick Channel Chips */}
                   {viewTab === 'LIST' && (
-                    <div className="w-full overflow-x-auto scrollbar-hide -mx-2 px-2 pb-1">
+                    <div className="w-full overflow-hidden">
+                        <div className="w-full overflow-x-auto scrollbar-hide -mx-2 px-2 pb-1">
                         <div className="flex items-center gap-2.5 pt-1 flex-nowrap min-w-max pr-4">
                             <button
                                 onClick={() => setFilterChannel('ALL')}
@@ -316,6 +317,7 @@ const ContentStock: React.FC<ContentStockProps> = ({ tasks: globalTasks, channel
                                 );
                             })}
                         </div>
+                    </div>
                     </div>
                   )}
               </div>
