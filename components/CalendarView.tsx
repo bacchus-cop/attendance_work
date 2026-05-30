@@ -132,6 +132,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({
 
   const { showAlert } = useGlobalDialog();
 
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.classList.add('calendar-focus-mode');
+    } else {
+      document.body.classList.remove('calendar-focus-mode');
+    }
+    return () => {
+      document.body.classList.remove('calendar-focus-mode');
+    };
+  }, [isExpanded]);
+
   // Trigger Range Change when month changes
   useEffect(() => {
       if (onRangeChange) {
@@ -181,25 +192,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   const containerClasses = isExpanded 
-    ? "relative h-full overflow-x-hidden p-2 md:p-6 animate-in zoom-in-95 duration-300" 
+    ? "relative min-h-screen overflow-x-hidden p-2 md:p-6 pb-16 animate-in zoom-in-95 duration-300" 
     : "relative z-10 space-y-6 md:space-y-8 animate-in fade-in duration-500 pb-20 md:pb-24 overflow-x-hidden";
 
   return (
     <AppBackground 
       theme={bgTheme} 
       pattern="dots" 
-      className={isExpanded ? "fixed inset-0 z-50" : "p-4 md:p-8 min-h-screen"}
+      className={isExpanded ? "p-2 md:p-6 min-h-screen" : "p-4 md:p-8 min-h-screen"}
     >
       <div className={containerClasses}>
-        {isExpanded && (
-           <button 
-             onClick={() => setIsExpanded(false)}
-             className="absolute top-4 right-4 p-2.5 bg-white hover:bg-gray-100 text-gray-500 hover:text-gray-800 rounded-full z-50 shadow-lg border border-gray-200 transition-all hover:scale-110 active:scale-95"
-             title="ย่อหน้าจอ"
-           >
-               <Minimize2 className="w-6 h-6" />
-           </button>
-        )}
 
         {isFetching && (
             <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] bg-white/90 backdrop-blur border border-indigo-100 shadow-xl px-4 py-2 rounded-full flex items-center gap-2 animate-in slide-in-from-top-4">
@@ -209,7 +211,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         )}
 
         
-        <div className={`relative isolate z-30 transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] ${isExpanded ? 'mb-6 max-w-[1920px] mx-auto rounded-b-[2.5rem]' : 'rounded-[2.5rem]'}`}>
+        <div className={`
+          isolate transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] 
+          ${isExpanded 
+            ? 'sticky top-0 z-50 mb-6 max-w-[1920px] mx-auto rounded-b-2xl md:rounded-b-[2.5rem] bg-white/95 backdrop-blur-xl border-b border-white/60 shadow-md' 
+            : 'relative z-30 rounded-[2.5rem]'
+          }
+        `}>
            {!isExpanded && displayMode === 'CALENDAR' && (
                 <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none">
                 <>
@@ -293,6 +301,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
               isStockOpen={isStockOpen}
               taskDisplayMode={taskDisplayMode}
               setTaskDisplayMode={setTaskDisplayMode}
+              isExpanded={isExpanded}
            />
         </div>
 

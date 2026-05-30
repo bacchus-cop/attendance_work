@@ -1,13 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Inbox, Package, Eye, Wrench, Check, SlidersHorizontal,
-    X, Plus, Search, Filter, Trash2
+    Inbox, Package, Eye, Wrench, Check, Plus, X, Ban
 } from 'lucide-react';
 import NotificationBellBtn from '../NotificationBellBtn';
 import { COLOR_THEMES } from '../../constants';
 import { ChipConfig, Channel } from '../../types';
-import { Ban } from 'lucide-react';
 
 interface CalendarSecondaryHeaderProps {
     show: boolean;
@@ -32,6 +30,7 @@ interface CalendarSecondaryHeaderProps {
     // Layout logic
     taskDisplayMode: 'MINIMAL' | 'DOT' | 'EMOJI' | 'FULL';
     setTaskDisplayMode: (mode: 'MINIMAL' | 'DOT' | 'EMOJI' | 'FULL') => void;
+    isExpanded?: boolean;
 }
 
 const CalendarSecondaryHeader: React.FC<CalendarSecondaryHeaderProps> = ({
@@ -39,7 +38,8 @@ const CalendarSecondaryHeader: React.FC<CalendarSecondaryHeaderProps> = ({
     activeChipIds, toggleChip, customChips, channels, onManageFilters,
     unreadCount, onOpenNotifications, onOpenSettings, onToggleWorkbox, onToggleStock,
     isWorkboxOpen, isStockOpen,
-    taskDisplayMode, setTaskDisplayMode
+    taskDisplayMode, setTaskDisplayMode,
+    isExpanded = false
 }) => {
     const [isViewMenuOpen, setIsViewMenuOpen] = React.useState(false);
 
@@ -50,7 +50,17 @@ const CalendarSecondaryHeader: React.FC<CalendarSecondaryHeaderProps> = ({
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="bg-white/80 backdrop-blur-2xl border-x border-b border-white/60 z-30 rounded-b-[2.5rem] -mt-1"
+                    transition={{
+                        height: { type: 'spring', stiffness: 180, damping: 25, mass: 0.8 },
+                        opacity: { duration: 0.25, ease: 'easeInOut' }
+                    }}
+                    className={`
+                        z-30 overflow-hidden
+                        ${isExpanded 
+                            ? 'bg-transparent border-t border-slate-100/60' 
+                            : 'bg-white/80 backdrop-blur-2xl border-x border-b border-white/60 rounded-b-[2.5rem] -mt-1'
+                        }
+                    `}
                 >
                     <div className="max-w-[1920px] mx-auto px-4 lg:px-8 py-5">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -239,6 +249,7 @@ const CalendarSecondaryHeader: React.FC<CalendarSecondaryHeaderProps> = ({
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
+                            
                         </div>
                     </div>
                 </motion.div>

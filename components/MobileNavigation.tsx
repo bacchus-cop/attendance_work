@@ -240,7 +240,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
     return (
         <>
             {/* --- BOTTOM DOCK (Floating) --- */}
-            <div className="fixed bottom-0 left-0 right-0 z-30 p-3 pb-safe-area lg:hidden pointer-events-none">
+            <div className="fixed bottom-0 left-0 right-0 z-30 p-3 pb-safe-area lg:hidden pointer-events-none mobile-nav-dock">
                 <div className={`backdrop-blur-xl border shadow-[0_8px_30px_rgb(0,0,0,0.15)] rounded-[2rem] p-1.5 flex items-center justify-between pointer-events-auto gap-1 max-w-sm mx-auto ring-1 ${themeClasses.dock}`}>
                     {[
                         { view: 'DASHBOARD', icon: LayoutGrid, label: 'Home' },

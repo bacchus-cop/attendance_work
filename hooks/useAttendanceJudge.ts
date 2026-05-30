@@ -100,7 +100,7 @@ export const useAttendanceJudge = (
                         if (!isProcessingRef.current.has(lockKey)) {
                             isProcessingRef.current.add(lockKey);
                             try {
-                                const checkDateThai = format(checkDate, 'd MMM Locale', { locale: th }).replace('Locale', '');
+                                const checkDateThai = format(checkDate, 'd MMM', { locale: th });
                                 await supabase.from('notifications').insert({
                                     user_id: currentUser.id,
                                     type: 'INFO',
@@ -188,7 +188,7 @@ export const useAttendanceJudge = (
                                  date: checkDateStr,
                                  id: `ABSENT:${checkDateStr}`, // Use as idempotency key
                                  reason: `ABSENT_DATE:${checkDateStr}`,
-                                 description: `ขาดงานในวันที่ ${format(checkDate, 'd MMM Locale', { locale: th }).replace('Locale', '')} (ไม่พบข้อมูลการลงเวลาทำงาน)`
+                                 description: `ขาดงานในวันที่ ${format(checkDate, 'd MMM', { locale: th })} (ไม่พบข้อมูลการลงเวลาทำงาน)`
                              });
                              
                              console.log(`[AutoJudge] ${currentUser.name} marked ABSENT for ${checkDateStr} (Lookback)`);
@@ -297,7 +297,7 @@ export const useAttendanceJudge = (
                             date: log.date,
                             id: `FORGOT_OUT:${log.date}`, // Use as idempotency key
                             reason: `FORGOT_OUT_DATE:${log.date}`,
-                            description: `ลืมตอกบัตรออกของวันที่ ${format(new Date(log.date), 'd MMM Locale', { locale: th }).replace('Locale', '')} ระบบได้ทำการหักคะแนนอัตโนมัติ`
+                            description: `ลืมตอกบัตรออกของวันที่ ${format(new Date(log.date), 'd MMM', { locale: th })} ระบบได้ทำการหักคะแนนอัตโนมัติ`
                         });
 
                         const forgotCheckoutPenalty = config?.ATTENDANCE_RULES?.FORGOT_CHECKOUT?.hp ?? -10;

@@ -408,3 +408,10 @@
 .dark .ProseMirror[style*="color:rgb(0,0,0)"] {
   color: #ffffff !important;
 }
+
+/* Calendar Focus Mode Style Overrides */
+body.calendar-focus-mode aside,
+body.calendar-focus-mode .mobile-nav-dock {
+  display: none !important;
+}
+

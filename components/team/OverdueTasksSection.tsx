@@ -107,7 +107,7 @@ export const OverdueTasksSection: React.FC<OverdueTasksSectionProps> = ({
                                     switch (level) {
                                         case 3: // Overdue 3+ Weeks (Severe Backlog)
                                             return {
-                                                cardClass: "bg-gradient-to-br from-white via-rose-50/50 to-rose-100/30 border-rose-200 shadow-[0_4px_24px_rgba(244,63,94,0.03)] hover:border-rose-350 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]",
+                                                cardClass: "bg-gradient-to-br from-white via-rose-50/50 to-rose-100/30 border-rose-200 shadow-[0_4px_24px_rgba(244,63,94,0.03)] hover:border-rose-300 hover:shadow-[0_12px_32px_rgba(244,63,94,0.12)]",
                                                 badgeClass: "bg-gradient-to-r from-rose-500 to-pink-500 text-white font-extrabold shadow-[0_2px_8px_rgba(244,63,94,0.3)] animate-pulse",
                                                 textAccent: "text-rose-600 bg-rose-50/60 border border-rose-100 px-2 py-0.5 rounded-full select-none",
                                                 levelLabel: "🔥 วิกฤต (3+ สัปดาห์)",
@@ -117,7 +117,7 @@ export const OverdueTasksSection: React.FC<OverdueTasksSectionProps> = ({
                                         case 2: // Overdue 1-3 Weeks (Medium Backlog)
                                             return {
                                                 cardClass: "bg-gradient-to-br from-white via-amber-50/40 to-amber-100/20 border-amber-200 shadow-[0_4px_24px_rgba(245,158,11,0.02)] hover:border-amber-300 hover:shadow-[0_12px_32px_rgba(245,158,11,0.08)]",
-                                                badgeClass: "bg-gradient-to-r from-orange-450 to-amber-500 text-white font-extrabold shadow-[0_2px_8px_rgba(245,158,11,0.2)]",
+                                                badgeClass: "bg-gradient-to-r from-orange-400 to-amber-500 text-white font-extrabold shadow-[0_2px_8px_rgba(245,158,11,0.2)]",
                                                 textAccent: "text-amber-700 bg-amber-50/60 border border-amber-100 px-2 py-0.5 rounded-full select-none",
                                                 levelLabel: "⚡ ล่าช้า (1-3 สัปดาห์)",
                                                 dotClass: "bg-amber-500 animate-pulse",
@@ -161,7 +161,7 @@ export const OverdueTasksSection: React.FC<OverdueTasksSectionProps> = ({
                                         }}
                                         whileTap={{ scale: 0.98 }}
                                         transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                                        className={`relative group border backdrop-blur-md rounded-[1.75rem] p-5.5 transition-all duration-300 ease-out flex flex-col justify-between gap-4.5 text-left min-h-[170px] ${config.cardClass} ${config.glowRing}`}
+                                        className={`relative group border backdrop-blur-md rounded-[1.75rem] p-6 transition-all duration-300 ease-out flex flex-col justify-between gap-4 text-left min-h-[170px] ${config.cardClass} ${config.glowRing}`}
                                         id={`overdue-card-${task.id}`}
                                     >
                                         <div className="flex flex-col gap-3">
@@ -215,13 +215,13 @@ export const OverdueTasksSection: React.FC<OverdueTasksSectionProps> = ({
                                                     assignees.map((user) => (
                                                         <div 
                                                             key={user.id} 
-                                                            className="w-7 h-7 rounded-full border border-white bg-slate-50 flex items-center justify-center shrink-0 ring-1 ring-slate-150 overflow-hidden relative group-hover:scale-105 transition-transform shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                                                            className="w-7 h-7 rounded-full border border-white bg-slate-50 flex items-center justify-center shrink-0 ring-1 ring-slate-200 overflow-hidden relative group-hover:scale-105 transition-transform shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
                                                             title={user.name}
                                                         >
                                                             {user.avatarUrl ? (
                                                                 <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                                             ) : (
-                                                                <span className="text-[10px] font-bold text-slate-550">{user.name.charAt(0)}</span>
+                                                                <span className="text-[10px] font-bold text-slate-500">{user.name.charAt(0)}</span>
                                                             )}
                                                         </div>
                                                     ))

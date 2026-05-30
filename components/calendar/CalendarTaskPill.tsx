@@ -326,6 +326,31 @@ const CalendarTaskPill: React.FC<CalendarTaskPillProps> = ({
         }
     };
 
+    const tooltipPosition = useMemo(() => {
+        if (dayOfWeek === 0) {
+            return {
+                className: `absolute left-0 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-4 z-[9999] pointer-events-none text-left flex flex-col gap-2.5 ${
+                    isFirstWeek ? 'top-[calc(100%+8px)] origin-top-left' : 'bottom-[calc(100%+8px)] origin-bottom-left'
+                }`,
+                xValue: '0%',
+            };
+        }
+        if (dayOfWeek === 6) {
+            return {
+                className: `absolute right-0 left-auto w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-4 z-[9999] pointer-events-none text-left flex flex-col gap-2.5 ${
+                    isFirstWeek ? 'top-[calc(100%+8px)] origin-top-right' : 'bottom-[calc(100%+8px)] origin-bottom-right'
+                }`,
+                xValue: '0%',
+            };
+        }
+        return {
+            className: `absolute left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-4 z-[9999] pointer-events-none text-left flex flex-col gap-2.5 ${
+                isFirstWeek ? 'top-[calc(100%+8px)] origin-top' : 'bottom-[calc(100%+8px)] origin-bottom'
+            }`,
+            xValue: '-50%',
+        };
+    }, [dayOfWeek, isFirstWeek]);
+
     return (
         <>
             <motion.div 
@@ -366,13 +391,11 @@ const CalendarTaskPill: React.FC<CalendarTaskPillProps> = ({
             <AnimatePresence>
                 {isHovered && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: isFirstWeek ? -10 : 10, x: '-50%' }}
-                        animate={{ opacity: 1, scale: 1, y: 0, x: '-50%' }}
-                        exit={{ opacity: 0, scale: 0.95, y: isFirstWeek ? -6 : 6, x: '-50%' }}
+                        initial={{ opacity: 0, scale: 0.95, y: isFirstWeek ? -10 : 10, x: tooltipPosition.xValue }}
+                        animate={{ opacity: 1, scale: 1, y: 0, x: tooltipPosition.xValue }}
+                        exit={{ opacity: 0, scale: 0.95, y: isFirstWeek ? -6 : 6, x: tooltipPosition.xValue }}
                         transition={{ type: 'spring', damping: 15, stiffness: 300 }}
-                        className={`absolute left-1/2 -translate-x-1/2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_15px_30px_rgba(0,0,0,0.12)] border border-slate-100 p-4 z-[9999] pointer-events-none text-left flex flex-col gap-2.5 ${
-                            isFirstWeek ? 'top-[calc(100%+8px)] origin-top' : 'bottom-[calc(100%+8px)] origin-bottom'
-                        }`}
+                        className={tooltipPosition.className}
                     >
                         {/* Warning Header */}
                         {isUnfinishedContent && (

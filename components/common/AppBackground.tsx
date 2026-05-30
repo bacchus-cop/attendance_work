@@ -186,16 +186,15 @@ const AppBackground: React.FC<AppBackgroundProps> = ({
         <div className={`relative w-auto min-h-screen flex flex-col overflow-x-hidden max-w-full ${className}`}>
             {/* Background Layer */}
             <div 
-                className={`absolute inset-0 bg-gradient-to-br ${themeConfig} transition-colors duration-1000 pointer-events-none z-0`} 
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                className={`fixed inset-0 bg-gradient-to-br ${themeConfig} transition-colors duration-1000 pointer-events-none z-0`} 
             />
             
             {/* Pattern Layer */}
-            <div className="absolute inset-0 pointer-events-none z-0" style={{ ...patternStyle, position: 'absolute' }} />
+            <div className="fixed inset-0 pointer-events-none z-0" style={{ ...patternStyle }} />
             
             {/* Decorative Elements for Script, Inspector, Productivity & Rainbow Theme */}
             {(theme === 'script' || theme === 'inspector' || theme === 'productivity' || theme === 'rainbow') && (
-                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
                     {/* Desk Lamp Glow for Inspector */}
                     {theme === 'inspector' && (
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[800px] bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none" />
