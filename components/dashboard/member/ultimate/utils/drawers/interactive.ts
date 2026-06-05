@@ -316,3 +316,194 @@ export const drawWikiPortal = (
     ctx.stroke();
     ctx.restore();
 };
+
+export const drawWhiteboard = (
+    ctx: CanvasRenderingContext2D,
+    pixelSize: number,
+    tick: number,
+    ambientShadow: string
+) => {
+    // 1. Floor shadow
+    ctx.fillStyle = ambientShadow;
+    ctx.beginPath();
+    ctx.ellipse(0, 10 * pixelSize, 14 * pixelSize, 5 * pixelSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Support legs
+    ctx.fillStyle = '#334155'; // Dark metallic grey frame
+    ctx.fillRect(-8 * pixelSize, -10 * pixelSize, 2 * pixelSize, 20 * pixelSize); // left leg
+    ctx.fillRect(6 * pixelSize, -10 * pixelSize, 2 * pixelSize, 20 * pixelSize);  // right leg
+    
+    // Bottom horizontal crossbar
+    ctx.fillRect(-9 * pixelSize, 4 * pixelSize, 18 * pixelSize, 2 * pixelSize);
+
+    // 3. Main Whiteboard Surface
+    ctx.fillStyle = '#1e293b'; // Board frame backing
+    ctx.fillRect(-11 * pixelSize, -24 * pixelSize, 22 * pixelSize, 17 * pixelSize);
+    ctx.fillStyle = '#f8fafc'; // White canvas
+    ctx.fillRect(-10 * pixelSize, -23 * pixelSize, 20 * pixelSize, 15 * pixelSize);
+
+    // 4. Whiteboard details (Calendar Grid & Sticky notes)
+    ctx.strokeStyle = '#e2e8f0'; // Light dividers
+    ctx.lineWidth = 0.5 * pixelSize;
+    
+    // Vertical calendar column separators
+    for (let col = -7; col <= 7; col += 3.5) {
+        ctx.beginPath();
+        ctx.moveTo(col * pixelSize, -22 * pixelSize);
+        ctx.lineTo(col * pixelSize, -10 * pixelSize);
+        ctx.stroke();
+    }
+    // Horizontal row separators
+    for (let row = -19; row <= -10; row += 3) {
+        ctx.beginPath();
+        ctx.moveTo(-9 * pixelSize, row * pixelSize);
+        ctx.lineTo(9 * pixelSize, row * pixelSize);
+        ctx.stroke();
+    }
+
+    // Mini sticky notes pinned on board
+    ctx.fillStyle = '#fbbf24'; // Yellow post-it
+    ctx.fillRect(-8 * pixelSize, -18 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+    ctx.fillStyle = '#38bdf8'; // Sky blue note
+    ctx.fillRect(-1 * pixelSize, -15 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+    ctx.fillStyle = '#4ade80'; // Emerald note
+    ctx.fillRect(4 * pixelSize, -18 * pixelSize, 2 * pixelSize, 2 * pixelSize);
+
+    // Draw little marker pen on bottom tray
+    ctx.fillStyle = '#ef4444'; // Red marker
+    ctx.fillRect(-2 * pixelSize, -7 * pixelSize, 2 * pixelSize, 0.7 * pixelSize);
+};
+
+export const drawMagicBroom = (
+    ctx: CanvasRenderingContext2D,
+    pixelSize: number,
+    tick: number,
+    ambientShadow: string
+) => {
+    // 1. Floor shadow
+    ctx.fillStyle = ambientShadow;
+    ctx.beginPath();
+    ctx.ellipse(0, 10 * pixelSize, 10 * pixelSize, 4.5 * pixelSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Crystal Clean Bucket next to broom
+    ctx.fillStyle = '#1e3a8a'; // Dark blue crystal glass bucket
+    ctx.fillRect(3 * pixelSize, 1 * pixelSize, 6 * pixelSize, 8 * pixelSize);
+    
+    const liquidColor = Math.sin(tick * 0.1) > 0 ? '#67e8f9' : '#22d3ee'; // Sparkling crystal water
+    ctx.fillStyle = liquidColor;
+    ctx.fillRect(3.5 * pixelSize, 2 * pixelSize, 5 * pixelSize, 2 * pixelSize);
+
+    // 3. Upright Magic Broom (with some dynamic floating bounce)
+    const bounce = Math.sin(tick * 0.08) * 1.5;
+    ctx.save();
+    ctx.translate(-3 * pixelSize, bounce * pixelSize);
+
+    // Broom handle (Oak wood)
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(-1 * pixelSize, -20 * pixelSize, 1.5 * pixelSize, 20 * pixelSize);
+
+    // Handle crystal top
+    ctx.fillStyle = '#a855f7'; // Purple crown crystal
+    ctx.beginPath();
+    ctx.arc(-0.25 * pixelSize, -21 * pixelSize, 1.2 * pixelSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Broom straws / head (Straw yellow)
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath();
+    ctx.moveTo(-2 * pixelSize, 0);
+    ctx.lineTo(2.5 * pixelSize, 0);
+    ctx.lineTo(4 * pixelSize, 8 * pixelSize);
+    ctx.lineTo(-4 * pixelSize, 8 * pixelSize);
+    ctx.closePath();
+    ctx.fill();
+
+    // Red ribbon tying straw head
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-2 * pixelSize, 1.5 * pixelSize, 4 * pixelSize, 1.5 * pixelSize);
+
+    ctx.restore();
+
+    // 4. Rising duty sparkles
+    if (tick % 45 < 15) {
+        ctx.fillStyle = '#38bdf8'; // Blue sparkle
+        ctx.fillRect(-2 * pixelSize, -3 * pixelSize, 0.8 * pixelSize, 0.8 * pixelSize);
+        ctx.fillStyle = '#67e8f9'; // Cyan bubble
+        ctx.fillRect(6 * pixelSize, -4 * pixelSize, 0.8 * pixelSize, 0.8 * pixelSize);
+    }
+};
+
+export const drawMeetingTable = (
+    ctx: CanvasRenderingContext2D,
+    pixelSize: number,
+    tick: number,
+    ambientShadow: string
+) => {
+    // 1. Large Circular Floor Shadow
+    ctx.fillStyle = ambientShadow;
+    ctx.beginPath();
+    ctx.ellipse(0, 10 * pixelSize, 19 * pixelSize, 10 * pixelSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Cozy mini chairs surrounding the conference/meeting table
+    const chairs = [
+        { cx: -15, cy: 0, color: '#be123c', dir: 'left' },  // crimson chair left
+        { cx: 12, cy: 0, color: '#0369a1', dir: 'right' }, // blue chair right
+        { cx: 0, cy: -8, color: '#5b21b6', dir: 'top' }    // violet chair back
+    ];
+    chairs.forEach(c => {
+        ctx.fillStyle = '#451a03'; // Wooden legs
+        ctx.fillRect(c.cx * pixelSize, (c.cy + 4) * pixelSize, 1.5 * pixelSize, 4 * pixelSize);
+        ctx.fillStyle = c.color;   // Pillow cushion
+        ctx.fillRect((c.cx - 2) * pixelSize, c.cy * pixelSize, 4 * pixelSize, 2.5 * pixelSize);
+        
+        // Wooden backrest
+        ctx.fillStyle = '#512e16';
+        if (c.dir === 'left') {
+            ctx.fillRect((c.cx - 3) * pixelSize, (c.cy - 6) * pixelSize, 1.5 * pixelSize, 8 * pixelSize);
+        } else if (c.dir === 'right') {
+            ctx.fillRect((c.cx + 1.5) * pixelSize, (c.cy - 6) * pixelSize, 1.5 * pixelSize, 8 * pixelSize);
+        } else {
+            ctx.fillRect((c.cx - 3) * pixelSize, (c.cy - 6) * pixelSize, 6 * pixelSize, 1.5 * pixelSize);
+        }
+    });
+
+    // 3. Grand Table pedestal
+    ctx.fillStyle = '#451a03'; // Deep wood pedestal column
+    ctx.fillRect(-4 * pixelSize, 0, 8 * pixelSize, 8 * pixelSize);
+
+    // 4. Massive Table Surface (Elegant Isometric ellipse)
+    ctx.fillStyle = '#1e1b4b'; // Deep Space blue table wood
+    ctx.beginPath();
+    ctx.ellipse(0, -1 * pixelSize, 13 * pixelSize, 7 * pixelSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#d97706'; // Golden rim line
+    ctx.lineWidth = 1 * pixelSize;
+    ctx.stroke();
+
+    // 5. Floating Levitating Runes Crystal Orb in Center
+    const floatY = -8 * pixelSize + Math.sin(tick * 0.06) * 2 * pixelSize;
+    
+    // Glistening projection light on table
+    const lightGlow = ctx.createRadialGradient(0, -1 * pixelSize, 1, 0, -1 * pixelSize, 6 * pixelSize);
+    lightGlow.addColorStop(0, 'rgba(56, 189, 248, 0.45)'); // Emerald light glow
+    lightGlow.addColorStop(1, 'rgba(30, 27, 75, 0)');
+    ctx.fillStyle = lightGlow;
+    ctx.beginPath();
+    ctx.ellipse(0, -1 * pixelSize, 7 * pixelSize, 3.5 * pixelSize, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // The crystal orb
+    ctx.fillStyle = '#38bdf8'; // Glowing teal core
+    ctx.beginPath();
+    ctx.arc(0, floatY, 2.5 * pixelSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff'; // Gloss reflection dot
+    ctx.beginPath();
+    ctx.arc(-0.8 * pixelSize, floatY - 0.8 * pixelSize, 0.7 * pixelSize, 0, Math.PI * 2);
+    ctx.fill();
+};

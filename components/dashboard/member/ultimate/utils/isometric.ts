@@ -20,12 +20,14 @@ export const FURNITURE_MAP = {
     PLANT_1:           { fx: -1.25, fy: 0.80,  label: '🌱 กระถางนำโชคพฤกษา' },
     PLANT_2:           { fx: 1.25,  fy: 0.80,  label: '🌱 มุมใบไม้พริ้วเวทมนตร์' },
     QUEST_BOARD:       { fx: -0.90, fy: 0.15,  label: '📜 ป้ายภารกิจกิลด์รายสัปดาห์' },
-    DUTY_SIGN:         { fx: 0.90,  fy: -0.35, label: '🚦 เสาสัญญาณเวรหน้าที่ปฏิบัติการ' },
+    DUTY_BROOM:        { fx: 0.90,  fy: -0.35, label: '🧹 ไม้กวาดมนตรา (เวรหน้าที่ดูแล)' },
     GOAL_BEACON:       { fx: -0.40, fy: -0.55, label: '🔮 เสาคริสตัลเจตจำนงเป้าหมาย' },
     LEADERBOARD_ALTAR: { fx: 0.85,  fy: 0.25,  label: '🏆 แท่นหินเกียรติยศ Hall of Fame' },
     VAULT_BOX:         { fx: 0.40,  fy: 1.20,  label: '🪙 หีบมหาสมบัติร้านค้าแลกพอยท์' },
     CHAT_BALL:         { fx: -0.65, fy: 1.15,  label: '🔮 ลูกแก้วพยากรณ์สื่อสารปาร์ตี้' },
     WIKI_PORTAL:       { fx: -1.20, fy: -0.45, label: '🚪 ซุ้มวิกิมิติความรู้โบราณ' },
+    WHITEBOARD:        { fx: -0.65, fy: -0.35, label: '📋 กระดานวางโครงการ (ปฏิทินงาน)' },
+    MEETING_TABLE:     { fx: 0.15,  fy: 0.25,  label: '🤝 โต๊ะเวทมนตร์ประชุมใหญ่ (กิลด์ทีม)' },
     
     // NEW DECORATIVE FURNITURE
     CAULDRON:          { fx: -1.20, fy: 0.15,  label: '🧪 หม้อปรุงยาเวทมนตร์เดือดปุดๆ' },

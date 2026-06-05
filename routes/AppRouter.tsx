@@ -392,16 +392,14 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
 
   return (
     <>
-      <AnimatePresence mode="wait" initial={false}>
-        {isUltimateRoom ? (
-          <motion.div
-            key="ultimate-workroom-screen"
-            initial={{ opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 1.06, filter: 'blur(15px)' }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="min-h-screen w-full bg-[#0e101a] overflow-hidden"
-          >
+      {isUltimateRoom ? (
+        <motion.div
+          key="ultimate-workroom-screen"
+          initial={{ opacity: 0, scale: 0.94, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-screen w-full bg-[#0e101a] overflow-hidden"
+        >
             <Suspense fallback={<PageLoader />}>
               <UltimateWorkroomView
                 tasks={tasks}
@@ -412,20 +410,20 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
                 onUpdateTask={handleSaveTask}
                 onDeleteTask={handleDeleteTask}
                 onNavigateBack={() => handleNavigate('DASHBOARD')}
+                onNavigate={handleNavigate}
                 onRefreshProfile={fetchProfile}
                 isFetching={isTaskFetching}
               />
             </Suspense>
           </motion.div>
         ) : (
-          <motion.div
-            key="standard-appshell-screen"
-            initial={{ opacity: 0, scale: 1.06, filter: 'blur(12px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 0.94, filter: 'blur(12px)' }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="min-h-screen w-full"
-          >
+        <motion.div
+          key="standard-appshell-screen"
+          initial={{ opacity: 0, scale: 1.06, filter: 'blur(12px)' }}
+          animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-screen w-full"
+        >
             <AppShell
                   currentUser={currentUserProfile}
                   currentView={currentView}
@@ -532,7 +530,6 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
               </AppShell>
           </motion.div>
         )}
-      </AnimatePresence>
 
       {/* --- GLOBAL MODAL REGISTRY --- */}
       <GlobalModalRegistry

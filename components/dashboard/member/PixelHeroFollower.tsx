@@ -11,6 +11,9 @@ import {
 } from './ultimate/utils/isometric';
 import { drawDetailedRoomBackground } from './ultimate/utils/drawers/roomBackground';
 import { PlayerTagOverlay, OverlayPlayer } from './ultimate/PlayerTagOverlay';
+import { CameraControls } from './ultimate/CameraControls';
+import { EdgeAwareTooltip } from './ultimate/EdgeAwareTooltip';
+import { usePixelInteractions } from './ultimate/hooks/usePixelInteractions';
 import { User } from '../../../types';
 
 interface PixelHeroFollowerProps {
@@ -89,275 +92,28 @@ export const PixelHeroFollower: React.FC<PixelHeroFollowerProps> = ({
     }, [otherPlayers]);
 
     // Handle initial sizing and dynamic syncing on load
+    const isInitialViewportSync = useRef(true);
     useEffect(() => {
-        if (onViewportChange) {
+        if (isInitialViewportSync.current && onViewportChange) {
+            isInitialViewportSync.current = false;
             onViewportChange(zoomRef.current, panRef.current);
         }
-    }, []);
+    }, [onViewportChange]);
 
-    // Interactive Drag and Scroll Events
-    useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const SAFE_WALK_MIN = -1.15;
-        const SAFE_WALK_MAX = 1.15;
-        const clampToWalkable = (val: number) => Math.max(SAFE_WALK_MIN, Math.min(SAFE_WALK_MAX, val));
-
-        const handleWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            // Zoom bounds limits 0.45 to 2.2
-            const nextZoom = Math.max(0.45, Math.min(2.2, zoomRef.current + e.deltaY * -0.0016));
-            updateViewport(nextZoom, panRef.current);
-        };
-
-        const handleMouseDown = (e: MouseEvent) => {
-            // Ignore if clicking on buttons
-            if ((e.target as HTMLElement).closest('.hud-button')) return;
-
-            isDraggingMap.current = false;
-            dragStartMouse.current = { x: e.clientX, y: e.clientY };
-            dragStartPan.current = { ...panRef.current };
-            
-            lastActiveTime.current = Date.now();
-            if (isIdleRef.current) {
-                isIdleRef.current = false;
-            }
-
-            // Bind global move events so dragging outside canvas maintains lock
-            window.addEventListener('mousemove', handleMouseMoveGlobal);
-            window.addEventListener('mouseup', handleMouseUpGlobal);
-        };
-
-        const handleMouseMoveGlobal = (e: MouseEvent) => {
-            const dx = e.clientX - dragStartMouse.current.x;
-            const dy = e.clientY - dragStartMouse.current.y;
-
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                isDraggingMap.current = true;
-                const nextPan = {
-                    x: dragStartPan.current.x + dx,
-                    y: dragStartPan.current.y + dy
-                };
-                updateViewport(zoomRef.current, nextPan);
-            }
-        };
-
-        const handleMouseMoveOnCanvas = (e: MouseEvent) => {
-            // Only follow mouse if not currently dragging the map
-            if (isDraggingMap.current) return;
-
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            // Don't follow if mouse is on top of interactive HUD buttons
-            if ((e.target as HTMLElement).closest('.hud-button')) return;
-
-            const { fx, fy } = getFlatPosFromScreen(
-                e.clientX,
-                e.clientY,
-                canvas.width,
-                canvas.height,
-                panRef.current.x,
-                panRef.current.y,
-                zoomRef.current
-            );
-
-            // Clamp coordinate target for neat boundary limits
-            targetFlat.current.fx = clampToWalkable(fx);
-            targetFlat.current.fy = clampToWalkable(fy);
-            isMovingToTarget.current = true;
-
-            // Reset idle state
-            lastActiveTime.current = Date.now();
-            if (isIdleRef.current) {
-                isIdleRef.current = false;
-            }
-
-            // Check if mouse is hovering over any furniture to trigger hover visual effect (wizard look-at)
-            let isNearFurniture = false;
-            let closestDist = 0.095;
-            Object.entries(FURNITURE_MAP).forEach(([key, item]) => {
-                const isInteractable = [
-                    'BOOKSHELF', 'DESK', 'SOFA', 'QUEST_BOARD', 'DUTY_SIGN',
-                    'GOAL_BEACON', 'LEADERBOARD_ALTAR', 'VAULT_BOX', 'CHAT_BALL', 'WIKI_PORTAL'
-                ].includes(key);
-                if (!isInteractable) return;
-
-                const dist = Math.sqrt(Math.pow(fx - item.fx, 2) + Math.pow(fy - item.fy, 2));
-                if (dist < closestDist) {
-                    isNearFurniture = true;
-                }
-            });
-            setIsHoveringClickable(isNearFurniture);
-        };
-
-        const handleMouseUpGlobal = (e: MouseEvent) => {
-            window.removeEventListener('mousemove', handleMouseMoveGlobal);
-            window.removeEventListener('mouseup', handleMouseUpGlobal);
-
-            // If we panned the world, skip walking calculation
-            if (isDraggingMap.current) {
-                isDraggingMap.current = false;
-                return;
-            }
-
-            // Quick click helper: Move player hero to targeted coordinate or click furniture!
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const { fx, fy } = getFlatPosFromScreen(
-                e.clientX,
-                e.clientY,
-                canvas.width,
-                canvas.height,
-                panRef.current.x,
-                panRef.current.y,
-                zoomRef.current
-            );
-
-            // Check if user tapped directly on or near any piece of furniture
-            let clickedFurnitureKey: string | null = null;
-            let closestDist = 0.095; // distance click radius
-
-            Object.entries(FURNITURE_MAP).forEach(([key, item]) => {
-                const isInteractable = [
-                    'BOOKSHELF', 'DESK', 'SOFA', 'QUEST_BOARD', 'DUTY_SIGN',
-                    'GOAL_BEACON', 'LEADERBOARD_ALTAR', 'VAULT_BOX', 'CHAT_BALL', 'WIKI_PORTAL'
-                ].includes(key);
-                if (!isInteractable) return;
-
-                const dist = Math.sqrt(Math.pow(fx - item.fx, 2) + Math.pow(fy - item.fy, 2));
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    clickedFurnitureKey = key;
-                }
-            });
-
-            if (clickedFurnitureKey && onFurnitureClick) {
-                // Walk character to the front/side coordinates of the furniture then open modal with brief delay
-                const targetFurniture = FURNITURE_MAP[clickedFurnitureKey as keyof typeof FURNITURE_MAP];
-                targetFlat.current.fx = targetFurniture.fx + (clickedFurnitureKey === 'DESK' ? -0.04 : clickedFurnitureKey === 'SOFA' ? -0.02 : 0.05);
-                targetFlat.current.fy = targetFurniture.fy + (clickedFurnitureKey === 'DESK' ? 0.08 : clickedFurnitureKey === 'SOFA' ? 0.04 : 0.06);
-                isMovingToTarget.current = true;
-                
-                onFurnitureClick(clickedFurnitureKey);
-            } else {
-                // Normal plain coordinates walk path
-                targetFlat.current.fx = clampToWalkable(fx);
-                targetFlat.current.fy = clampToWalkable(fy);
-                isMovingToTarget.current = true;
-            }
-        };
-
-        // --- Touch support for mobile dragging and interaction ---
-        const handleTouchStart = (e: TouchEvent) => {
-            if (e.touches.length === 0) return;
-            dragStartMouse.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            dragStartPan.current = { ...panRef.current };
-            isDraggingMap.current = false;
-
-            lastActiveTime.current = Date.now();
-            if (isIdleRef.current) {
-                isIdleRef.current = false;
-            }
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            if (e.touches.length === 0) return;
-            const dx = e.touches[0].clientX - dragStartMouse.current.x;
-            const dy = e.touches[0].clientY - dragStartMouse.current.y;
-
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                isDraggingMap.current = true;
-                const nextPan = {
-                    x: dragStartPan.current.x + dx,
-                    y: dragStartPan.current.y + dy
-                };
-                updateViewport(zoomRef.current, nextPan);
-            }
-        };
-
-        const handleTouchEnd = (e: TouchEvent) => {
-            if (isDraggingMap.current) {
-                isDraggingMap.current = false;
-                return;
-            }
-
-            // Handle touch tap walk
-            if (e.changedTouches.length === 0) return;
-            const touch = e.changedTouches[0];
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-
-            const { fx, fy } = getFlatPosFromScreen(
-                touch.clientX,
-                touch.clientY,
-                canvas.width,
-                canvas.height,
-                panRef.current.x,
-                panRef.current.y,
-                zoomRef.current
-            );
-
-            let clickedFurnitureKey: string | null = null;
-            let closestDist = 0.095;
-
-            Object.entries(FURNITURE_MAP).forEach(([key, item]) => {
-                const isInteractable = [
-                    'BOOKSHELF', 'DESK', 'SOFA', 'QUEST_BOARD', 'DUTY_SIGN',
-                    'GOAL_BEACON', 'LEADERBOARD_ALTAR', 'VAULT_BOX', 'CHAT_BALL', 'WIKI_PORTAL'
-                ].includes(key);
-                if (!isInteractable) return;
-
-                const dist = Math.sqrt(Math.pow(fx - item.fx, 2) + Math.pow(fy - item.fy, 2));
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    clickedFurnitureKey = key;
-                }
-            });
-
-            if (clickedFurnitureKey && onFurnitureClick) {
-                const targetFurniture = FURNITURE_MAP[clickedFurnitureKey as keyof typeof FURNITURE_MAP];
-                targetFlat.current.fx = targetFurniture.fx;
-                targetFlat.current.fy = targetFurniture.fy + 0.05;
-                isMovingToTarget.current = true;
-                onFurnitureClick(clickedFurnitureKey);
-            } else {
-                targetFlat.current.fx = clampToWalkable(fx);
-                targetFlat.current.fy = clampToWalkable(fy);
-                isMovingToTarget.current = true;
-            }
-        };
-
-        container.addEventListener('wheel', handleWheel, { passive: false });
-        container.addEventListener('mousedown', handleMouseDown);
-        container.addEventListener('touchstart', handleTouchStart);
-        container.addEventListener('touchmove', handleTouchMove);
-        container.addEventListener('touchend', handleTouchEnd);
-        container.addEventListener('mousemove', handleMouseMoveOnCanvas);
-
-        // Cycle through cozy sit targets when idle
-        const idleCycle = setInterval(() => {
-            if (isIdleRef.current) {
-                const items: Array<keyof typeof FURNITURE_MAP> = ['DESK', 'SOFA', 'BOOKSHELF'];
-                const nextItem = items[Math.floor(Math.random() * items.length)];
-                setSelectedIdleFurniture(nextItem);
-            }
-        }, 11000);
-
-        return () => {
-            container.removeEventListener('wheel', handleWheel);
-            container.removeEventListener('mousedown', handleMouseDown);
-            container.removeEventListener('touchstart', handleTouchStart);
-            container.removeEventListener('touchmove', handleTouchMove);
-            container.removeEventListener('touchend', handleTouchEnd);
-            container.removeEventListener('mousemove', handleMouseMoveOnCanvas);
-            window.removeEventListener('mousemove', handleMouseMoveGlobal);
-            window.removeEventListener('mouseup', handleMouseUpGlobal);
-            clearInterval(idleCycle);
-        };
-    }, []);
+    usePixelInteractions({
+        containerRef,
+        canvasRef,
+        zoomRef,
+        panRef,
+        targetFlat,
+        isMovingToTarget,
+        isIdleRef,
+        lastActiveTime,
+        updateViewport,
+        onFurnitureClick,
+        setSelectedIdleFurniture,
+        setIsHoveringClickable
+    });
 
     // Canvas main animation thread
     useEffect(() => {
@@ -380,7 +136,7 @@ export const PixelHeroFollower: React.FC<PixelHeroFollowerProps> = ({
         window.addEventListener('resize', handleResize);
 
         let tick = 0;
-        const lerpFactor = 0.022; // Slower, elegant smooth path walk following
+        const lerpFactor = 0.003; // Slower, elegant smooth path walk following
         const pixelSize = 3.5; // Crispy retro pixels
 
         const animate = () => {
@@ -500,8 +256,8 @@ export const PixelHeroFollower: React.FC<PixelHeroFollowerProps> = ({
 
                 const odfx = otherFlatFx - oflat.fx;
                 const odfy = otherFlatFy - oflat.fy;
-                oflat.fx += odfx * 0.08;
-                oflat.fy += odfy * 0.08;
+                oflat.fx += odfx * 0.04;
+                oflat.fy += odfy * 0.04;
 
                 const otherWalking = Math.sqrt(odfx * odfx + odfy * odfy) > 0.005;
                 const syncedScreenPos = getIsometricPos(oflat.fx, oflat.fy, width, height, currentPan.x, currentPan.y, currentZoom);
@@ -631,40 +387,16 @@ export const PixelHeroFollower: React.FC<PixelHeroFollowerProps> = ({
             <PlayerTagOverlay 
                 players={overlayPlayers} 
                 onReaction={onSendReaction || (() => {})} 
+                zoom={zoom}
             />
 
             {/* FLOATING CAMERA CONTROL DECK HUD (Bottom Right) */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-2 bg-[#121424]/90 border border-slate-700/60 p-2 rounded-2xl shadow-2xl z-20 pointer-events-auto">
-                <button
-                    type="button"
-                    onClick={triggerZoomIn}
-                    className="hud-button w-9 h-9 flex items-center justify-center text-indigo-300 hover:text-indigo-100 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
-                    title="ซูมเข้า (Zoom In)"
-                >
-                    <ZoomIn className="w-5 h-5 pointer-events-none" />
-                </button>
-                <div className="w-px h-6 bg-slate-800" />
-                <button
-                    type="button"
-                    onClick={triggerZoomOut}
-                    className="hud-button w-9 h-9 flex items-center justify-center text-indigo-300 hover:text-indigo-100 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
-                    title="ซูมออก (Zoom Out)"
-                >
-                    <ZoomOut className="w-5 h-5 pointer-events-none" />
-                </button>
-                <div className="w-px h-6 bg-slate-800" />
-                <button
-                    type="button"
-                    onClick={triggerRecenter}
-                    className="hud-button w-9 h-9 flex items-center justify-center text-rose-450 hover:text-rose-300 hover:bg-slate-800 rounded-xl transition-all cursor-pointer"
-                    title="จัดตำแหน่งกล้องหน้าตรง (Recenter View)"
-                >
-                    <Maximize2 className="w-4 h-4 pointer-events-none" />
-                </button>
-                <span className="text-[10px] font-mono text-slate-500 font-bold px-1.5 min-w-[32px] text-center">
-                    {Math.round(zoom * 100)}%
-                </span>
-            </div>
+            <CameraControls 
+                zoom={zoom}
+                onZoomIn={triggerZoomIn}
+                onZoomOut={triggerZoomOut}
+                onRecenter={triggerRecenter}
+            />
 
             {/* QUICK CAMERA SCROLL/PAN HINT (Bottom Left) */}
             <div className="absolute bottom-6 left-6 flex items-center gap-2 bg-[#121424]/40 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-white/5 shadow-xs text-slate-400 text-[10px] font-medium z-10 pointer-events-none">

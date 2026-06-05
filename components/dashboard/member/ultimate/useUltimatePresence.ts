@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { SyncedPlayer } from './utils/isometric';
 import { User } from '../../../../types';
@@ -96,7 +96,7 @@ export function useUltimatePresence(
         };
     }, [currentUser]);
 
-    const reportPosition = (x: number, y: number, isIdle: boolean) => {
+    const reportPosition = useCallback((x: number, y: number, isIdle: boolean) => {
         const now = Date.now();
         if (now - lastReportTime.current > 160) {
             lastReportTime.current = now;
@@ -117,9 +117,9 @@ export function useUltimatePresence(
                 }).catch((err: any) => console.warn('Track update position error:', err));
             }
         }
-    };
+    }, [currentUser.id, currentUser.name, currentUser.level, currentUser.hp, currentUser.maxHp, currentUser.feeling]);
 
-    const sendReaction = (targetId: string, type: 'heart' | 'spell', clientX: number, clientY: number) => {
+    const sendReaction = useCallback((targetId: string, type: 'heart' | 'spell', clientX: number, clientY: number) => {
         if (channelRef.current) {
             channelRef.current.send({
                 type: 'broadcast',
@@ -134,7 +134,7 @@ export function useUltimatePresence(
                 }
             }).catch((err: any) => console.warn('Send reaction error:', err));
         }
-    };
+    }, [currentUser.id, currentUser.name]);
 
     return {
         otherPlayers,

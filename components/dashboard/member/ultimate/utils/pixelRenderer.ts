@@ -14,7 +14,10 @@ import {
     drawLeaderboardAltar,
     drawVaultBox,
     drawChatBall,
-    drawWikiPortal
+    drawWikiPortal,
+    drawWhiteboard,
+    drawMagicBroom,
+    drawMeetingTable
 } from './drawers/interactive';
 import {
     drawCauldron,
@@ -34,7 +37,7 @@ export { drawWizardCharacter } from './drawers/wizard';
 // Draw helper: Render retro 3D Isometric furniture on Canvas with realistic ambient shadows and depth.
 export const drawPixelFurniture = (
     ctx: CanvasRenderingContext2D,
-    type: 'DESK' | 'SOFA' | 'BOOKSHELF' | 'PLANT_1' | 'PLANT_2' | 'QUEST_BOARD' | 'DUTY_SIGN' | 'GOAL_BEACON' | 'LEADERBOARD_ALTAR' | 'VAULT_BOX' | 'CHAT_BALL' | 'WIKI_PORTAL' | 'CAULDRON' | 'CAT_BED' | 'STELLAR_GLOBE' | 'MAGIC_WELL' | 'BED' | 'TELEVISION' | 'DINING_TABLE' | 'WARDROBE',
+    type: 'DESK' | 'SOFA' | 'BOOKSHELF' | 'PLANT_1' | 'PLANT_2' | 'QUEST_BOARD' | 'DUTY_SIGN' | 'DUTY_BROOM' | 'GOAL_BEACON' | 'LEADERBOARD_ALTAR' | 'VAULT_BOX' | 'CHAT_BALL' | 'WIKI_PORTAL' | 'WHITEBOARD' | 'MEETING_TABLE' | 'CAULDRON' | 'CAT_BED' | 'STELLAR_GLOBE' | 'MAGIC_WELL' | 'BED' | 'TELEVISION' | 'DINING_TABLE' | 'WARDROBE',
     x: number,
     y: number,
     pixelSize: number = 3,
@@ -64,6 +67,15 @@ export const drawPixelFurniture = (
             break;
         case 'DUTY_SIGN':
             drawDutySign(ctx, pixelSize, tick, ambientShadow);
+            break;
+        case 'DUTY_BROOM':
+            drawMagicBroom(ctx, pixelSize, tick, ambientShadow);
+            break;
+        case 'WHITEBOARD':
+            drawWhiteboard(ctx, pixelSize, tick, ambientShadow);
+            break;
+        case 'MEETING_TABLE':
+            drawMeetingTable(ctx, pixelSize, tick, ambientShadow);
             break;
         case 'GOAL_BEACON':
             drawGoalBeacon(ctx, pixelSize, tick, ambientShadow);

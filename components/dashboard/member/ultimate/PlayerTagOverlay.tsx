@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Zap, Sparkles, Brain, Coffee, User as UserIcon, X, Target } from 'lucide-react';
 import PlayerAura from './auras/PlayerAura';
+import { EdgeAwareTooltip } from './EdgeAwareTooltip';
 
 export interface OverlayPlayer {
     id: string;
@@ -20,6 +21,7 @@ export interface OverlayPlayer {
 interface PlayerTagOverlayProps {
     players: OverlayPlayer[];
     onReaction: (targetId: string, type: 'heart' | 'spell', clientX: number, clientY: number) => void;
+    zoom?: number;
 }
 
 // Emoji mapping keyword rules helper
@@ -44,7 +46,7 @@ const getFeelingEmoji = (feelingText: string) => {
     return '🔮'; // Default magic crystal
 };
 
-export const PlayerTagOverlay: React.FC<PlayerTagOverlayProps> = ({ players, onReaction }) => {
+export const PlayerTagOverlay: React.FC<PlayerTagOverlayProps> = ({ players, onReaction, zoom = 1.0 }) => {
     const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,25 +79,14 @@ export const PlayerTagOverlay: React.FC<PlayerTagOverlayProps> = ({ players, onR
                 const hpPercent = Math.max(0, Math.min(100, (player.hp / player.maxHp) * 100));
                 const isLowHp = hpPercent <= 30;
 
-                // Border Badge configurations based on level tier RPG brackets
-                let badgeStyle = "border border-amber-800 bg-amber-950/80 text-amber-300"; // Bronze Bracket
-                let badgeLabel = "🥉 ทองแดง";
-                if (player.level >= 15) {
-                    badgeStyle = "border border-purple-500/80 bg-gradient-to-r from-violet-950 via-slate-950 to-purple-950 text-indigo-300 shadow-[0_0_15px_rgba(168,85,247,0.4)] animate-pulse font-bold";
-                    badgeLabel = "🌌 คอสมิก";
-                } else if (player.level >= 8) {
-                    badgeStyle = "border border-yellow-500/80 bg-amber-900/60 text-yellow-300 shadow-[0_0_10px_rgba(234,179,8,0.3)] font-semibold";
-                    badgeLabel = "🥇 ทองคำ";
-                } else if (player.level >= 3) {
-                    badgeStyle = "border border-slate-400 bg-slate-800/80 text-slate-100 font-medium";
-                    badgeLabel = "🥈 เงิน";
-                }
-
                 const emojiIcon = getFeelingEmoji(player.feeling);
 
-                // Target center coordinate offsets (character head center is approx 42px above screenY)
+                // Zoom responsive coordinate offsets (character feet is screenY, height is approx 24 pixel units * pixelSize of 3.5 * zoom)
                 const charHeadX = player.screenX;
-                const charHeadY = player.screenY - 48;
+                const charHeadY = player.screenY - (24 * 3.5 * zoom) - 12;
+
+                // Zoom responsive scale with protective boundaries to keep text legible at extreme zoom
+                const scaleFactor = Math.max(0.65, Math.min(1.25, zoom));
 
                 return (
                     <div 
@@ -105,84 +96,112 @@ export const PlayerTagOverlay: React.FC<PlayerTagOverlayProps> = ({ players, onR
                         style={{
                             left: `${charHeadX}px`,
                             top: `${charHeadY}px`,
-                            transform: 'translate(-50%, -100%)', // Lift contents above head coordinates
+                            transform: `translate(-50%, -100%) scale(${scaleFactor})`,
                         }}
                     >
                         {/* 1. FEELING SPEECH BUBBLE (Glassmorphism floating clouds) */}
                         <AnimatePresence>
                             {player.feeling && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.85 }}
-                                    animate={{ 
-                                        opacity: 1, 
-                                        y: [0, -6, 0], 
-                                        scale: 1 
-                                    }}
-                                    transition={{
-                                        duration: 0.3,
-                                        y: { repeat: Infinity, duration: 4, ease: "easeInOut" }
-                                    }}
-                                    className="mb-3 max-w-[170px] bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-1.5 shadow-xl flex items-center gap-1.5 whitespace-normal break-words pointer-events-auto cursor-help"
-                                    title={`ความรู้สึกของ ${player.name}: ${player.feeling}`}
+                                <EdgeAwareTooltip
+                                    content={
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="font-extrabold text-[#3b82f6]">กระแสจิตความรู้สึก 💭</span>
+                                            <span className="text-[10px] text-slate-300">ของ {player.name}: "{player.feeling}"</span>
+                                        </div>
+                                    }
+                                    placement="top"
+                                    delay={125}
                                 >
-                                    <span className="text-base select-none shrink-0">{emojiIcon}</span>
-                                    <span className="text-[10px] font-medium text-slate-100 line-clamp-2">
-                                        {player.feeling}
-                                    </span>
-                                    {/* Speech bubble tail pointer */}
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-0.5 border-4 border-transparent border-t-slate-900/90" />
-                                </motion.div>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.85 }}
+                                        animate={{ 
+                                            opacity: 1, 
+                                            y: [0, -6, 0], 
+                                            scale: 1 
+                                        }}
+                                        transition={{
+                                            duration: 0.3,
+                                            y: { repeat: Infinity, duration: 4, ease: "easeInOut" }
+                                        }}
+                                        className="mb-3 max-w-[170px] bg-slate-900/85 backdrop-blur-md border border-white/10 rounded-2xl px-3 py-1.5 shadow-xl flex items-center gap-1.5 whitespace-normal break-words pointer-events-auto cursor-help"
+                                    >
+                                        <span className="text-base select-none shrink-0">{emojiIcon}</span>
+                                        <span className="text-[10px] font-medium text-slate-100 line-clamp-2">
+                                            {player.feeling}
+                                        </span>
+                                        {/* Speech bubble tail pointer */}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-0.5 border-4 border-transparent border-t-slate-900/90" />
+                                    </motion.div>
+                                </EdgeAwareTooltip>
                             )}
                         </AnimatePresence>
 
-                        {/* 2. STATS & NAME PLATE ACTION CONTAINER (Clickable Area) */}
-                        <div 
-                            className="flex flex-col items-center gap-1 bg-slate-950/70 py-1.5 px-3.5 rounded-xl border border-white/5 shadow-md pointer-events-auto cursor-pointer hover:bg-slate-900/80 hover:border-indigo-500/40 active:scale-95 transition-all text-center min-w-[124px]"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedPlayerId(player.id);
-                            }}
+                        {/* 2. STATS & NAME PLATE ACTION CONTAINER (Clickable Floating HUD Area) */}
+                        <EdgeAwareTooltip
+                            content={
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-extrabold text-indigo-300">{player.name} (Lv.{player.level})</span>
+                                    <span className="text-[10px] text-slate-400">
+                                        {player.isSelf 
+                                            ? 'บอทเวทมนตร์และพาสปอร์ตส่วนตัวของท่าน' 
+                                            : 'เปิดเวทย์อัญเชิญ เพื่อส่งสัญญาณโต้ตอบ ปรานรักษาสมาธิร่วมกัน ❤️⚡'}
+                                    </span>
+                                </div>
+                            }
+                            placement="bottom"
+                            delay={100}
                         >
-                            {/* Player Name and Role Label row */}
-                            <div className="flex items-center gap-1">
-                                {player.isSelf && <span className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-ping" />}
-                                <span className={`text-[11px] font-bold ${player.isSelf ? 'text-pink-400' : 'text-blue-400'} tracking-wide truncate max-w-[90px]`}>
-                                    {player.name}
-                                    {player.isSelf && ' (คุณ)'}
-                                </span>
-                            </div>
+                            <div 
+                                className="flex flex-col items-center gap-1.5 pointer-events-auto cursor-pointer active:scale-95 transition-all text-center min-w-[124px]"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPlayerId(player.id);
+                                }}
+                            >
+                                {/* Floating level tag and player name */}
+                                <div className="flex items-center justify-center gap-1.5 drop-shadow-[0_2px_3px_rgba(0,0,0,1.0)]">
+                                    <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
+                                        player.level >= 15 ? 'bg-purple-600/90 text-purple-100 ring-1 ring-purple-400/55' :
+                                        player.level >= 8  ? 'bg-yellow-500/90 text-yellow-950 font-black' :
+                                        player.level >= 3  ? 'bg-slate-400/95 text-slate-900 font-bold' :
+                                        'bg-slate-700/90 text-slate-200'
+                                    }`}>
+                                        Lv.{player.level}
+                                    </span>
+                                    <span className={`text-[11px] font-black ${player.isSelf ? 'text-pink-400' : 'text-emerald-400'} tracking-wide truncate max-w-[95px]`}>
+                                        {player.name}
+                                        {player.isSelf && ' (คุณ)'}
+                                    </span>
+                                    {player.isSelf && <span className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-ping" />}
+                                </div>
 
-                            {/* Dual-Layer Combat RPG Health Bar */}
-                            <div className="w-full flex flex-col gap-0.5 mt-0.5">
-                                <div 
-                                    className={`relative w-full h-2 bg-rose-950/90 rounded-full overflow-hidden border border-slate-950/50 ${
-                                        isLowHp ? 'ring-1 ring-red-500/50 animate-pulse' : ''
-                                    }`}
-                                >
-                                    {/* Slower ambient trailing catch-up bar (Amber) */}
+                                {/* Floating Combat RPG Health Bar without frame or background panel */}
+                                <div className="w-[84px] flex flex-col gap-0.5 mt-0.5">
                                     <div 
-                                        style={{ width: `${hpPercent}%` }} 
-                                        className="h-full bg-amber-400 opacity-80 absolute left-0 top-0 transition-[width] duration-1000 ease-in-out z-0"
-                                    />
-                                    {/* Actual current health level indicator (Emerald/Green/Red) */}
-                                    <div 
-                                        style={{ width: `${hpPercent}%` }} 
-                                        className={`h-full absolute left-0 top-0 transition-[width] duration-300 ease-out z-10 ${
-                                            isLowHp ? 'bg-rose-500' : 'bg-emerald-500'
+                                        className={`relative w-full h-1.5 bg-black/50 rounded-full overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.8)] border border-black/20 ${
+                                            isLowHp ? 'ring-1 ring-red-500/60 animate-pulse' : ''
                                         }`}
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center text-[7.5px] font-mono text-slate-400 font-semibold px-0.5 leading-none">
-                                    <span>HP</span>
-                                    <span>{player.hp}/{player.maxHp}</span>
+                                    >
+                                        {/* Slower ambient trailing catch-up bar (Amber) */}
+                                        <div 
+                                            style={{ width: `${hpPercent}%` }} 
+                                            className="h-full bg-amber-500/80 absolute left-0 top-0 transition-[width] duration-1000 ease-in-out z-0"
+                                        />
+                                        {/* Actual current health level indicator (Emerald/Green/Red) */}
+                                        <div 
+                                            style={{ width: `${hpPercent}%` }} 
+                                            className={`h-full absolute left-0 top-0 transition-[width] duration-300 ease-out z-10 ${
+                                                isLowHp ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                            }`}
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center text-[7.5px] font-black font-mono text-slate-200 drop-shadow-[0_1.5px_2px_rgba(0,0,0,1.0)] px-0.5 leading-none">
+                                        <span>HP</span>
+                                        <span>{player.hp}/{player.maxHp}</span>
+                                    </div>
                                 </div>
                             </div>
-
-                            {/* Level Badge Overlay block */}
-                            <div className={`mt-1 text-[8.5px] font-mono px-1.5 py-0.5 rounded-md ${badgeStyle}`}>
-                                Lv.{player.level}
-                            </div>
-                        </div>
+                        </EdgeAwareTooltip>
 
                         {/* Interactive focus status tag */}
                         {player.focusTask ? (

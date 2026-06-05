@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { Task, MasterOption, User } from '../../../types';
+import { Task, MasterOption, User, ViewMode } from '../../../types';
 import MyWorkBoard from './MyWorkBoard';
 import PixelHeroFollower, { FURNITURE_MAP, getIsometricPos } from './PixelHeroFollower';
 import { supabase } from '../../../lib/supabase';
@@ -15,6 +15,7 @@ import { useXpParticles } from './ultimate/useXpParticles';
 import UltimateCharacterBento from './ultimate/UltimateCharacterBento';
 import UltimateFocusShieldConsole from './ultimate/UltimateFocusShieldConsole';
 import UltimateWorkroomHeader from './ultimate/UltimateWorkroomHeader';
+import FurnitureOverlays from './ultimate/FurnitureOverlays';
 
 interface UltimateWorkroomViewProps {
     tasks: Task[];
@@ -25,6 +26,7 @@ interface UltimateWorkroomViewProps {
     onUpdateTask?: (task: Task) => void;
     onDeleteTask?: (taskId: string) => void;
     onNavigateBack: () => void;
+    onNavigate?: (view: ViewMode) => void;
     onRefreshProfile?: () => Promise<any>;
     isFetching?: boolean;
 }
@@ -38,6 +40,7 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
     onUpdateTask,
     onDeleteTask,
     onNavigateBack,
+    onNavigate,
     onRefreshProfile,
     isFetching = false
 }) => {
@@ -63,6 +66,9 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
 
     // --- State: Viewport Zoom and Pan (Synchronized from PixelHeroFollower) ---
     const [viewport, setViewport] = useState({ zoom: 1.0, pan: { x: 0, y: 0 } });
+    const handleViewportChange = React.useCallback((zoom: number, pan: { x: number, y: number }) => {
+        setViewport({ zoom, pan });
+    }, []);
     const [searchParams, setSearchParams] = useSearchParams();
     const [isShopOpen, setIsShopOpen] = useState(false);
 
@@ -188,7 +194,7 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
         setPomodoroSeconds(timerType === 'WORK' ? 25 * 60 : 5 * 60);
     };
 
-    const handleFurnitureClick = (type: string) => {
+    const handleFurnitureClick = React.useCallback((type: string) => {
         ringSuccessChime();
 
         if (type === 'DESK' || type === 'SOFA' || type === 'BOOKSHELF') {
@@ -201,27 +207,34 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
             // Check warping portal
             const warpRoutes: Record<string, string> = {
                 QUEST_BOARD: 'WEEKLY',
-                DUTY_SIGN: 'DUTY',
+                DUTY_BROOM: 'DUTY',
                 GOAL_BEACON: 'GOALS',
                 LEADERBOARD_ALTAR: 'LEADERBOARD',
                 CHAT_BALL: 'CHAT',
-                WIKI_PORTAL: 'WIKI'
+                WIKI_PORTAL: 'WIKI',
+                WHITEBOARD: 'CALENDAR',
+                MEETING_TABLE: 'TEAM'
             };
 
             const targetView = warpRoutes[type];
             if (targetView) {
                 const labelName = FURNITURE_MAP[type as keyof typeof FURNITURE_MAP]?.label || type;
                 showToast(`🔮 ร่ายมนตร์แปรผันมิติ กำลังย้ายร่างไปหลัก: ${labelName}...`, 'info');
-                setTimeout(() => {
-                    setSearchParams(prev => {
-                        const next = new URLSearchParams(prev);
-                        next.set('view', targetView);
-                        return next;
-                    });
-                }, 750);
+                
+                if (onNavigate) {
+                    onNavigate(targetView as ViewMode);
+                } else {
+                    setTimeout(() => {
+                        setSearchParams(prev => {
+                            const next = new URLSearchParams(prev);
+                            next.set('view', targetView);
+                            return next;
+                        });
+                    }, 750);
+                }
             }
         }
-    };
+    }, [ringSuccessChime, showToast, onNavigate, setSearchParams]);
 
     return (
         <div id="ultimate-workroom-root" className="min-h-screen bg-[#0e101a] text-slate-100 font-sans p-4 md:p-8 relative overflow-hidden flex flex-col justify-between">
@@ -232,7 +245,7 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
                 otherPlayers={otherPlayers}
                 onPositionChange={reportPosition}
                 onFurnitureClick={handleFurnitureClick}
-                onViewportChange={(zoom, pan) => setViewport({ zoom, pan })}
+                onViewportChange={handleViewportChange}
                 onSendReaction={sendReaction}
             />
 
@@ -281,67 +294,11 @@ export const UltimateWorkroomView: React.FC<UltimateWorkroomViewProps> = ({
             />
 
             {/* Interactive Overlays on top of the Pixel furniture on canvas */}
-            <div className="fixed inset-0 pointer-events-none z-10 select-none">
-                {/* Glow indicators and clickable areas */}
-                {Object.entries(FURNITURE_MAP).map(([key, f]) => {
-                    const isInteractable = [
-                        'BOOKSHELF',
-                        'DESK',
-                        'SOFA',
-                        'QUEST_BOARD',
-                        'DUTY_SIGN',
-                        'GOAL_BEACON',
-                        'LEADERBOARD_ALTAR',
-                        'VAULT_BOX',
-                        'CHAT_BALL',
-                        'WIKI_PORTAL'
-                    ].includes(key);
-                    if (!isInteractable) return null;
-
-                    const pos = getIsometricPos(f.fx, f.fy, windowSize.width, windowSize.height, viewport.pan.x, viewport.pan.y, viewport.zoom);
-                    
-                    const getOffset = (k: string) => {
-                        switch (k) {
-                            case 'BOOKSHELF': return 42;
-                            case 'WIKI_PORTAL': return 52;
-                            case 'DUTY_SIGN': return 36;
-                            case 'DESK': return 16;
-                            case 'SOFA': return 10;
-                            default: return 20;
-                        }
-                    };
-
-                    const labelShort = f.label.replace(/\(.*?\)/g, '').trim();
-
-                    return (
-                        <div
-                            key={key}
-                            className="absolute pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 group cursor-pointer flex flex-col items-center justify-center p-3 bg-transparent"
-                            style={{
-                                left: `${pos.x}px`,
-                                top: `${pos.y - getOffset(key) * viewport.zoom}px`,
-                                transform: `translate(-50%, -50%) scale(${Math.max(0.65, Math.min(1.35, viewport.zoom))})`,
-                            }}
-                            onClick={() => handleFurnitureClick(key)}
-                            title={`คลิกเปิดใช้งาน: ${f.label}`}
-                        >
-                            {/* Pulsating magic ring of light */}
-                            <div className="w-5 h-5 rounded-full border border-pink-500/50 bg-pink-500/10 flex items-center justify-center animate-bounce shadow-[0_0_12px_rgba(236,72,153,0.3)] mb-1.5 group-hover:scale-125 transition-all duration-300">
-                                <span className="w-2 h-2 rounded-full bg-pink-400 animate-ping" />
-                            </div>
-
-                            {/* Sparkling cursor help ring */}
-                            <div className="absolute inset-x-[-12px] inset-y-[-6px] rounded-2xl border border-dashed border-pink-500/0 group-hover:border-pink-500/35 group-hover:bg-pink-500/5 transition-all duration-300 scale-95 group-hover:scale-105" />
-
-                            {/* Floating pill badge always visible and glowing on hover */}
-                            <span className="px-2 py-0.5 bg-[#111221]/92 border border-slate-700 group-hover:border-pink-500/60 text-white rounded-lg text-[9px] font-extrabold shadow-md transition-all duration-300 whitespace-nowrap flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                {labelShort}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
+            <FurnitureOverlays
+                windowSize={windowSize}
+                viewport={viewport}
+                onFurnitureClick={handleFurnitureClick}
+            />
 
             {/* TRANQUIL SOFT DIM BACKDROP OVERLAY */}
             <AnimatePresence>
