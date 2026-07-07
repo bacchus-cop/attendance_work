@@ -23,6 +23,7 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
     const { annualHolidays, calendarExceptions } = useMasterData();
     const [rawRequests, setRawRequests] = useState<LeaveRequest[]>([]);
     const [isLoading, setIsLoading] = useState(enabled);
+    const [isLoadingHistorical, setIsLoadingHistorical] = useState(false);
     const { showToast } = useToast();
     const { uploadFileToDrive, isReady: isDriveReady } = useGoogleDrive();
 
@@ -121,6 +122,38 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
 
         requests.forEach(req => {
             if (req.userId === currentUser.id && req.status === 'APPROVED') {
+                if (LEAVE_TYPES.includes(req.type)) {
+                    const start = new Date(req.startDate);
+                    const end = new Date(req.endDate);
+                    if (!isValid(start) || !isValid(end) || start > end) return; 
+                    
+                    const days = eachDayOfInterval({ start, end });
+                    const workingDaysCount = days.filter(d => 
+                        isWorkingDay(d, annualHolidays, calendarExceptions, currentUser)
+                    ).length;
+                    
+                    usage[req.type as keyof LeaveUsage] += workingDaysCount;
+                } else {
+                    usage[req.type as keyof LeaveUsage] += 1;
+                }
+            }
+        });
+
+        return usage;
+    }, [requests, currentUser?.id, annualHolidays, calendarExceptions, enabled]);
+
+    const pendingUsage: LeaveUsage = useMemo(() => {
+        const usage: LeaveUsage = {
+            SICK: 0, VACATION: 0, PERSONAL: 0, EMERGENCY: 0,
+            LATE_ENTRY: 0, OVERTIME: 0, FORGOT_CHECKIN: 0, FORGOT_CHECKOUT: 0, FORGOT_BOTH: 0, WFH: 0, UNPAID: 0
+        };
+
+        if (!enabled || !currentUser?.id) return usage;
+
+        const LEAVE_TYPES = ['SICK', 'VACATION', 'PERSONAL', 'EMERGENCY', 'UNPAID'];
+
+        requests.forEach(req => {
+            if (req.userId === currentUser.id && req.status === 'PENDING') {
                 if (LEAVE_TYPES.includes(req.type)) {
                     const start = new Date(req.startDate);
                     const end = new Date(req.endDate);
@@ -312,11 +345,32 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
         }
     };
 
+    const fetchRequestsForRange = async (start?: Date, end?: Date): Promise<LeaveRequest[]> => {
+        if (!currentUser?.id) return [];
+        setIsLoadingHistorical(true);
+        try {
+            const options: any = { all: false };
+            if (start) options.startDate = format(start, 'yyyy-MM-dd');
+            if (end) options.endDate = format(end, 'yyyy-MM-dd');
+            const data = await attendanceService.fetchCombinedRequests(currentUser.id, options);
+            return data;
+        } catch (err) {
+            console.error("Fetch requests for range failed", err);
+            showToast('ดึงข้อมูลประวัติย้อนหลังล้มเหลว', 'error');
+            return [];
+        } finally {
+            setIsLoadingHistorical(false);
+        }
+    };
+
     return {
         requests,
         leaveUsage,
+        pendingUsage,
         isLoading,
+        isLoadingHistorical,
         submitRequest,
-        fetchMyRequests
+        fetchMyRequests,
+        fetchRequestsForRange
     };
 };

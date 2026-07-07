@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from './lib/supabase';
 import LandingPage from './components/landing/LandingPage';
@@ -18,10 +19,14 @@ import { FinanceProvider } from './context/FinanceContext';
 import { WikiProvider } from './context/WikiContext';
 import { MeetingProvider } from './context/MeetingContext';
 import { UserSessionProvider, useUserSession } from './context/UserSessionContext';
+import { useMasterData } from './hooks/useMasterData';
+import GatekeeperOverlay from './components/layout/GatekeeperOverlay';
 import { ShootQueueProvider } from './context/ShootQueueContext';
 import { StorageProvider } from './context/StorageContext';
 import { GlobalRealtimeSync } from './components/GlobalRealtimeSync';
 import { ScreenSessionLimiter } from './components/ScreenSessionLimiter';
+import { LineUserIdLinker } from './components/LineUserIdLinker';
+import { LinePendingBanner } from './components/LinePendingBanner';
 import PWAReloadPrompt from './components/PWAReloadPrompt';
 import { Loader2 } from 'lucide-react';
 
@@ -36,6 +41,13 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // --- ROUTING CHECK: LINE Webhook pending user ID ---
+  const queryParams = new URLSearchParams(window.location.search);
+  const lineUserIdParam = queryParams.get('line_user_id');
+  if (lineUserIdParam) {
+    sessionStorage.setItem('pending_line_user_id', lineUserIdParam.trim());
+  }
+
   // --- ROUTING CHECK: Magic Link (Script Share) ---
   const path = window.location.pathname;
   if (path.startsWith('/s/')) {
@@ -137,37 +149,84 @@ function App() {
   let content;
   if (loading) {
      content = (
-        <div className="flex h-screen items-center justify-center bg-slate-50 flex-col">
+        <motion.div
+          key="loading"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex h-screen items-center justify-center bg-slate-50 flex-col"
+        >
             <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mb-4" />
-        </div>
+        </motion.div>
      );
   } else if (isRecoveryMode) {
     content = (
-      <AuthPage 
-        onLoginSuccess={() => {}} 
-        onPasswordUpdateSuccess={handlePasswordUpdateSuccess}
-        onBack={undefined}
-        initialMode="UPDATE" 
-      />
+      <motion.div
+        key="recovery"
+        initial={{ opacity: 0, scale: 0.98, y: 15 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 1.02, y: -15 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <AuthPage 
+          onLoginSuccess={() => {}} 
+          onPasswordUpdateSuccess={handlePasswordUpdateSuccess}
+          onBack={undefined}
+          initialMode="UPDATE" 
+        />
+      </motion.div>
     );
   } else if (!session) {
     if (showLogin) {
-      content = <AuthPage onLoginSuccess={() => {}} onBack={() => setShowLogin(false)} />;
+      content = (
+        <motion.div
+          key="auth"
+          initial={{ opacity: 0, y: 25, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: 25, filter: "blur(4px)" }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="min-h-screen"
+        >
+          <AuthPage onLoginSuccess={() => {}} onBack={() => setShowLogin(false)} />
+        </motion.div>
+      );
     } else {
-      content = <LandingPage onGoToLogin={() => setShowLogin(true)} />;
+      content = (
+        <motion.div
+          key="landing"
+          initial={{ opacity: 0, y: -25, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -25, filter: "blur(4px)" }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <LandingPage onGoToLogin={() => setShowLogin(true)} />
+        </motion.div>
+      );
     }
   } else {
     content = (
-      <QueryClientProvider client={queryClient}>
-        <AuthenticatedApp user={session.user} />
-      </QueryClientProvider>
+      <motion.div
+        key="app"
+        initial={{ opacity: 0, scale: 0.99 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <AuthenticatedApp user={session.user} />
+        </QueryClientProvider>
+      </motion.div>
     );
   }
 
   return (
     <>
       <PWAReloadPrompt />
-      {content}
+      {!session && <LinePendingBanner />}
+      <AnimatePresence mode="wait">
+        {content}
+      </AnimatePresence>
     </>
   );
 }
@@ -188,6 +247,7 @@ function AuthenticatedApp({ user }: { user: any }) {
 
 function AuthenticatedAppInner({ user }: { user: any }) {
   const { currentUserProfile, isReady } = useUserSession();
+  const { masterOptions } = useMasterData();
 
   if (!isReady) {
     return (
@@ -198,8 +258,16 @@ function AuthenticatedAppInner({ user }: { user: any }) {
     );
   }
 
+  // Active policy gatekeeper check
+  const activePolicy = masterOptions.find(o => o.type === 'SYSTEM_POLICY' && o.key === 'TERMS_OF_SERVICE');
+  const userAcceptedVersion = currentUserProfile?.acceptedTermsVersion || 0;
+  const needsPolicyAcceptance = activePolicy && activePolicy.isActive && userAcceptedVersion < (activePolicy.progressValue || 1);
+
   return (
     <NotificationProvider currentUser={currentUserProfile}>
+      {needsPolicyAcceptance && (
+        <GatekeeperOverlay activePolicy={activePolicy} userAcceptedVersion={userAcceptedVersion} />
+      )}
       <WorkboxProvider currentUser={currentUserProfile}>
         <ChecklistProvider>
           <KPIProvider>
@@ -210,6 +278,7 @@ function AuthenticatedAppInner({ user }: { user: any }) {
                     <TaskProvider>
                       <ShootQueueProvider>
                         <GlobalRealtimeSync />
+                        <LineUserIdLinker />
                         <ScreenSessionLimiter user={user} />
                         <AppRouter user={user} />
                       </ShootQueueProvider>

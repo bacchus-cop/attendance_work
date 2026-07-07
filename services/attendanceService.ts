@@ -7,7 +7,7 @@ export const attendanceService = {
      */
     async fetchCombinedRequests(
         userId?: string,
-        options: { all?: boolean; isAdmin?: boolean } = {}
+        options: { all?: boolean; isAdmin?: boolean; startDate?: string; endDate?: string } = {}
     ): Promise<LeaveRequest[]> {
         let query = supabase
             .from('leave_requests')
@@ -19,6 +19,13 @@ export const attendanceService = {
         
         if (!options.all && userId) {
             query = query.eq('user_id', userId);
+        }
+
+        if (options.startDate) {
+            query = query.gte('start_date', options.startDate);
+        }
+        if (options.endDate) {
+            query = query.lte('start_date', options.endDate);
         }
 
         const { data: leaveData, error: leaveError } = await query;
@@ -47,13 +54,22 @@ export const attendanceService = {
         // Fetch dedicated OT requests
         let ots: LeaveRequest[] = [];
         if (options.all && options.isAdmin) {
-            const { data: otData, error: otError } = await supabase
+            let otQuery = supabase
                 .from('ot_requests')
                 .select(`
                     *,
                     profiles:profiles!ot_requests_user_id_fkey (id, full_name, avatar_url, position)
                 `)
                 .order('created_at', { ascending: false });
+
+            if (options.startDate) {
+                otQuery = otQuery.gte('date', options.startDate);
+            }
+            if (options.endDate) {
+                otQuery = otQuery.lte('date', options.endDate);
+            }
+
+            const { data: otData, error: otError } = await otQuery;
 
             if (otError) throw otError;
 
@@ -77,11 +93,20 @@ export const attendanceService = {
                 }));
             }
         } else if (userId) {
-            const { data: otData, error: otError } = await supabase
+            let otQuery = supabase
                 .from('ot_requests')
                 .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
+
+            if (options.startDate) {
+                otQuery = otQuery.gte('date', options.startDate);
+            }
+            if (options.endDate) {
+                otQuery = otQuery.lte('date', options.endDate);
+            }
+
+            const { data: otData, error: otError } = await otQuery;
 
             if (otError) throw otError;
 
@@ -155,7 +180,7 @@ export const attendanceService = {
     /**
      * Updates an OT request status (APPROVED / REJECTED) and associated variables.
      */
-    async updateOtRequestStatus(
+     async updateOtRequestStatus(
         id: string,
         status: 'APPROVED' | 'REJECTED',
         updateFields: {
@@ -164,6 +189,8 @@ export const attendanceService = {
             approved_by: string;
             approved_at: string;
             rejection_reason?: string;
+            start_time?: string;
+            end_time?: string;
         }
     ) {
         const { data, error } = await supabase
@@ -176,7 +203,9 @@ export const attendanceService = {
                 computed_payout: updateFields.computed_payout,
                 approved_by: updateFields.approved_by,
                 approved_at: updateFields.approved_at,
-                rejection_reason: updateFields.rejection_reason
+                rejection_reason: updateFields.rejection_reason,
+                start_time: updateFields.start_time,
+                end_time: updateFields.end_time
             })
             .eq('id', id)
             .select()
@@ -208,5 +237,32 @@ export const attendanceService = {
             .single();
         if (error) throw error;
         return data;
+    },
+
+    /**
+     * Fetches standard leave history for a specific user.
+     */
+    async getUserLeaveHistory(userId: string): Promise<LeaveRequest[]> {
+        const { data, error } = await supabase
+            .from('leave_requests')
+            .select('*')
+            .eq('user_id', userId)
+            .order('start_date', { ascending: false });
+        
+        if (error) throw error;
+        
+        return (data || []).map((r: any) => ({
+            id: r.id,
+            userId: r.user_id,
+            type: r.type,
+            startDate: new Date(r.start_date),
+            endDate: new Date(r.end_date),
+            reason: r.reason,
+            attachmentUrl: r.attachment_url,
+            status: r.status as RequestStatus,
+            approverId: r.approver_id,
+            createdAt: new Date(r.created_at),
+            rejectionReason: r.rejection_reason
+        }));
     }
 };

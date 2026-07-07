@@ -1,67 +1,41 @@
+import { useMyRequests } from './useMyRequests';
+import { useAdminApprovals } from './useAdminApprovals';
 
-import { User } from './core';
+/**
+ * Facade hook that delegates to useMyRequests or useAdminApprovals
+ * based on the user's view options. Keeps 100% backwards compatibility.
+ */
+export const useLeaveRequests = (currentUser?: any, options: { all?: boolean } = {}) => {
+    const isAdminView = !!(options.all && currentUser?.role === 'ADMIN');
 
-export type WorkLocation = 'OFFICE' | 'WFH' | 'SITE' | 'LEAVE' | 'ABSENT';
-export type AttendanceStatus = 'WORKING' | 'COMPLETED' | 'ABSENT' | 'LATE' | 'LEAVE' | 'EARLY_LEAVE' | 'PENDING_VERIFY' | 'ACTION_REQUIRED' | 'ON_TIME' | 'NO_SHOW';
+    const myRequests = useMyRequests(currentUser, { enabled: true });
+    const adminApprovals = useAdminApprovals(currentUser, { enabled: isAdminView });
 
-export interface LocationDef {
-    id: string;
-    name: string;
-    lat: number;
-    lng: number;
-    radiusMeters: number;
-}
-
-export interface AttendanceLog {
-    id: string;
-    userId: string;
-    date: string; // YYYY-MM-DD
-    checkInTime: Date | null;
-    checkOutTime: Date | null;
-    workType: WorkLocation;
-    status: AttendanceStatus;
-    note?: string;
-    user?: User; // Joined profile
-    
-    // New Structured Data Columns
-    locationLat?: number;
-    locationLng?: number;
-    locationName?: string;
-    checkOutLat?: number;
-    checkOutLng?: number;
-    checkOutLocationName?: string;
-}
-
-export interface AttendanceStats {
-    totalDays: number;
-    lateDays: number;
-    onTimeDays: number;
-    absentDays: number;
-    totalHours: number;
-    currentStreak: number; // NEW: Track consecutive on-time days
-    hasPendingStreakRequest?: boolean; // NEW: Track if the user has a pending leave/attendance correction on broken days
-    monthlyLogs?: AttendanceLog[]; // NEW: For detailed view
-}
-
-// --- NEW: Leave Request Types (Updated) ---
-// Added 'WFH' to the union type
-export type LeaveType = 'SICK' | 'VACATION' | 'PERSONAL' | 'EMERGENCY' | 'LATE_ENTRY' | 'OVERTIME' | 'FORGOT_CHECKIN' | 'FORGOT_CHECKOUT' | 'FORGOT_BOTH' | 'WFH' | 'UNPAID';
-export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-export interface LeaveRequest {
-    id: string;
-    userId: string;
-    type: LeaveType;
-    startDate: Date;
-    endDate: Date;
-    reason: string;
-    attachmentUrl?: string;
-    status: RequestStatus;
-    approverId?: string;
-    createdAt: Date;
-    rejectionReason?: string; // NEW: Added rejection reason
-    user?: Partial<User>;
-}
-
-// NEW: Helper type for Quota
-export type LeaveUsage = Record<LeaveType, number>;
+    if (isAdminView) {
+        return {
+            requests: adminApprovals.requests,
+            isLoading: adminApprovals.isLoading,
+            isLoadingHistorical: adminApprovals.isLoadingHistorical,
+            approveRequest: adminApprovals.approveRequest,
+            rejectRequest: adminApprovals.rejectRequest,
+            submitRequest: myRequests.submitRequest, // Fallback
+            leaveUsage: myRequests.leaveUsage, // Fallback
+            pendingUsage: myRequests.pendingUsage, // Fallback
+            fetchRequests: adminApprovals.fetchAllRequests,
+            fetchRequestsForRange: adminApprovals.fetchRequestsForRange
+        };
+    } else {
+        return {
+            requests: myRequests.requests,
+            isLoading: myRequests.isLoading,
+            isLoadingHistorical: myRequests.isLoadingHistorical,
+            approveRequest: adminApprovals.approveRequest, // Fallback
+            rejectRequest: adminApprovals.rejectRequest, // Fallback
+            submitRequest: myRequests.submitRequest,
+            leaveUsage: myRequests.leaveUsage,
+            pendingUsage: myRequests.pendingUsage,
+            fetchRequests: myRequests.fetchMyRequests,
+            fetchRequestsForRange: myRequests.fetchRequestsForRange
+        };
+    }
+};
