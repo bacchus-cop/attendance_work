@@ -315,6 +315,23 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                     user_id: null
                 });
 
+                try {
+                    const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'ADMIN');
+                    if (admins && admins.length > 0) {
+                        const otNotifs = admins.map(admin => ({
+                            user_id: admin.id,
+                            type: 'APPROVAL_REQ',
+                            title: '⏰ คำขอ OT ใหม่',
+                            message: `คุณ ${currentUser.name || 'พนักงาน'} ส่งคำขอ OT (${otDisplayStr}) วันที่ ${format(startDate, 'd MMM')}: "${displayReason}"`,
+                            is_read: false,
+                            link_path: 'ATTENDANCE'
+                        }));
+                        await supabase.from('notifications').insert(otNotifs);
+                    }
+                } catch (notiErr) {
+                    console.error("Failed to insert admin OT notifications:", notiErr);
+                }
+
                 showToast('ส่งคำขอ OT เรียบร้อย รออนุมัติครับ 📨', 'success');
                 if (refreshLeaves) await refreshLeaves();
                 if (refreshAttendance) await refreshAttendance();
@@ -569,6 +586,27 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                 message_type: 'TEXT',
                 user_id: null
             });
+
+            try {
+                const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'ADMIN');
+                if (admins && admins.length > 0) {
+                    const labelPrimary = ATTENDANCE_REGISTRY[type]?.label || type;
+                    const labelSecondary = linkedRemoteType ? ` + ${ATTENDANCE_REGISTRY[linkedRemoteType]?.label || linkedRemoteType}` : '';
+                    const labelCombine = `${labelPrimary}${labelSecondary}`;
+
+                    const generalNotifs = admins.map(admin => ({
+                        user_id: admin.id,
+                        type: 'APPROVAL_REQ',
+                        title: `📋 คำขออนุมัติ [${labelCombine}]`,
+                        message: `คุณ ${currentUser.name || 'พนักงาน'} ส่งคำขอ [${labelCombine}] วันที่ ${format(startDate, 'd MMM')}: "${reason}"`,
+                        is_read: false,
+                        link_path: 'ATTENDANCE'
+                    }));
+                    await supabase.from('notifications').insert(generalNotifs);
+                }
+            } catch (notiErr) {
+                console.error("Failed to insert admin general notifications:", notiErr);
+            }
 
             showToast('ส่งคำขอเรียบร้อย รออนุมัติครับ 📨', 'success');
             if (refreshLeaves) await refreshLeaves();

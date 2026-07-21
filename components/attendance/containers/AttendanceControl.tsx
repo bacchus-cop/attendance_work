@@ -65,7 +65,7 @@ const AttendanceControl: React.FC<AttendanceControlProps> = ({
     const lateBuffer = parseInt(masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_BUFFER')?.label || '15');
 
     const todayRequests = useMemo(() => {
-        const reqs = requests || (todayActiveLeave ? [todayActiveLeave] : []);
+        const reqs = requests && requests.length > 0 ? requests : (todayActiveLeave ? [todayActiveLeave] : []);
         const today = new Date();
         return reqs.filter(req => {
             if (req.status === 'REJECTED') return false;

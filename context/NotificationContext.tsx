@@ -7,6 +7,7 @@ interface NotificationContextType {
     notifications: any[];
     gameLogs: any[];
     leaveRequests: any[];
+    otRequests: any[];
     deadlineRequests: any[];
     isLoading: boolean;
     markAsRead: () => Promise<void>;
@@ -21,6 +22,7 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
     const [notifications, setNotifications] = useState<any[]>([]);
     const [gameLogs, setGameLogs] = useState<any[]>([]);
     const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+    const [otRequests, setOtRequests] = useState<any[]>([]);
     const [deadlineRequests, setDeadlineRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     
@@ -60,7 +62,7 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
 
             // Fetch Leave Requests (if ADMIN)
             if (currentUser.role === 'ADMIN') {
-                const [leavesRes, deadlinesRes, goalDeadlinesRes] = await Promise.all([
+                const [leavesRes, deadlinesRes, goalDeadlinesRes, otsRes] = await Promise.all([
                     supabase
                         .from('leave_requests')
                         .select(`*, profiles:profiles!leave_requests_user_id_fkey(full_name)`)
@@ -82,10 +84,15 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
                             goals:goal_id (title, deadline)
                         `)
                         .eq('status', 'PENDING')
-                        .order('created_at', { ascending: false })
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('ot_requests')
+                        .select(`*, profiles:profiles!ot_requests_user_id_fkey(full_name)`)
+                        .eq('status', 'PENDING')
                 ]);
                 
                 if (leavesRes.data) setLeaveRequests(leavesRes.data);
+                if (otsRes.data) setOtRequests(otsRes.data);
                 
                 const allMappedDeadlines: any[] = [];
                 
@@ -217,6 +224,37 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
                     }
                 } else if (payload.eventType === 'DELETE') {
                     setLeaveRequests(prev => prev.filter(r => r.id !== payload.old.id));
+                }
+            })
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'ot_requests' 
+            }, (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    supabase
+                        .from('ot_requests')
+                        .select(`*, profiles:profiles!ot_requests_user_id_fkey(full_name)`)
+                        .eq('id', payload.new.id)
+                        .single()
+                        .then(({ data }) => {
+                            if (data && data.status === 'PENDING') {
+                                setOtRequests(prev => [data, ...prev]);
+                            }
+                        });
+                } else if (payload.eventType === 'UPDATE') {
+                    if (payload.new.status !== 'PENDING') {
+                        setOtRequests(prev => prev.filter(r => r.id !== payload.new.id));
+                    } else {
+                        setOtRequests(prev => {
+                            if (prev.some(r => r.id === payload.new.id)) {
+                                return prev.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r);
+                            }
+                            return prev;
+                        });
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    setOtRequests(prev => prev.filter(r => r.id !== payload.old.id));
                 }
             })
             .on('postgres_changes', {
@@ -369,6 +407,9 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
         if (id.startsWith('leave_')) {
             const leaveId = id.replace('leave_', '');
             setLeaveRequests(prev => prev.filter(r => r.id !== leaveId));
+        } else if (id.startsWith('ot_')) {
+            const otId = id.replace('ot_', '');
+            setOtRequests(prev => prev.filter(r => r.id !== otId));
         } else if (id.startsWith('deadline_')) {
             const deadlineId = id.replace('deadline_', '');
             setDeadlineRequests(prev => prev.filter(r => r.id !== deadlineId));
@@ -393,13 +434,14 @@ export const NotificationProvider: React.FC<{ currentUser: User | null, children
         notifications, 
         gameLogs, 
         leaveRequests,
+        otRequests,
         deadlineRequests,
         isLoading, 
         markAsRead, 
         markNotificationAsRead,
         dismissNotification,
         refreshData: () => fetchAllData(true)
-    }), [notifications, gameLogs, leaveRequests, deadlineRequests, isLoading, markAsRead, markNotificationAsRead, dismissNotification, fetchAllData]);
+    }), [notifications, gameLogs, leaveRequests, otRequests, deadlineRequests, isLoading, markAsRead, markNotificationAsRead, dismissNotification, fetchAllData]);
 
     return (
         <NotificationContext.Provider value={value}>

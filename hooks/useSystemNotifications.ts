@@ -11,6 +11,7 @@ export const useSystemNotifications = (tasks: Task[], currentUser: User | null, 
         notifications: dbNotifs, 
         gameLogs, 
         leaveRequests,
+        otRequests = [],
         deadlineRequests,
         markAsRead: contextMarkAsRead, 
         markNotificationAsRead: contextMarkNotificationAsRead,
@@ -81,6 +82,23 @@ export const useSystemNotifications = (tasks: Task[], currentUser: User | null, 
             });
         });
 
+        // 3.5. Map OT Requests
+        otRequests.forEach((req: any) => {
+            if (req.status && req.status !== 'PENDING') return;
+            const notifId = `ot_${req.id}`;
+            const timeDisplay = req.start_time && req.end_time ? `${req.start_time}-${req.end_time}` : '';
+            const hrsDisplay = req.duration_hours ? ` (${req.duration_hours} ชม.)` : '';
+            dynamicNotifs.push({
+                id: notifId,
+                type: 'APPROVAL_REQ',
+                title: '⏰ คำขอ OT ใหม่',
+                message: `คุณ ${req.profiles?.full_name || 'พนักงาน'} ส่งคำขอ OT ${timeDisplay}${hrsDisplay}: "${req.reason}"`,
+                date: new Date(req.created_at),
+                isRead: acknowledgedIds.includes(notifId) || new Date(req.created_at) < lastReadTime,
+                actionLink: 'ATTENDANCE'
+            });
+        });
+
         // 4. Map Deadline Requests
         deadlineRequests.forEach((req: any) => {
             if (req.status && req.status !== 'PENDING') return;
@@ -117,7 +135,7 @@ export const useSystemNotifications = (tasks: Task[], currentUser: User | null, 
         const unread = combined.filter(n => !n.isRead).length;
 
         return { notifications: combined, unreadCount: unread };
-    }, [dbNotifs, gameLogs, leaveRequests, deadlineRequests, tasks, currentUser, dismissedDynamicIds]);
+    }, [dbNotifs, gameLogs, leaveRequests, otRequests, deadlineRequests, tasks, currentUser, dismissedDynamicIds]);
 
     const dismissNotification = async (id: string) => {
         if (id.includes('_')) {
