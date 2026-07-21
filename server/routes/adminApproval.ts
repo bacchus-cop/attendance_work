@@ -145,12 +145,9 @@ const handleLineAction = async (req: express.Request, res: express.Response) => 
         console.log(`[Line-Action API] Admin ${adminProfile.full_name || adminProfile.name} is performing ${action} on request ${requestId}`);
 
         // 2. Fetch request from database (Check leave_requests first, then ot_requests)
-        const { data: leaveReqData, error: leaveReqErr } = await supabase
+        let { data: leaveReqData } = await supabase
             .from('leave_requests')
-            .select(`
-                *,
-                profiles:profiles!leave_requests_user_id_fkey (id, full_name, avatar_url, position)
-            `)
+            .select('*')
             .eq('id', requestId)
             .maybeSingle();
 
@@ -158,19 +155,37 @@ const handleLineAction = async (req: express.Request, res: express.Response) => 
         let isDedicatedOt = false;
         let otReqData: any = null;
 
+        if (reqData && reqData.user_id) {
+            const { data: userProf } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url, position')
+                .eq('id', reqData.user_id)
+                .maybeSingle();
+            if (userProf) {
+                reqData.profiles = userProf;
+            }
+        }
+
         if (!reqData) {
             const { data: otData } = await supabase
                 .from('ot_requests')
-                .select(`
-                    *,
-                    profiles:profiles!ot_requests_user_id_fkey (id, full_name, avatar_url, position)
-                `)
+                .select('*')
                 .eq('id', requestId)
                 .maybeSingle();
 
             if (otData) {
                 isDedicatedOt = true;
                 otReqData = otData;
+                if (otReqData.user_id) {
+                    const { data: userProf } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, avatar_url, position')
+                        .eq('id', otReqData.user_id)
+                        .maybeSingle();
+                    if (userProf) {
+                        otReqData.profiles = userProf;
+                    }
+                }
             }
         }
 

@@ -117,7 +117,24 @@ Deno.serve(async (req: any) => {
               })
             });
 
-            const apiData = await apiRes.json();
+            let apiData: any = {};
+            try {
+              const resText = await apiRes.text();
+              try {
+                apiData = JSON.parse(resText);
+              } catch (_e) {
+                console.error('[Line Webhook] Backend returned non-JSON:', resText);
+                apiData = { 
+                  success: false, 
+                  error: resText.includes('already') || resText.includes('อนุมัติแล้ว') 
+                    ? resText 
+                    : 'ระบบประมวลผลหลังบ้านไม่สมบูรณ์ กรุณาตรวจสอบสถานะในระบบหลักค่ะ' 
+                };
+              }
+            } catch (fetchErr: any) {
+              console.error('[Line Webhook] Fetch error:', fetchErr);
+              apiData = { success: false, error: fetchErr.message };
+            }
 
             if (apiRes.ok && apiData.success) {
               const actionLabel = action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ';
