@@ -216,15 +216,15 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const response = await fetch('/api/auth/google/url');
             const contentType = response.headers.get('content-type');
             
+            let data: any = {};
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            }
+
             if (!response.ok) {
-                throw new Error('Failed to fetch auth URL');
+                throw new Error(data.error || `Server responded with status ${response.status}`);
             }
             
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('กรุณากดเปิดในหน้าต่างใหม่ (Open in new tab) หรือกดยินยอมรับคุกกี้ของระบบเนื่องจากเบราว์เซอร์ของคุณบล็อกคุกกี้ใน iFrame');
-            }
-            
-            const data = await response.json();
             if (!data.url) {
                 throw new Error(data.error || 'ไม่พบลิงก์เชื่อมต่อ');
             }
