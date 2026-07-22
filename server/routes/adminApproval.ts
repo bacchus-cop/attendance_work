@@ -321,9 +321,25 @@ const handleLineAction = async (req: express.Request, res: express.Response) => 
             })
             .eq('related_id', requestId);
 
+        const reqReason = isDedicatedOt 
+            ? (otReqData?.reason || otReqData?.title || '-')
+            : (reqData?.reason || '-');
+
+        const leaveTypeOpt = masterOptions?.find((o: any) => o.type === 'LEAVE_TYPE' && o.key === reqData?.type);
+        const displayRequestType = isDedicatedOt 
+            ? 'ขออนุมัติ OT' 
+            : (leaveTypeOpt?.label || reqData?.type || requestType || 'คำขอ');
+
         return res.json({ 
             success: true, 
-            message: `ดำเนินการ${actionLabel}คำขอของคุณ ${targetEmployeeName} เรียบร้อยแล้วค่ะ` 
+            message: `ดำเนินการ${actionLabel}คำขอของคุณ ${targetEmployeeName} เรียบร้อยแล้วค่ะ`,
+            details: {
+                employeeName: targetEmployeeName,
+                requestType: displayRequestType,
+                reason: reqReason,
+                actionLabel: actionLabel,
+                adminName: adminName
+            }
         });
 
     } catch (err: any) {

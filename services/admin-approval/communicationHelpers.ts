@@ -3,28 +3,32 @@ import { supabase } from '../../lib/supabase';
 /**
  * Sends an approval notification to the user.
  */
-export async function sendApprovalNotification(userId: string, title: string, message: string) {
+export async function sendApprovalNotification(userId: string, title: string, message: string, relatedId?: string, metadata?: any) {
     return supabase.from('notifications').insert({
         user_id: userId,
         type: 'INFO',
         title,
         message,
         is_read: false,
-        link_path: 'ATTENDANCE'
+        link_path: 'ATTENDANCE',
+        related_id: relatedId || null,
+        metadata: metadata || null
     });
 }
 
 /**
  * Sends a rejection notification to the user.
  */
-export async function sendRejectionNotification(userId: string, title: string, message: string) {
+export async function sendRejectionNotification(userId: string, title: string, message: string, relatedId?: string, metadata?: any) {
     return supabase.from('notifications').insert({
         user_id: userId,
         type: 'INFO',
         title,
         message,
         is_read: false,
-        link_path: 'ATTENDANCE'
+        link_path: 'ATTENDANCE',
+        related_id: relatedId || null,
+        metadata: metadata || null
     });
 }
 

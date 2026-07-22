@@ -35,6 +35,7 @@ export async function rejectWfhOnsiteRequest({
                 .replace(/\[PROVISIONAL_ONSITE\]/g, '')
                 .replace(/\[PROVISIONAL_CHECKOUT\]/g, '')
                 .replace(/\[UNAUTHORIZED_WFH\]/g, '')
+                .replace(/\[UNAUTHORIZED_ONSITE\]/g, '')
                 .replace(/\s+/g, ' ')
                 .trim();
         }

@@ -115,6 +115,12 @@ export const ApprovalCardDetails: React.FC<ApprovalCardDetailsProps> = ({
                     </span>
                 )}
 
+                {parsed.isProvisionalGps && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-purple-50 text-purple-700 border-purple-200/60 flex items-center gap-1 animate-pulse shadow-sm">
+                        <AlertTriangle className="w-3 h-3 text-purple-500" /> 📍 ลงเวลาแบบจำลอง (อุทธรณ์พิกัด GPS)
+                    </span>
+                )}
+
                 {parsed.isLateSubmission && (
                     <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-amber-100 text-amber-700 border-amber-200/60 flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" /> ส่งคำขอช้ากว่ากำหนด

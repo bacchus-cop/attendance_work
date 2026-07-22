@@ -48,7 +48,8 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         lateAlertOffset: '5',
         multipleShiftsEnabled: 'false',
         multipleShiftsList: '08:00, 08:30, 09:00',
-        lineApprovalMode: 'INTERACTIVE'
+        lineApprovalMode: 'INTERACTIVE',
+        lineHeaderTitle: 'Juijui Alert Center'
     });
     const [isStartTimeOpen, setIsStartTimeOpen] = useState(false);
     const [isEndTimeOpen, setIsEndTimeOpen] = useState(false);
@@ -77,8 +78,9 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         const shiftsEnabledOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_ENABLED');
         const shiftsListOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
         const lineApprovalModeOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LINE_APPROVAL_MODE');
+        const lineHeaderTitleOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LINE_HEADER_TITLE');
         
-        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt) {
+        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt) {
             setTempTimeConfig({
                 start: startOpt?.label || '10:00',
                 end: endOpt?.label || '19:00',
@@ -93,7 +95,8 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
                 lateAlertOffset: lateAlertOffsetOpt?.label || '5',
                 multipleShiftsEnabled: shiftsEnabledOpt?.label || 'false',
                 multipleShiftsList: shiftsListOpt?.label || '08:00, 08:30, 09:00',
-                lineApprovalMode: lineApprovalModeOpt?.label || 'INTERACTIVE'
+                lineApprovalMode: lineApprovalModeOpt?.label || 'INTERACTIVE',
+                lineHeaderTitle: lineHeaderTitleOpt?.label || 'Juijui Alert Center'
             });
         }
 
@@ -145,6 +148,7 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         await updateOrInsert('MULTIPLE_SHIFTS_ENABLED', tempTimeConfig.multipleShiftsEnabled || 'false');
         await updateOrInsert('MULTIPLE_SHIFTS_LIST', tempTimeConfig.multipleShiftsList || '08:00, 08:30, 09:00');
         await updateOrInsert('LINE_APPROVAL_MODE', tempTimeConfig.lineApprovalMode || 'INTERACTIVE');
+        await updateOrInsert('LINE_HEADER_TITLE', tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center');
         
         const parsedRate = parseInt(otJpRate, 10);
         if (!isNaN(parsedRate)) {

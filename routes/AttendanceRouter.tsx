@@ -27,22 +27,31 @@ interface AttendanceRouterProps {
 
 type AttendanceTab = 'CHECK_IN' | 'HISTORY' | 'TIMESHEET' | 'REPORT' | 'APPROVALS';
 
+const parseTabParam = (param: string | null, highlightReqId?: string | null): AttendanceTab => {
+    if (!param) {
+        return highlightReqId ? 'HISTORY' : 'CHECK_IN';
+    }
+    if (['CHECK_IN', 'HISTORY', 'TIMESHEET', 'REPORT', 'APPROVALS'].includes(param)) {
+        return param as AttendanceTab;
+    }
+    if (param === 'leave-requests' || param === 'ot-requests' || param === 'approvals') {
+        return 'APPROVALS';
+    }
+    if (param === 'my-requests' || param === 'my-history' || param === 'history') {
+        return 'HISTORY';
+    }
+    return 'CHECK_IN';
+};
+
 const AttendanceRouter: React.FC<AttendanceRouterProps> = ({ currentUser, users }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     
     const [currentTab, setCurrentTab] = useState<AttendanceTab>(() => {
-        const t = searchParams.get('tab') as AttendanceTab | null;
-        if (t && ['CHECK_IN', 'HISTORY', 'TIMESHEET', 'REPORT', 'APPROVALS'].includes(t)) {
-            return t;
-        }
-        return 'CHECK_IN';
+        return parseTabParam(searchParams.get('tab'), searchParams.get('highlightReqId'));
     });
 
     useEffect(() => {
-        const t = searchParams.get('tab') as AttendanceTab | null;
-        if (t && ['CHECK_IN', 'HISTORY', 'TIMESHEET', 'REPORT', 'APPROVALS'].includes(t)) {
-            setCurrentTab(t);
-        }
+        setCurrentTab(parseTabParam(searchParams.get('tab'), searchParams.get('highlightReqId')));
     }, [searchParams]);
 
     const selectTab = (tab: AttendanceTab) => {

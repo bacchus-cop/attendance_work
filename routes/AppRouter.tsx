@@ -300,6 +300,13 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
                       next.delete('scriptId');
                       next.delete('q');
                       next.delete('deep');
+                      next.delete('origin');
+                  }
+                  if (view !== 'ATTENDANCE') {
+                      next.delete('tab');
+                      next.delete('highlightReqId');
+                      next.delete('reqId');
+                      next.delete('leaveId');
                   }
                   if (queryParams) {
                       Object.entries(queryParams).forEach(([key, val]) => {
@@ -333,6 +340,13 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
                   next.delete('scriptId');
                   next.delete('q');
                   next.delete('deep');
+                  next.delete('origin');
+              }
+              if (view !== 'ATTENDANCE') {
+                  next.delete('tab');
+                  next.delete('highlightReqId');
+                  next.delete('reqId');
+                  next.delete('leaveId');
               }
               if (queryParams) {
                   Object.entries(queryParams).forEach(([key, val]) => {
@@ -347,6 +361,27 @@ const AppRouterInner: React.FC<AppRouterProps> = ({ user }) => {
           }, { replace: true });
       }
   }, [currentView, globalWarpStage, playWarpSound, setSearchParams]);
+
+  // --- DEEP LINK RESTORE FROM SESSIONSTORAGE ---
+  useEffect(() => {
+    if (isManagerLoading) return;
+
+    const pendingDeepLink = sessionStorage.getItem('juijui_pending_deep_link');
+    if (pendingDeepLink) {
+      sessionStorage.removeItem('juijui_pending_deep_link');
+      const params = new URLSearchParams(pendingDeepLink);
+      const targetView = params.get('view') as ViewMode;
+      if (targetView) {
+        const queryObj: Record<string, string> = {};
+        params.forEach((val, key) => {
+          if (key !== 'view' && key !== 'openExternalBrowser') {
+            queryObj[key] = val;
+          }
+        });
+        handleNavigate(targetView, queryObj);
+      }
+    }
+  }, [isManagerLoading, handleNavigate]);
 
   // Sync URL with default view - Enhanced stability with custom member redirect
   useEffect(() => {

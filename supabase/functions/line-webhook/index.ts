@@ -138,13 +138,31 @@ Deno.serve(async (req: any) => {
 
             if (apiRes.ok && apiData.success) {
               const actionLabel = action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ';
+              const details = apiData.details;
+
+              let replyText = `✅ ดำเนินการ${actionLabel}คำขอเรียบร้อยแล้วค่ะ`;
+              if (details) {
+                const empName = details.employeeName || 'พนักงาน';
+                const reqType = details.requestType || targetRequestType || 'คำขอ';
+                const reqReason = details.reason || '-';
+                const adminNameStr = details.adminName || profile.full_name;
+
+                replyText = `✅ ดำเนินการ${actionLabel}คำขอเรียบร้อยแล้วค่ะ\n` +
+                  `👤 พนักงาน: ${empName}\n` +
+                  `📋 รายการ: ${reqType}\n` +
+                  `📝 รายละเอียด/เหตุผล: ${reqReason}\n` +
+                  `👮‍♂️ ผู้ดูแลที่ดำเนินการ: ${adminNameStr}`;
+              } else {
+                replyText = `✅ ดำเนินการ${actionLabel}คำขอโดยผู้ดูแล (${profile.full_name}) สำเร็จแล้วค่ะ!`;
+              }
+
               if (replyToken) {
                 const replyMsg = {
                   replyToken: replyToken,
                   messages: [
                     {
                       type: 'text',
-                      text: `✅ ดำเนินการ${actionLabel}คำขอโดยผู้ดูแล (${profile.full_name}) สำเร็จแล้วค่ะ!`
+                      text: replyText
                     }
                   ]
                 };
@@ -185,7 +203,7 @@ Deno.serve(async (req: any) => {
 
                 const { data: leaveReq } = await supabaseAdmin
                   .from('leave_requests')
-                  .select('id, status, user_id')
+                  .select('id, status, user_id, type, reason')
                   .eq('id', targetRequestId)
                   .maybeSingle();
 
@@ -203,21 +221,35 @@ Deno.serve(async (req: any) => {
                       })
                       .eq('id', targetRequestId);
 
+                    const { data: empProf } = await supabaseAdmin
+                      .from('profiles')
+                      .select('full_name')
+                      .eq('id', leaveReq.user_id)
+                      .maybeSingle();
+
+                    const empName = empProf?.full_name || 'พนักงาน';
+                    const reqTypeStr = leaveReq.type || targetRequestType || 'คำขอ';
+                    const reasonStr = leaveReq.reason || '-';
+
                     await supabaseAdmin
                       .from('notifications')
                       .update({
                         is_read: true,
-                        message: `[${actionLabel}แล้ว] คำขอได้รับการ${actionLabel}โดยแอดมินคุณ ${profile.full_name}`,
+                        message: `[${actionLabel}แล้ว] คำขอ (${reqTypeStr}) ของพนักงาน ${empName} ได้รับการ${actionLabel}โดยแอดมินคุณ ${profile.full_name}`,
                         title: `✅ ดำเนินการ${actionLabel}เรียบร้อย`
                       })
                       .eq('related_id', targetRequestId);
 
-                    fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอโดยผู้ดูแล (${profile.full_name}) สำเร็จแล้วค่ะ!`;
+                    fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอเรียบร้อยแล้วค่ะ\n` +
+                      `👤 พนักงาน: ${empName}\n` +
+                      `📋 รายการ: ${reqTypeStr}\n` +
+                      `📝 รายละเอียด/เหตุผล: ${reasonStr}\n` +
+                      `👮‍♂️ ผู้ดูแลที่ดำเนินการ: ${profile.full_name}`;
                   }
                 } else {
                   const { data: otReq } = await supabaseAdmin
                     .from('ot_requests')
-                    .select('id, status, user_id')
+                    .select('id, status, user_id, reason, title')
                     .eq('id', targetRequestId)
                     .maybeSingle();
 
@@ -235,16 +267,29 @@ Deno.serve(async (req: any) => {
                         })
                         .eq('id', targetRequestId);
 
+                      const { data: empProf } = await supabaseAdmin
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', otReq.user_id)
+                        .maybeSingle();
+
+                      const empName = empProf?.full_name || 'พนักงาน';
+                      const reasonStr = otReq.reason || otReq.title || '-';
+
                       await supabaseAdmin
                         .from('notifications')
                         .update({
                           is_read: true,
-                          message: `[${actionLabel}แล้ว] คำขอ OT ได้รับการ${actionLabel}โดยแอดมินคุณ ${profile.full_name}`,
+                          message: `[${actionLabel}แล้ว] คำขอ OT ของพนักงาน ${empName} ได้รับการ${actionLabel}โดยแอดมินคุณ ${profile.full_name}`,
                           title: `✅ ดำเนินการ${actionLabel}เรียบร้อย`
                         })
                         .eq('related_id', targetRequestId);
 
-                      fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอ OT โดยผู้ดูแล (${profile.full_name}) สำเร็จแล้วค่ะ!`;
+                      fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอเรียบร้อยแล้วค่ะ\n` +
+                        `👤 พนักงาน: ${empName}\n` +
+                        `📋 รายการ: ขออนุมัติ OT\n` +
+                        `📝 รายละเอียด/เหตุผล: ${reasonStr}\n` +
+                        `👮‍♂️ ผู้ดูแลที่ดำเนินการ: ${profile.full_name}`;
                     }
                   } else {
                     fallbackMsg = '⚠️ ไม่พบข้อมูลคำขอนี้ในระบบค่ะ';
@@ -273,7 +318,7 @@ Deno.serve(async (req: any) => {
             try {
               const { data: leaveReq } = await supabaseAdmin
                 .from('leave_requests')
-                .select('id, status')
+                .select('id, status, user_id, type, reason')
                 .eq('id', targetRequestId)
                 .maybeSingle();
 
@@ -282,7 +327,22 @@ Deno.serve(async (req: any) => {
                   .from('leave_requests')
                   .update({ status: targetStatus, approver_id: profile.id, updated_at: new Date().toISOString() })
                   .eq('id', targetRequestId);
-                fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอโดยผู้ดูแล (${profile.full_name}) สำเร็จแล้วค่ะ!`;
+
+                const { data: empProf } = await supabaseAdmin
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', leaveReq.user_id)
+                  .maybeSingle();
+
+                const empName = empProf?.full_name || 'พนักงาน';
+                const reqTypeStr = leaveReq.type || targetRequestType || 'คำขอ';
+                const reasonStr = leaveReq.reason || '-';
+
+                fallbackMsg = `✅ ดำเนินการ${actionLabel}คำขอเรียบร้อยแล้วค่ะ\n` +
+                  `👤 พนักงาน: ${empName}\n` +
+                  `📋 รายการ: ${reqTypeStr}\n` +
+                  `📝 รายละเอียด/เหตุผล: ${reasonStr}\n` +
+                  `👮‍♂️ ผู้ดูแลที่ดำเนินการ: ${profile.full_name}`;
               } else {
                 fallbackMsg = `❌ เกิดข้อผิดพลาดในการเชื่อมต่อหลังบ้าน: ${apiErr.message}`;
               }

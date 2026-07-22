@@ -17,6 +17,7 @@ interface WorkTimeConfig {
     multipleShiftsEnabled?: string;
     multipleShiftsList?: string;
     lineApprovalMode?: string;
+    lineHeaderTitle?: string;
 }
 
 interface LineApprovalModeCardProps {
@@ -77,6 +78,23 @@ const LineApprovalModeCard: React.FC<LineApprovalModeCardProps> = ({
                         />
                     </button>
                 </div>
+
+                {/* LINE CARD HEADER TITLE INPUT */}
+                <div className="mt-3 p-3 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-1.5 shadow-xs">
+                    <label className="block text-xs font-bold text-gray-700 flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-slate-800">🏷️ หัวข้อการ์ดแจ้งเตือน (LINE Card Header Title)</span>
+                    </label>
+                    <input
+                        type="text"
+                        className="w-full px-3 py-2 text-xs font-bold bg-white text-gray-800 border border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+                        placeholder="Juijui Alert Center"
+                        value={tempTimeConfig.lineHeaderTitle || ''}
+                        onChange={(e) => setTempTimeConfig(prev => ({ ...prev, lineHeaderTitle: e.target.value }))}
+                    />
+                    <p className="text-[10px] text-gray-400 font-medium">
+                        ข้อความหัวข้อที่จะปรากฏบนแถบด้านบนของการ์ด LINE Flex Message (ค่าเริ่มต้น: Juijui Alert Center)
+                    </p>
+                </div>
             </div>
 
             {/* LIVE PREVIEW SIMULATOR */}
@@ -98,8 +116,14 @@ const LineApprovalModeCard: React.FC<LineApprovalModeCardProps> = ({
                         <div className="flex-grow max-w-[85%]">
                             <span className="block text-[10px] text-slate-400 font-bold mb-1">JuiJui Attendance Bot</span>
                             
-                            {/* Message Bubble */}
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 text-slate-200 shadow-sm relative overflow-hidden">
+                            {/* Message Header Simulation */}
+                            <div className="bg-emerald-600 text-white p-2.5 rounded-t-2xl font-bold text-xs flex items-center gap-2">
+                                <span className="text-sm shrink-0">🔔</span>
+                                <span className="truncate">{tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center'}</span>
+                            </div>
+                            
+                            {/* Message Bubble Body */}
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-b-2xl p-3 text-slate-200 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-12 h-12 bg-emerald-500/5 rounded-bl-full"></div>
                                 
                                 <div className="flex items-center justify-between mb-2">

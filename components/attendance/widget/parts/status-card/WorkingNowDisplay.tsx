@@ -43,6 +43,7 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
     const isProvisionalForgotCheckin = !!todayLog?.note?.includes('[PROVISIONAL_FORGOT_CHECKIN]');
     const isProvisionalWfh = !!todayLog?.note?.includes('[PROVISIONAL_WFH]');
     const isProvisionalOnsite = !!todayLog?.note?.includes('[PROVISIONAL_ONSITE]');
+    const isProvisionalGps = !!todayLog?.note?.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || !!todayLog?.note?.includes('[GPS_SPOOF_APPEAL_PENDING]');
     const isPendingVerify = todayLog?.status === 'PENDING_VERIFY';
 
     return (
@@ -171,6 +172,16 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
                     <div className="text-left">
                         <span className="block text-xs text-orange-800 font-bold">ลงเวลาแบบจำลอง (Provisional On-site)</span>
                         <span className="block text-[10px] text-orange-600 leading-normal mt-0.5">ไม่พบใบอนุมัติปฏิบัติงานนอกสถานที่ล่วงหน้า ระบบลงเวลาจำลองชั่วคราว กรุณารอแอดมินพิจารณาอนุมัติย้อนหลัง</span>
+                    </div>
+                </div>
+            )}
+
+            {isProvisionalGps && (
+                 <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-4 py-3 rounded-xl border border-purple-200 shadow-sm flex items-start gap-2.5 animate-pulse-slow">
+                    <AlertCircle className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                    <div className="text-left">
+                        <span className="block text-xs text-purple-800 font-bold">📍 ลงเวลาแบบจำลอง (อุทธรณ์พิกัด GPS)</span>
+                        <span className="block text-[10px] text-purple-600 leading-normal mt-0.5">คำขออุทธรณ์พิกัด GPS ของคุณอยู่ระหว่างรอการตรวจสอบและอนุมัติจากแอดมิน ระบบให้ลงเวลาทำงานชั่วคราวแล้ว</span>
                     </div>
                 </div>
             )}

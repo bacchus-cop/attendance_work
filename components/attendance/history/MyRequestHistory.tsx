@@ -59,7 +59,8 @@ const MyRequestHistory: React.FC<MyRequestHistoryProps> = ({
         handleNextMonth,
         getThaiMonthYearLabel,
         finalRequestsCount,
-        combinedRequests
+        combinedRequests,
+        highlightReqId
     } = useRequestHistoryLogic({
         requests,
         fetchRequestsForRange,
@@ -175,7 +176,7 @@ const MyRequestHistory: React.FC<MyRequestHistoryProps> = ({
                                         </motion.div>
                                     ) : (
                                         paginatedRequests.map((req) => (
-                                            <HistoryItemCard key={req.id} req={req} />
+                                            <HistoryItemCard key={req.id} req={req} isHighlighted={req.id === highlightReqId} />
                                         ))
                                     )}
                                 </AnimatePresence>

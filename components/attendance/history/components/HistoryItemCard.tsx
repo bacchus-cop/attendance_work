@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { 
     Clock, CheckCircle2, XCircle, Calendar, 
-    AlertTriangle, MapPin, Moon, Settings, AlertCircle 
+    AlertTriangle, MapPin, Moon, Settings, AlertCircle, Sparkles 
 } from 'lucide-react';
 import { LeaveRequest } from '../../../../types/attendance';
 import { parseReason } from '../../leave-request/request-detail/utils';
 
 interface HistoryItemCardProps {
     req: LeaveRequest;
+    isHighlighted?: boolean;
 }
 
 const cardVariants = {
@@ -50,10 +51,20 @@ const getLeaveLabel = (type: string) => {
     return labels[type] || type;
 };
 
-export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({ req }) => {
+export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({ req, isHighlighted = false }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
     const status = getStatusConfig(req.status);
     const StatusIcon = status.icon;
     const daysCount = differenceInDays(new Date(req.endDate), new Date(req.startDate)) + 1;
+
+    useEffect(() => {
+        if (isHighlighted && cardRef.current) {
+            const timer = setTimeout(() => {
+                cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 250);
+            return () => clearTimeout(timer);
+        }
+    }, [isHighlighted]);
 
     // Parse the reason and build a friendly user display
     const parsed = parseReason(req.reason);
@@ -73,13 +84,29 @@ export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({ req }) => {
 
     return (
         <motion.div 
+            ref={cardRef}
             variants={cardVariants}
             layout="position"
             className={`
-                bg-white p-4 rounded-xl border-l-4 shadow-sm transition-all hover:shadow-md
+                relative bg-white p-4 rounded-xl border-l-4 shadow-sm transition-all duration-300
+                ${isHighlighted 
+                    ? 'ring-4 ring-indigo-500/60 border-indigo-500 shadow-xl shadow-indigo-500/20 scale-[1.01] z-10' 
+                    : 'hover:shadow-md'
+                }
                 ${status.border} ${req.status === 'REJECTED' ? 'border-l-red-500' : req.status === 'APPROVED' ? 'border-l-green-500' : 'border-l-orange-400'}
             `}
         >
+            {isHighlighted && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -top-3 right-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-amber-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg flex items-center gap-1 z-20 animate-pulse"
+                >
+                    <Sparkles className="w-3 h-3 text-amber-300 fill-amber-300" />
+                    <span>คำขอจากการแจ้งเตือน</span>
+                </motion.div>
+            )}
+
             <div className="flex justify-between items-start mb-2">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className={`text-xs font-bold px-2 py-1 rounded-md border ${status.bg} ${status.color} ${status.border} flex items-center gap-1`}>

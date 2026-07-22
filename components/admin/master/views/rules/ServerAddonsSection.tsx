@@ -22,6 +22,7 @@ interface WorkTimeConfig {
     multipleShiftsEnabled?: string;
     multipleShiftsList?: string;
     lineApprovalMode?: string;
+    lineHeaderTitle?: string;
 }
 
 interface ServerAddonsSectionProps {

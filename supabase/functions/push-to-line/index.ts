@@ -107,6 +107,13 @@ Deno.serve(async (req: any) => {
           }
         }
 
+        // Sanitize LINE Destination (extract valid 33-char LINE ID like U..., C..., R... or trim whitespace)
+        if (targetDestination) {
+          const rawDest = targetDestination.trim();
+          const match = rawDest.match(/([UCR][a-fA-F0-9]{32})/);
+          targetDestination = match ? match[1] : rawDest;
+        }
+
         // CASE: No LINE ID or Destination Linked
         if (!targetDestination) {
           console.log(`No valid LINE destination found for notification. Marking as ABANDONED.`);
@@ -120,7 +127,7 @@ Deno.serve(async (req: any) => {
           return;
         }
 
-        // 1.5 Fetch LINE_APPROVAL_MODE Configuration
+        // 1.5 Fetch LINE_APPROVAL_MODE & LINE_HEADER_TITLE Configuration
         const { data: modeOpt } = await supabaseAdmin
           .from('master_options')
           .select('label, is_active')
@@ -129,6 +136,17 @@ Deno.serve(async (req: any) => {
           .maybeSingle();
 
         const isInteractive = modeOpt?.is_active !== false && (!modeOpt || modeOpt.label === 'INTERACTIVE');
+
+        const { data: headerTitleOpt } = await supabaseAdmin
+          .from('master_options')
+          .select('label')
+          .eq('type', 'WORK_CONFIG')
+          .eq('key', 'LINE_HEADER_TITLE')
+          .maybeSingle();
+
+        const lineHeaderTitle = (headerTitleOpt?.label && headerTitleOpt.label.trim()) 
+          ? headerTitleOpt.label.trim() 
+          : "Juijui Alert Center";
 
         // 2. Construct LINE Message
         const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
@@ -173,7 +191,7 @@ Deno.serve(async (req: any) => {
               bodyContents.push({
                 type: "box",
                 layout: "vertical",
-                margin: "md",
+                margin: idx === 0 ? "xs" : "md",
                 paddingAll: "10px",
                 backgroundColor: "#f8fafc",
                 cornerRadius: "md",
@@ -257,13 +275,13 @@ Deno.serve(async (req: any) => {
                 size: "xs",
                 color: "#64748b",
                 wrap: true,
-                margin: "md",
+                margin: "sm",
                 maxLines: 4
               },
               {
                 type: "box",
                 layout: "horizontal",
-                margin: "lg",
+                margin: "md",
                 contents: [
                   {
                     type: "text",
@@ -290,11 +308,11 @@ Deno.serve(async (req: any) => {
               {
                 type: "flex",
                 altText: isBatch 
-                  ? `[Juijui] แจ้งเตือนใหม่ ${claimedRecords.length} รายการ`
-                  : `[Juijui] ${record.title}`,
+                  ? `[${lineHeaderTitle}] แจ้งเตือนใหม่ ${claimedRecords.length} รายการ`
+                  : `[${lineHeaderTitle}] ${record.title}`,
                 contents: {
                   type: "bubble",
-                  size: "kilo",
+                  size: "mega",
                   header: {
                     type: "box",
                     layout: "vertical",
@@ -302,55 +320,68 @@ Deno.serve(async (req: any) => {
                       {
                         type: "box",
                         layout: "horizontal",
+                        alignItems: "center",
                         contents: [
                           {
                             type: "text",
                             text: primaryConfig.emoji,
-                            size: "xl"
+                            size: "lg",
+                            flex: 0
                           },
                           {
                             type: "text",
-                            text: "Juijui Alert Center",
+                            text: lineHeaderTitle,
                             weight: "bold",
                             color: "#ffffff",
                             size: "sm",
                             flex: 1,
-                            gravity: "center",
-                            margin: "sm"
+                            margin: "sm",
+                            wrap: true,
+                            align: "start"
                           }
                         ]
                       }
                     ],
                     backgroundColor: primaryConfig.color,
-                    paddingAll: "15px"
+                    paddingTop: "8px",
+                    paddingBottom: "8px",
+                    paddingStart: "15px",
+                    paddingEnd: "15px"
                   },
                   body: {
                     type: "box",
                     layout: "vertical",
                     contents: bodyContents,
-                    paddingAll: "20px"
+                    paddingTop: "10px",
+                    paddingBottom: "12px",
+                    paddingStart: "15px",
+                    paddingEnd: "15px"
                   },
                   footer: {
                     type: "box",
                     layout: "vertical",
                     contents: (() => {
                       const appUrl = Deno.env.get('APP_URL') || "https://juijui-corp.vercel.app/";
-                      const cleanAppUrl = appUrl.endsWith('/') ? appUrl : `${appUrl}/`;
+                      const baseAppUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl;
+
+                      let metadataObj: any = {};
+                      if (record.metadata) {
+                        try {
+                          metadataObj = typeof record.metadata === 'string' 
+                            ? JSON.parse(record.metadata) 
+                            : record.metadata;
+                        } catch (e) {
+                          console.error("Failed to parse notification metadata:", e);
+                        }
+                      }
+                      const reqType = metadataObj.request_type || 'WFH';
+                      const tab = (reqType === 'OT') ? 'ot-requests' : 'leave-requests';
+                      const targetDeepLink = record.related_id 
+                        ? `${baseAppUrl}/?openExternalBrowser=1&view=ATTENDANCE&tab=${tab}&highlightReqId=${record.related_id}`
+                        : `${baseAppUrl}/?openExternalBrowser=1&view=ATTENDANCE`;
 
                       // If interactive mode is enabled and this is a single approval request notification
                       if (isInteractive && record.type === 'APPROVAL_REQ' && record.related_id) {
-                        let metadataObj: any = {};
-                        if (record.metadata) {
-                          try {
-                            metadataObj = typeof record.metadata === 'string' 
-                              ? JSON.parse(record.metadata) 
-                              : record.metadata;
-                          } catch (e) {
-                            console.error("Failed to parse notification metadata:", e);
-                          }
-                        }
-                        const reqType = metadataObj.request_type || 'WFH';
-                        
                         return [
                           {
                             type: "box",
@@ -387,7 +418,7 @@ Deno.serve(async (req: any) => {
                             action: {
                               type: "uri",
                               label: "เปิดเข้าแอป",
-                              uri: cleanAppUrl
+                              uri: targetDeepLink
                             },
                             style: "secondary",
                             height: "sm",
@@ -404,7 +435,7 @@ Deno.serve(async (req: any) => {
                           action: {
                             type: "uri",
                             label: "เปิดเข้าแอป",
-                            uri: cleanAppUrl
+                            uri: targetDeepLink
                           },
                           style: "secondary",
                           height: "sm",

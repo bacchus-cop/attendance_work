@@ -145,6 +145,10 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
         })
     };
 
+    const effectiveDisplayStartTime = (isShiftsEnabled && shiftResult?.targetStartTime)
+        ? shiftResult.targetStartTime
+        : (approvedLateTime || startTime || '10:00');
+
     if (isLoadingMasterData && isOpen) {
         return null; // Let master data load
     }
@@ -193,7 +197,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
                             <AnimatePresence mode="wait">
                                 {showLateIntervention && (
                                     <LateInterventionOverlay
-                                        startTime={startTime || '10:00'}
+                                        startTime={effectiveDisplayStartTime}
                                         onSwitchToLeave={() => {
                                             onClose();
                                             if (onSwitchToLeave) {
@@ -216,7 +220,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
                                 )}
                                 {showLatePenaltyBreakdown && (
                                     <LatePenaltyBreakdownOverlay
-                                        startTime={startTime || '10:00'}
+                                        startTime={effectiveDisplayStartTime}
                                         lateMinutes={lateMinutes}
                                         onConfirm={handleAcceptLateness}
                                         onGoBack={() => {

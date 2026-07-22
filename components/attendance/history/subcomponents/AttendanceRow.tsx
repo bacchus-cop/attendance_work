@@ -164,16 +164,17 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
             <td className="px-6 py-4">
                 {log.checkInTime ? (
                     <div>
-                        <span className={`font-mono font-bold text-sm ${isAppeal ? 'text-violet-600' : late ? 'text-red-500' : 'text-green-600'}`}>
+                        <span className={`font-mono font-semibold text-sm ${isAppeal ? 'text-violet-600' : late ? 'text-red-500' : 'text-emerald-600'}`}>
                             {format(log.checkInTime, 'HH:mm')}
-                            {isAppeal && <span className="ml-2 text-[9px] bg-violet-100 px-1.5 py-0.5 rounded text-violet-600 uppercase">APPEAL</span>}
-                            {!isAppeal && late && <span className="ml-2 text-[9px] bg-red-100 px-1.5 py-0.5 rounded text-red-600 uppercase">LATE</span>}
+                            {isAppeal && <span className="ml-2 text-[9px] bg-violet-100 font-medium px-1.5 py-0.5 rounded text-violet-700 uppercase">APPEAL</span>}
+                            {!isAppeal && late && <span className="ml-2 text-[9px] bg-red-100 font-medium px-1.5 py-0.5 rounded text-red-700 uppercase">LATE</span>}
                         </span>
                         {(() => {
-                            const matchShift = log.note?.match(/\[TARGET_SHIFT:([^\]]+)\]/);
+                            const matchShift = log.note?.match(/\[TARGET_SHIFT:([^\]]+)\]/) || log.note?.match(/\[TIME:([0-9]{2}:[0-9]{2})\]/);
                             const matchActual = log.note?.match(/\[ACTUAL_CHECK_IN:([^\]]+)\]/);
                             if (!matchShift) return null;
                             
+                            const shiftTimeStr = matchShift[1];
                             let actualTimeStr = '';
                             if (matchActual && matchActual[1]) {
                                 const parts = matchActual[1].split(':');
@@ -186,11 +187,12 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
 
                             return (
                                 <div className="space-y-0.5 mt-1">
-                                    <span className="block text-[9px] text-teal-600 font-bold bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100 w-fit">
-                                        กะ {matchShift[1]} น.
+                                    <span className="inline-flex items-center gap-1 text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/70 w-fit">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                        กะ {shiftTimeStr} น.
                                     </span>
                                     {actualTimeStr && (
-                                        <span className="block text-[9px] text-gray-400 font-medium italic">
+                                        <span className="block text-[10px] text-slate-400 font-medium italic">
                                             (กดจริง {actualTimeStr} น.)
                                         </span>
                                     )}

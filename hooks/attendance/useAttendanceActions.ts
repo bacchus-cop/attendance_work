@@ -136,6 +136,7 @@ export const useAttendanceActions = (userId: string) => {
             }
             if (workType === 'SITE' && isProvisionalOnsite) {
                 meta.push(`[PROVISIONAL_ONSITE]`);
+                meta.push(`[UNAUTHORIZED_ONSITE]`);
             }
             if (isGpsAppeal) {
                 meta.push(`[PROVISIONAL_GPS_SPOOF_APPEAL]`);
@@ -287,10 +288,16 @@ export const useAttendanceActions = (userId: string) => {
                 lateMinutes: lateMinutes
             });
 
-            // Handle Unauthorized WFH Penalty
+            // Handle Unauthorized WFH / Onsite Penalty
             if (workType === 'WFH' && !isApprovedWFH) {
                 await processAction(userId, 'ATTENDANCE_UNAUTHORIZED_WFH', {
-                    date: now
+                    date: now,
+                    workType: 'WFH'
+                });
+            } else if (workType === 'SITE' && isProvisionalOnsite) {
+                await processAction(userId, 'ATTENDANCE_UNAUTHORIZED_ONSITE', {
+                    date: now,
+                    workType: 'SITE'
                 });
             }
 

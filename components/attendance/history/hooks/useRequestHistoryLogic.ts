@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LeaveRequest } from '../../../../types/attendance';
 
 export type FilterStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -228,6 +229,51 @@ export const useRequestHistoryLogic = ({
         return finalRequests.slice(startIndex, startIndex + itemsPerPage);
     }, [finalRequests, currentPage, itemsPerPage]);
 
+    // Search params for deep-link highlighting
+    const [searchParams] = useSearchParams();
+    const highlightReqId = searchParams.get('highlightReqId');
+
+    // Auto-expand & auto-adjust filter when highlightReqId is present
+    useEffect(() => {
+        if (!highlightReqId) return;
+
+        setIsExpanded(true);
+
+        const target = combinedRequests.find(r => r.id === highlightReqId);
+        if (target) {
+            // 1. Ensure status tab filter includes the target
+            if (filter !== 'ALL' && filter !== target.status) {
+                setFilter('ALL');
+            }
+
+            // 2. Ensure date range includes the target item
+            const targetDate = new Date(target.startDate);
+            const targetMonth = targetDate.getMonth();
+            const targetYear = targetDate.getFullYear();
+
+            if (isMonthFilterEnabled) {
+                if (selectedMonth !== targetMonth || selectedYear !== targetYear) {
+                    setSelectedMonth(targetMonth);
+                    setSelectedYear(targetYear);
+                }
+            }
+
+            // 3. Ensure currentPage is on the page containing the target item
+            const index = finalRequests.findIndex(r => r.id === highlightReqId);
+            if (index !== -1) {
+                const targetPage = Math.floor(index / itemsPerPage) + 1;
+                if (currentPage !== targetPage) {
+                    setCurrentPage(targetPage);
+                }
+            }
+        } else {
+            // Target not found in current month window, turn off month filter to show full history
+            if (isMonthFilterEnabled) {
+                setIsMonthFilterEnabled(false);
+            }
+        }
+    }, [highlightReqId, combinedRequests, filter, isMonthFilterEnabled, selectedMonth, selectedYear, finalRequests, itemsPerPage, currentPage]);
+
     // Keep currentPage within bounds when items change
     useEffect(() => {
         if (currentPage > totalPages) {
@@ -265,6 +311,7 @@ export const useRequestHistoryLogic = ({
         handleNextMonth,
         getThaiMonthYearLabel,
         finalRequestsCount: finalRequests.length,
-        combinedRequests
+        combinedRequests,
+        highlightReqId
     };
 };

@@ -41,6 +41,7 @@ export const FinishedWorkDisplay: React.FC<FinishedWorkDisplayProps> = ({
     const noteText = todayLog?.note || '';
     const isRejectedOutOfRange = noteText.includes('[REJECTED OUT_OF_RANGE_CHECKOUT]');
     const isRejectedForgotCheckout = noteText.includes('[REJECTED FORGOT_CHECKOUT]');
+    const isProvisionalGps = noteText.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || noteText.includes('[GPS_SPOOF_APPEAL_PENDING]');
 
     return (
         <div className="space-y-2.5">
@@ -157,6 +158,7 @@ export const FinishedWorkDisplay: React.FC<FinishedWorkDisplayProps> = ({
                         {isProvisionalCheckout && <li>ลืมลงเวลาออกงาน / นอกพิกัด (Provisional Forgot Check-out)</li>}
                         {isProvisionalWfh && <li>ทำงานที่บ้านแบบชั่วคราว (Provisional WFH รอใบอนุมัติ)</li>}
                         {isProvisionalOnsite && <li>ปฏิบัติงานนอกสถานที่ชั่วคราว (Provisional On-site รอใบอนุมัติ)</li>}
+                        {isProvisionalGps && <li>อุทธรณ์พิกัด GPS ชั่วคราว (Provisional GPS Appeal รอใบอนุมัติ)</li>}
                         {isAppealPending && <li>อยู่ระหว่างรอพิจารณาคำชี้แจงกรณีเข้างานสาย (Late Appeal)</li>}
                         {isPendingVerify && <li>รายการลงเวลาแบบบันทึกแมนนวล (Manual Entry Waiting Approval)</li>}
                     </ul>

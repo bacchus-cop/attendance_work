@@ -174,11 +174,11 @@ export const useLeaveFormLogic = ({
             finalStartDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
             
             if (selectedType === 'FORGOT_BOTH') {
-                finalReason = `[TIME:${targetTime}-${endTime}] ${reason}`;
+                finalReason = `[TARGET_SHIFT:${targetTime}] [TIME:${targetTime}-${endTime}] ${reason}`;
                 const [endH, endM] = endTime.split(':').map(Number);
                 finalEndDate = new Date(year, month - 1, day, endH, endM, 0, 0);
             } else {
-                finalReason = `[TIME:${targetTime}] ${reason}`;
+                finalReason = `[TARGET_SHIFT:${targetTime}] [TIME:${targetTime}] ${reason}`;
                 finalEndDate = finalStartDate; 
             }
         } else if (selectedType === 'OVERTIME') {

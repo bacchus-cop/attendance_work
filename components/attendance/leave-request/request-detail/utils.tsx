@@ -18,6 +18,7 @@ export interface ParsedReason {
     isProvisionalForgotCheckin: boolean;
     isProvisionalCheckout: boolean;
     isProvisionalLate: boolean;
+    isProvisionalGps: boolean;
     proofUrl: string | null;
 }
 
@@ -60,6 +61,10 @@ export const parseReason = (reason: string): ParsedReason => {
 
     const isProvisionalCheckout = text.includes('[PROVISIONAL_CHECKOUT]');
     text = text.replace(/\[PROVISIONAL_CHECKOUT\]/g, '');
+
+    const isProvisionalGps = text.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || text.includes('[GPS_SPOOF_APPEAL_PENDING]');
+    text = text.replace(/\[PROVISIONAL_GPS_SPOOF_APPEAL\]/g, '');
+    text = text.replace(/\[GPS_SPOOF_APPEAL_PENDING\]/g, '');
     
     const timeMatch = text.match(/\[TIME:(\d{2}:\d{2})\]/);
     let time: string | null = null;
@@ -100,14 +105,20 @@ export const parseReason = (reason: string): ParsedReason => {
         cleanLower === 'ลงเวลาแบบจำลอง (provisional on-site)' ||
         cleanLower === 'ลงเวลาแบบจำลอง (provisional onsite)' ||
         cleanLower === 'ลงเวลาแบบจำลอง (provisional checkout)' ||
+        cleanLower === 'ลงเวลาแบบจำลอง (provisional gps appeal)' ||
+        cleanLower === 'อุทธรณ์ความปลอดภัยพิกัด gps ผิดปกติ' ||
+        cleanLower === 'อุทธรณ์พิกัด gps ผิดปกติ' ||
         cleanLower === 'ลงเวลาแบบจำลอง' ||
         cleanLower === 'provisional wfh' ||
         cleanLower === 'provisional on-site' ||
         cleanLower === 'provisional onsite' ||
         cleanLower === 'provisional checkout' ||
+        cleanLower === 'provisional gps appeal' ||
         cleanLower === 'provisional';
 
-    if (isGenericProvisional && (isProvisionalWfh || isProvisionalOnsite || isProvisionalForgotCheckin || isProvisionalCheckout || isProvisionalLate)) {
+    if (isGenericProvisional && isProvisionalGps) {
+        text = 'ยื่นคำขออุทธรณ์พิกัด GPS ผิดปกติเนื่องจากสัญญาณระบบคลาดเคลื่อน (ระบบลงเวลาแบบจำลองให้อัตโนมัติ)';
+    } else if (isGenericProvisional && (isProvisionalWfh || isProvisionalOnsite || isProvisionalForgotCheckin || isProvisionalCheckout || isProvisionalLate)) {
         text = 'ลงเวลางานโดยไม่มีใบคำขออนุมัติล่วงหน้า (ระบบสร้างใบคำขอให้อัตโนมัติ)';
     }
 
@@ -124,6 +135,7 @@ export const parseReason = (reason: string): ParsedReason => {
         isProvisionalForgotCheckin,
         isProvisionalCheckout,
         isProvisionalLate,
+        isProvisionalGps,
         proofUrl
     };
 };

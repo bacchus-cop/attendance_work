@@ -79,13 +79,19 @@ export const RequestInfoSection: React.FC<RequestInfoSectionProps> = ({
             </div>
 
             {/* Smart Alert flags if any */}
-            {(parsed.isLateSubmission || parsed.isLocationMismatch || parsed.forgotCheckoutPenalty || parsed.isProvisionalWfh || parsed.isProvisionalOnsite || parsed.isProvisionalForgotCheckin) && (
+            {(parsed.isLateSubmission || parsed.isLocationMismatch || parsed.forgotCheckoutPenalty || parsed.isProvisionalWfh || parsed.isProvisionalOnsite || parsed.isProvisionalForgotCheckin || parsed.isProvisionalGps) && (
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
                         <ShieldAlert className="w-4 h-4 text-slate-500" />
                         <span>สัญญาณแจ้งเตือนระบบ (Smart Flags)</span>
                     </div>
                     <div className="grid gap-2">
+                        {parsed.isProvisionalGps && (
+                            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-purple-50 text-purple-800 border border-purple-100 text-xs font-bold shadow-sm animate-pulse">
+                                <AlertTriangle className="w-4 h-4 shrink-0 text-purple-500" />
+                                <span>📍 ลงเวลาแบบจำลอง (คำขออุทธรณ์พิกัด GPS อยู่ระหว่างรอการตรวจสอบและอนุมัติจากแอดมิน ระบบให้ลงเวลาทำงานชั่วคราวแล้ว)</span>
+                            </div>
+                        )}
                         {parsed.isProvisionalWfh && (
                             <div className="flex items-center gap-2.5 p-3 rounded-xl bg-sky-50 text-sky-800 border border-sky-100 text-xs font-bold shadow-sm animate-pulse">
                                 <AlertTriangle className="w-4 h-4 shrink-0 text-sky-500" />

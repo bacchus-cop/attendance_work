@@ -185,7 +185,7 @@ export const adminApprovalService = {
             notifMsg += `\n\n📝 บันทึกจากแอดมิน: ${adminNote}`;
         }
 
-        await sendApprovalNotification(otReq.userId, '✅ อนุมัติคำขอพิเศษ (OT)', notifMsg);
+        await sendApprovalNotification(otReq.userId, '✅ อนุมัติคำขอพิเศษ (OT)', notifMsg, otReq.id, { request_type: 'OT' });
 
         await publishToTeamChannel(`✅ คำขอ OT ของ **${otReq.user?.name || 'พนักงาน'}** วันที่ ${dateDisplay} (${finalHours} ชม.) ได้รับการอนุมัติแล้ว${checkOutMsg}${adminNote ? `\n📝 บันทึก: ${adminNote}` : ''}`);
 
@@ -290,7 +290,7 @@ export const adminApprovalService = {
             notifMsg += `\n\n📝 บันทึกจากแอดมิน: ${adminNote}`;
         }
 
-        await sendApprovalNotification(request.userId, notifTitle, notifMsg);
+        await sendApprovalNotification(request.userId, notifTitle, notifMsg, request.id, { request_type: request.type });
 
         await publishToTeamChannel(`✅ คำขอของ **${request.user?.name}** (${translateRequestType(request.type)}) ได้รับการอนุมัติแล้ว`);
 
@@ -326,7 +326,7 @@ export const adminApprovalService = {
                 .eq('id', id);
 
             const dateDisplay = format(new Date(otReq.date), 'd MMM yyyy');
-            await sendRejectionNotification(otReq.userId, '❌ ปฏิเสธคำขอพิเศษ (OT)', `คำขอ OT วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`);
+            await sendRejectionNotification(otReq.userId, '❌ ปฏิเสธคำขอพิเศษ (OT)', `คำขอ OT วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`, otReq.id, { request_type: 'OT' });
 
             return { success: true };
         }
@@ -407,7 +407,7 @@ export const adminApprovalService = {
 
         if (targetReq) {
             const dateDisplay = format(targetReq.startDate, 'd MMM yyyy');
-            await sendRejectionNotification(targetReq.userId, '❌ ปฏิเสธคำขอ', `คำขอประเภท: ${translateRequestType(targetReq.type)} วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`);
+            await sendRejectionNotification(targetReq.userId, '❌ ปฏิเสธคำขอ', `คำขอประเภท: ${translateRequestType(targetReq.type)} วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`, targetReq.id, { request_type: targetReq.type });
 
             await publishToTeamChannel(`❌ คำขอของ **${targetReq.user?.name || 'พนักงาน'}** (${translateRequestType(targetReq.type)}) ถูกปฏิเสธ`);
         }

@@ -57,17 +57,19 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({
             }
 
             // Extract raw request ID
-            let rawId = '';
-            if (notification.id && notification.id.startsWith('leave_')) {
+            let rawId = notification.relatedId || notification.related_id || '';
+            if (!rawId && notification.id && notification.id.startsWith('leave_')) {
                 rawId = notification.id.replace('leave_', '');
-            } else if (notification.taskId) {
+            } else if (!rawId && notification.taskId) {
                 rawId = notification.taskId;
-            } else if (notification.id) {
+            } else if (!rawId && notification.id) {
                 const uuidMatch = notification.id.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
                 if (uuidMatch) rawId = uuidMatch[0];
             }
 
-            onNavigate('ATTENDANCE', { tab: 'APPROVALS', highlightReqId: rawId });
+            const targetTab = notification.type === 'APPROVAL_REQ' ? 'APPROVALS' : 'HISTORY';
+
+            onNavigate('ATTENDANCE', { tab: targetTab, highlightReqId: rawId });
             onClose(); // Close the popover since we are navigating to another view
         } else if (onViewDetail) {
             // Open detail modal and do NOT close the popover so it remains open behind the modal!

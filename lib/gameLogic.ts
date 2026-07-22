@@ -515,13 +515,16 @@ export const evaluateAction = (action: GameActionType, context: any, config: any
              };
         }
 
-        case 'ATTENDANCE_UNAUTHORIZED_WFH': {
+        case 'ATTENDANCE_UNAUTHORIZED_WFH':
+        case 'ATTENDANCE_UNAUTHORIZED_ONSITE': {
             const penalty = penalties.HP_PENALTY_UNAUTHORIZED_WFH || 5;
+            const isSite = action === 'ATTENDANCE_UNAUTHORIZED_ONSITE' || context?.workType === 'SITE' || context?.type === 'ONSITE' || context?.workType === 'ONSITE';
+            const workTypeLabel = isSite ? 'On-site (ปฏิบัติงานนอกสถานที่)' : 'WFH';
             return {
                 xp: 0,
                 hp: -penalty,
                 coins: 0,
-                message: `หักคะแนน! เช็คอิน WFH โดยไม่ได้ขออนุญาตล่วงหน้า`,
+                message: `หักคะแนน! เช็คอิน ${workTypeLabel} โดยไม่ได้ขออนุญาตล่วงหน้า`,
                 details: `-${penalty} HP`
             };
         }

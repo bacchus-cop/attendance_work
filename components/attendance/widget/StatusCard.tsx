@@ -152,10 +152,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
     const isProvisionalCheckout = useMemo(() => !!todayLog?.note?.includes('[PROVISIONAL_CHECKOUT]'), [todayLog?.note]);
     const isProvisionalWfh = useMemo(() => !!todayLog?.note?.includes('[PROVISIONAL_WFH]'), [todayLog?.note]);
     const isProvisionalOnsite = useMemo(() => !!todayLog?.note?.includes('[PROVISIONAL_ONSITE]'), [todayLog?.note]);
+    const isProvisionalGps = useMemo(() => !!todayLog?.note?.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || !!todayLog?.note?.includes('[GPS_SPOOF_APPEAL_PENDING]'), [todayLog?.note]);
     const isAppealPending = useMemo(() => todayLog?.status === 'APPEAL' || !!todayLog?.note?.includes('[APPEAL_PENDING]'), [todayLog?.status, todayLog?.note]);
     const isPendingVerify = todayLog?.status === 'PENDING_VERIFY';
 
-    const hasAnyProvisional = isProvisionalForgotCheckin || isProvisionalLate || isProvisionalCheckout || isProvisionalWfh || isProvisionalOnsite || isAppealPending || isPendingVerify;
+    const hasAnyProvisional = isProvisionalForgotCheckin || isProvisionalLate || isProvisionalCheckout || isProvisionalWfh || isProvisionalOnsite || isProvisionalGps || isAppealPending || isPendingVerify;
     
     const isAdmin = user.role === 'ADMIN';
     

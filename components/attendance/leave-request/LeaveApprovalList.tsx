@@ -52,23 +52,30 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
     const [filterStatus, setFilterStatus] = useState<'PENDING' | 'HISTORY'>('PENDING');
     const [historySubFilter, setHistorySubFilter] = useState<HistoryFilter>('ALL');
     
-    // Auto-adjust filter status based on highlighted request status
+    // Auto-adjust category and filter status based on tab or highlighted request status
     useEffect(() => {
-        if (!highlightReqId) return;
-        const matchingReq = requests.find(r => r.id === highlightReqId);
-        if (matchingReq) {
-            if (matchingReq.status === 'PENDING') {
-                setFilterStatus('PENDING');
-            } else {
-                setFilterStatus('HISTORY');
-                if (matchingReq.status === 'APPROVED') {
-                    setHistorySubFilter('APPROVED');
-                } else if (matchingReq.status === 'REJECTED') {
-                    setHistorySubFilter('REJECTED');
+        const tabParam = searchParams.get('tab');
+        if (highlightReqId) {
+            setActiveCategory('ALL');
+            const matchingReq = requests.find(r => r.id === highlightReqId);
+            if (matchingReq) {
+                if (matchingReq.status === 'PENDING') {
+                    setFilterStatus('PENDING');
+                } else {
+                    setFilterStatus('HISTORY');
+                    if (matchingReq.status === 'APPROVED') {
+                        setHistorySubFilter('APPROVED');
+                    } else if (matchingReq.status === 'REJECTED') {
+                        setHistorySubFilter('REJECTED');
+                    }
                 }
             }
+        } else if (tabParam === 'ot-requests') {
+            setActiveCategory('OT');
+        } else if (tabParam === 'leave-requests') {
+            setActiveCategory('LEAVE');
         }
-    }, [highlightReqId, requests]);
+    }, [highlightReqId, requests, searchParams]);
     
     // State for Request Detail Modal
     const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
@@ -304,6 +311,16 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
             setCurrentPage(totalPages);
         }
     }, [totalPages, currentPage]);
+
+    // Jump to page containing highlightReqId in HISTORY mode
+    useEffect(() => {
+        if (!highlightReqId || filterStatus !== 'HISTORY') return;
+        const index = filteredRequests.findIndex(r => r.id === highlightReqId);
+        if (index !== -1) {
+            const page = Math.floor(index / itemsPerPage) + 1;
+            setCurrentPage(page);
+        }
+    }, [highlightReqId, filteredRequests, filterStatus, itemsPerPage]);
 
     const handlePrevMonth = () => {
         if (selectedMonth === 0) {

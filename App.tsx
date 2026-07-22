@@ -48,6 +48,13 @@ function App() {
     sessionStorage.setItem('pending_line_user_id', lineUserIdParam.trim());
   }
 
+  // --- ROUTING CHECK: Pending Deep Link Capture ---
+  const viewParam = queryParams.get('view');
+  const highlightReqIdParam = queryParams.get('highlightReqId');
+  if (viewParam || highlightReqIdParam) {
+    sessionStorage.setItem('juijui_pending_deep_link', window.location.search);
+  }
+
   // --- ROUTING CHECK: Magic Link (Script Share) ---
   const path = window.location.pathname;
   if (path.startsWith('/s/')) {

@@ -390,6 +390,8 @@ export interface AppNotification {
     title: string;
     message: string;
     taskId?: string;
+    relatedId?: string;
+    related_id?: string;
     date: Date;
     isRead: boolean;
     is_read?: boolean; // Raw database state (true if explicitly marked as read)
