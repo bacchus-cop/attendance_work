@@ -166,7 +166,7 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
     const isProvisionalForgotCheckin = logParsed.isProvisionalForgotCheckin || requestParsed.isProvisionalForgotCheckin;
     const isProvisionalCheckout = logParsed.isProvisionalCheckout || requestParsed.isProvisionalCheckout;
     const isProvisionalLate = log?.status === 'APPEAL' || note.includes('[APPEAL_PENDING]') || note.includes('[PROVISIONAL_LATE_ENTRY');
-    const isProvisionalGps = note.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || note.includes('[GPS_SPOOF_APPEAL_PENDING]') || leaveRequest?.type === 'GPS_SPOOF_APPEAL';
+    const isProvisionalGps = note.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || note.includes('[GPS_SPOOF_APPEAL_PENDING]') || (leaveRequest?.type === 'GPS_SPOOF_APPEAL' && leaveRequest?.status === 'PENDING');
     const isLocationMismatch = logParsed.isLocationMismatch || requestParsed.isLocationMismatch || leaveRequest?.type === 'OUT_OF_RANGE_CHECKOUT';
 
     const userReason = requestParsed.cleanReason;

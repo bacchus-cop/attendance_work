@@ -141,7 +141,7 @@ const TimesheetCellComponent: React.FC<TimesheetCellProps> = ({
     const pendingItem = findPendingRegistryItemByNote(log.note || '');
     const isAnyProvisional = !!pendingItem;
     const isProvisionalLate = pendingItem?.id === 'LATE_ENTRY' || log.status === 'APPEAL';
-    const isProvisionalGps = pendingItem?.id === 'GPS_SPOOF_APPEAL' || (log.note || '').includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || (log.note || '').includes('[GPS_SPOOF_APPEAL_PENDING]') || leaveRequest?.type === 'GPS_SPOOF_APPEAL';
+    const isProvisionalGps = pendingItem?.id === 'GPS_SPOOF_APPEAL' || (log.note || '').includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || (log.note || '').includes('[GPS_SPOOF_APPEAL_PENDING]') || (leaveRequest?.type === 'GPS_SPOOF_APPEAL' && leaveRequest?.status === 'PENDING');
     const isAppealState = log.status === 'APPEAL' || isProvisionalLate || isProvisionalGps;
 
     if (isHardAbsent) {
