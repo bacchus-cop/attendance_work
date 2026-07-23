@@ -232,22 +232,11 @@ BEGIN
                 ELSE
                     -- Absent
                     absent_count := absent_count + 1;
-                    
-                    DECLARE
-                        phone_suffix TEXT := '';
-                    BEGIN
-                        IF profile_rec.phone_number IS NOT NULL AND profile_rec.phone_number != '' THEN
-                            phone_suffix := ' (โทร. ' || profile_rec.phone_number || ') ';
-                        ELSE
-                            phone_suffix := ' (ไม่ระบุเบอร์)';
-                        END IF;
-
-                        IF absent_list = '' THEN
-                            absent_list := '• ' || profile_rec.full_name || phone_suffix;
-                        ELSE
-                            absent_list := absent_list || E'\n• ' || profile_rec.full_name || phone_suffix;
-                        END IF;
-                    END;
+                    IF absent_list = '' THEN
+                        absent_list := '• ' || profile_rec.full_name;
+                    ELSE
+                        absent_list := absent_list || E'\n• ' || profile_rec.full_name;
+                    END IF;
                 END IF;
             END IF;
         END IF;
@@ -261,11 +250,11 @@ BEGIN
 
     -- Construct message
     message_content := '📊 สรุปรายงานการเข้างานประจำวันที่ ' || to_char(cur_date, 'DD/MM/YYYY') || E'\n\n' ||
-                       '🟢 มาปกติ (' || ontime_count::TEXT || ' คน):' || E'\n' || ontime_list || E'\n\n' ||
-                       '🟡 มาสาย (' || late_count::TEXT || ' คน):' || E'\n' || late_list || E'\n\n' ||
-                       '🔵 ลา (' || leave_count::TEXT || ' คน):' || E'\n' || leave_list || E'\n\n' ||
-                       '🔴 ขาดงาน / ยังไม่เช็คอิน (' || absent_count::TEXT || ' คน):' || E'\n' || absent_list || E'\n\n' ||
-                       'ระบบสรุปรายงานอัตโนมัติ ' || app_name_val;
+                       '🟢 มาปกติ (' || ontime_count::TEXT || ' คน):\n' || ontime_list || E'\n\n' ||
+                       '🟡 มาสาย (' || late_count::TEXT || ' คน):\n' || late_list || E'\n\n' ||
+                       '🔵 ลา (' || leave_count::TEXT || ' คน):\n' || leave_list || E'\n\n' ||
+                       '🔴 ขาดงาน / ยังไม่เช็คอิน (' || absent_count::TEXT || ' คน):\n' || absent_list || E'\n\n' ||
+                       'ระบบสรุปรายงานอัตโนมัติ Juijui Planner';
 
     -- Insert into notifications with type = 'DAILY_SUMMARY'
     -- This will trigger the Edge Function webhook automatically
@@ -387,40 +376,4 @@ BEGIN
     SELECT label INTO delay_hours_val FROM public.master_options WHERE type = 'WORK_CONFIG' AND key = 'DAILY_SUMMARY_DELAY_HOURS' LIMIT 1;
 
     IF start_time_val IS NULL THEN
-        start_time_val := '10:00';
-    END IF;
-    IF delay_hours_val IS NULL THEN
-        delay_hours_val := '1';
-    END IF;
-
-    BEGIN
-        start_time_parsed := start_time_val::TIME;
-    EXCEPTION WHEN OTHERS THEN
-        start_time_parsed := '10:00'::TIME;
-    END;
-
-    BEGIN
-        delay_hours := delay_hours_val::NUMERIC;
-    EXCEPTION WHEN OTHERS THEN
-        delay_hours := 1;
-    END;
-
-    local_alert_time := start_time_parsed + (delay_hours || ' hours')::INTERVAL;
-    utc_alert_timestamp := (CURRENT_DATE + local_alert_time) AT TIME ZONE 'Asia/Bangkok' AT TIME ZONE 'UTC';
-    utc_hour := EXTRACT(HOUR FROM utc_alert_timestamp);
-    utc_minute := EXTRACT(MINUTE FROM utc_alert_timestamp);
-    cron_expr := utc_minute || ' ' || utc_hour || ' * * *';
-
-    BEGIN
-        PERFORM cron.unschedule('daily-attendance-summary');
-    EXCEPTION WHEN OTHERS THEN
-        -- Ignored
-    END;
-
-    BEGIN
-        PERFORM cron.schedule('daily-attendance-summary', cron_expr, 'SELECT public.generate_daily_attendance_summary()');
-    EXCEPTION WHEN OTHERS THEN
-        -- Ignored
-    END;
-END;
-$$;
+  
