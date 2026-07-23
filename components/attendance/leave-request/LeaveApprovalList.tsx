@@ -7,6 +7,7 @@ import { ATTENDANCE_REGISTRY } from '../../../constants/attendanceRegistry';
 import { useGlobalDialog } from '../../../context/GlobalDialogContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMasterData } from '../../../hooks/useMasterData';
+import { getMaxShiftWithBuffer } from '../../../lib/attendanceUtils';
 import { RequestDetailModal } from './RequestDetailModal';
 import MultiDatePickerModal from '../../ui/MultiDatePickerModal';
 import TimePickerModal from '../../ui/TimePickerModal';
@@ -45,7 +46,7 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
     onReject 
 }) => {
     const { showAlert, showConfirm } = useGlobalDialog();
-    const { annualHolidays, calendarExceptions } = useMasterData();
+    const { annualHolidays, calendarExceptions, masterOptions } = useMasterData();
     const [searchParams, setSearchParams] = useSearchParams();
     const highlightReqId = searchParams.get('highlightReqId');
 
@@ -353,18 +354,34 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
     };
 
     const handleApproveClick = async (req: LeaveRequest, customStartTime?: string) => {
-        if (customStartTime === 'DIRECT_APPROVE') {
-            if (await showConfirm('คุณต้องการอนุมัติคำขอลงเวลานี้ตามที่ขอมาใช่หรือไม่?')) {
-                await onApprove(req);
+        if (customStartTime && customStartTime !== 'DIRECT_APPROVE' && customStartTime !== 'ADJUST_TIME') {
+            const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
+            if (customStartTime > maxAllowedTimeStr) {
+                await showAlert(
+                    `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${customStartTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
+                    'เวลาเกินกำหนดสายสุด'
+                );
+                return;
             }
-        } else if (customStartTime === 'ADJUST_TIME') {
-            setSelectedRequest(req);
-        } else if (req.type === 'OVERTIME' || req.type === 'FORGOT_CHECKIN') {
-            setSelectedRequest(req);
-        } else {
-            if (await showConfirm('คุณต้องการอนุมัติคำขอนี้ใช่หรือไม่?')) {
-                await onApprove(req);
+        }
+
+        try {
+            if (customStartTime === 'DIRECT_APPROVE') {
+                if (await showConfirm('คุณต้องการอนุมัติคำขอลงเวลานี้ตามที่ขอมาใช่หรือไม่?')) {
+                    await onApprove(req);
+                }
+            } else if (customStartTime === 'ADJUST_TIME') {
+                setSelectedRequest(req);
+            } else if (req.type === 'OVERTIME' || req.type === 'FORGOT_CHECKIN') {
+                setSelectedRequest(req);
+            } else {
+                if (await showConfirm(`คุณต้องการอนุมัติคำขอนี้${customStartTime ? ` (เวลากะ ${customStartTime} น.)` : ''} ใช่หรือไม่?`)) {
+                    await onApprove(req, undefined, customStartTime);
+                }
             }
+        } catch (e: any) {
+            console.error(e);
+            await showAlert(e?.message || 'เกิดข้อผิดพลาดในการอนุมัติ', 'ไม่สามารถอนุมัติได้');
         }
     };
 

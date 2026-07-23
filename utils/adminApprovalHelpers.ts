@@ -112,6 +112,7 @@ export interface AttendanceCorrectionPayloadOptions {
     leaveType?: string;
     isLate?: boolean;
     existingWorkType?: string;
+    targetWorkType?: 'OFFICE' | 'WFH' | 'SITE' | string;
 }
 
 /**
@@ -128,16 +129,22 @@ export function buildAttendanceCorrectionPayload({
     existingNote = '',
     leaveType = '',
     isLate = false,
-    existingWorkType
+    existingWorkType,
+    targetWorkType
 }: AttendanceCorrectionPayloadOptions) {
-    let resolvedWorkType = 'OFFICE';
-    const noteStr = existingNote || '';
-    if (existingWorkType === 'WFH' || existingWorkType === 'ONSITE') {
-        resolvedWorkType = existingWorkType;
-    } else if (noteStr.includes('[PROVISIONAL_WFH]')) {
-        resolvedWorkType = 'WFH';
-    } else if (noteStr.includes('[PROVISIONAL_ONSITE]')) {
-        resolvedWorkType = 'ONSITE';
+    let resolvedWorkType = targetWorkType || 'OFFICE';
+    if (!targetWorkType) {
+        const noteStr = existingNote || '';
+        const reasonStr = reason || '';
+        const combined = `${noteStr} ${reasonStr}`;
+
+        if (existingWorkType === 'WFH' || existingWorkType === 'ONSITE' || existingWorkType === 'SITE') {
+            resolvedWorkType = existingWorkType === 'ONSITE' ? 'SITE' : existingWorkType;
+        } else if (combined.includes('[PROVISIONAL_WFH]') || combined.includes('[REMOTE:WFH]')) {
+            resolvedWorkType = 'WFH';
+        } else if (combined.includes('[PROVISIONAL_ONSITE]') || combined.includes('[REMOTE:ONSITE]') || combined.includes('[REMOTE:SITE]')) {
+            resolvedWorkType = 'SITE';
+        }
     }
 
     if (type === 'FORGOT_BOTH') {

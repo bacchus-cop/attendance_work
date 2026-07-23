@@ -11,6 +11,7 @@ export interface ParsedReason {
     isLocationMismatch: boolean;
     forgotCheckoutPenalty: boolean;
     time: string | null;
+    targetShift: string | null;
     otHours: string | null;
     isFixedOt: boolean;
     isProvisionalWfh: boolean;
@@ -20,6 +21,9 @@ export interface ParsedReason {
     isProvisionalLate: boolean;
     isProvisionalGps: boolean;
     proofUrl: string | null;
+    linkId: string | null;
+    remoteType: string | null;
+    distance: string | null;
 }
 
 export const parseReason = (reason: string): ParsedReason => {
@@ -31,6 +35,30 @@ export const parseReason = (reason: string): ParsedReason => {
     if (proofMatch) {
         proofUrl = proofMatch[1];
         text = text.replace(/\[PROOF:[^\]]+\]/g, '');
+    }
+
+    // Extract [LINKID:...]
+    const linkIdMatch = text.match(/\[LINKID:([^\]]+)\]/);
+    let linkId: string | null = null;
+    if (linkIdMatch) {
+        linkId = linkIdMatch[1];
+        text = text.replace(/\[LINKID:[^\]]+\]/g, '');
+    }
+
+    // Extract [REMOTE:...]
+    const remoteTypeMatch = text.match(/\[REMOTE:([^\]]+)\]/);
+    let remoteType: string | null = null;
+    if (remoteTypeMatch) {
+        remoteType = remoteTypeMatch[1];
+        text = text.replace(/\[REMOTE:[^\]]+\]/g, '');
+    }
+
+    // Extract [DISTANCE:...]
+    const distanceMatch = text.match(/\[DISTANCE:([^\]]+)\]/);
+    let distance: string | null = null;
+    if (distanceMatch) {
+        distance = distanceMatch[1];
+        text = text.replace(/\[DISTANCE:[^\]]+\]/g, '');
     }
     
     const isLateSubmission = text.includes('[LATE_SUBMISSION]');
@@ -66,6 +94,13 @@ export const parseReason = (reason: string): ParsedReason => {
     text = text.replace(/\[PROVISIONAL_GPS_SPOOF_APPEAL\]/g, '');
     text = text.replace(/\[GPS_SPOOF_APPEAL_PENDING\]/g, '');
     
+    const targetShiftMatch = text.match(/\[TARGET_SHIFT:(\d{2}:\d{2})\]/);
+    let targetShift: string | null = null;
+    if (targetShiftMatch) {
+        targetShift = targetShiftMatch[1];
+        text = text.replace(/\[TARGET_SHIFT:\d{2}:\d{2}\]/g, '');
+    }
+
     const timeMatch = text.match(/\[TIME:(\d{2}:\d{2})\]/);
     let time: string | null = null;
     if (timeMatch) {
@@ -95,7 +130,7 @@ export const parseReason = (reason: string): ParsedReason => {
     text = text.replace(/\[OT_MINUTES:\d+\]/g, '');
     text = text.replace(/\[OT:[\d\.]+hr\]/g, '');
 
-    text = text.trim();
+    text = text.replace(/\s+/g, ' ').trim();
 
     // Check if the message is a system-generated generic provisional text
     const cleanLower = text.toLowerCase();
@@ -128,6 +163,7 @@ export const parseReason = (reason: string): ParsedReason => {
         isLocationMismatch,
         forgotCheckoutPenalty,
         time,
+        targetShift,
         otHours,
         isFixedOt,
         isProvisionalWfh,
@@ -136,7 +172,10 @@ export const parseReason = (reason: string): ParsedReason => {
         isProvisionalCheckout,
         isProvisionalLate,
         isProvisionalGps,
-        proofUrl
+        proofUrl,
+        linkId,
+        remoteType,
+        distance
     };
 };
 

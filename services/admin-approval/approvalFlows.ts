@@ -3,7 +3,7 @@ import { LeaveRequest } from '../../types/attendance';
 import { format, eachDayOfInterval } from 'date-fns';
 import { getRegistryItem } from '../../constants/attendanceRegistry';
 import { buildOtAuditLog, buildAttendanceCorrectionPayload } from '../../utils/adminApprovalHelpers';
-import { checkIsLate, getLateMinutes, mergeAttendanceNotes, resolveAttendanceLogStatus } from '../../lib/attendanceUtils';
+import { checkIsLate, getLateMinutes, mergeAttendanceNotes, resolveAttendanceLogStatus, getMaxShiftWithBuffer } from '../../lib/attendanceUtils';
 import { publishToTeamChannel } from './communicationHelpers';
 
 /**
@@ -182,15 +182,23 @@ export async function approveAttendanceCorrection({
     const endTimeStr = timeMatch && timeMatch[2] ? timeMatch[2].substring(1) : null;
     const shiftDateStr = format(request.startDate, 'yyyy-MM-dd');
 
+    const registryItem = getRegistryItem(request.type);
+    const behavior = registryItem?.approvalBehavior;
+
+    // Hard lock: check if timeStr exceeds max shift + buffer
+    if (behavior?.correctionTarget !== 'CHECKOUT_ONLY' && timeStr && timeStr !== '00:00') {
+        const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
+        if (timeStr > maxAllowedTimeStr) {
+            throw new Error(`ไม่อนุญาตให้อนุมัติ: เวลาที่ระบุ (${timeStr} น.) เกินกำหนดเวลาสายสุดของกะงาน (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`);
+        }
+    }
+
     const { data: freshLog } = await supabase
         .from('attendance_logs')
         .select('*')
         .eq('user_id', request.userId)
         .eq('date', shiftDateStr)
         .maybeSingle();
-
-    const registryItem = getRegistryItem(request.type);
-    const behavior = registryItem?.approvalBehavior;
 
     let finalReason = request.reason;
     if (behavior?.correctionTarget === 'CHECKIN_ONLY' && customStartTime) {
@@ -219,17 +227,65 @@ export async function approveAttendanceCorrection({
         }
         newNote = newNote.replace(/\s+/g, ' ').trim();
 
+        // Determine targetWorkType from approved WFH/ONSITE leave request or tags
+        let targetWorkType: 'OFFICE' | 'WFH' | 'SITE' = 'OFFICE';
+        const { data: approvedRemoteReq } = await supabase
+            .from('leave_requests')
+            .select('type')
+            .eq('user_id', request.userId)
+            .eq('start_date', shiftDateStr)
+            .in('type', ['WFH', 'ONSITE'])
+            .eq('status', 'APPROVED')
+            .maybeSingle();
+
+        if (approvedRemoteReq) {
+            targetWorkType = approvedRemoteReq.type === 'WFH' ? 'WFH' : 'SITE';
+        } else {
+            const combinedText = `${request.reason || ''} ${freshLog?.note || ''}`;
+            if (combinedText.includes('[REMOTE:WFH]') || combinedText.includes('[PROVISIONAL_WFH]')) {
+                targetWorkType = 'WFH';
+            } else if (combinedText.includes('[REMOTE:ONSITE]') || combinedText.includes('[REMOTE:SITE]') || combinedText.includes('[PROVISIONAL_ONSITE]')) {
+                targetWorkType = 'SITE';
+            } else if (freshLog?.work_type === 'WFH' || freshLog?.work_type === 'SITE' || freshLog?.work_type === 'ONSITE') {
+                targetWorkType = freshLog.work_type === 'ONSITE' ? 'SITE' : (freshLog.work_type as any);
+            }
+        }
+
         const targetStatus = freshLog.check_out_time 
             ? (isActuallyLate ? 'LATE' : 'COMPLETED') 
             : 'WORKING';
 
         await supabase.from('attendance_logs')
-            .update({ status: targetStatus, note: newNote })
+            .update({ status: targetStatus, note: newNote, work_type: targetWorkType })
             .eq('id', freshLog.id);
     } else if (behavior?.correctionTarget === 'BOTH') {
         const checkInDateTime = new Date(`${shiftDateStr}T${timeStr}:00`);
         const checkOutDateTime = new Date(`${shiftDateStr}T${endTimeStr || '18:00'}:00`);
         const originalStatusNote = freshLog?.status === 'ABSENT' ? '[ORIGINALLY: ABSENT] ' : '';
+
+        // Determine targetWorkType
+        let targetWorkType: 'OFFICE' | 'WFH' | 'SITE' = 'OFFICE';
+        const { data: approvedRemoteReq } = await supabase
+            .from('leave_requests')
+            .select('type')
+            .eq('user_id', request.userId)
+            .eq('start_date', shiftDateStr)
+            .in('type', ['WFH', 'ONSITE'])
+            .eq('status', 'APPROVED')
+            .maybeSingle();
+
+        if (approvedRemoteReq) {
+            targetWorkType = approvedRemoteReq.type === 'WFH' ? 'WFH' : 'SITE';
+        } else {
+            const combinedText = `${request.reason || ''} ${freshLog?.note || ''}`;
+            if (combinedText.includes('[REMOTE:WFH]') || combinedText.includes('[PROVISIONAL_WFH]')) {
+                targetWorkType = 'WFH';
+            } else if (combinedText.includes('[REMOTE:ONSITE]') || combinedText.includes('[REMOTE:SITE]') || combinedText.includes('[PROVISIONAL_ONSITE]')) {
+                targetWorkType = 'SITE';
+            } else if (freshLog?.work_type === 'WFH' || freshLog?.work_type === 'SITE' || freshLog?.work_type === 'ONSITE') {
+                targetWorkType = freshLog.work_type === 'ONSITE' ? 'SITE' : (freshLog.work_type as any);
+            }
+        }
 
         const payload = buildAttendanceCorrectionPayload({
             userId: request.userId,
@@ -240,7 +296,8 @@ export async function approveAttendanceCorrection({
             reason: request.reason,
             originalStatusNote,
             existingNote: freshLog?.note,
-            existingWorkType: freshLog?.work_type
+            existingWorkType: freshLog?.work_type,
+            targetWorkType
         });
         await supabase.from('attendance_logs').upsert(payload, { onConflict: 'user_id, date' });
     } else if (behavior?.correctionTarget === 'CHECKIN_ONLY') {
@@ -260,6 +317,30 @@ export async function approveAttendanceCorrection({
         const startTimeStr = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
         const buffer = parseInt(configData?.find(c => c.key === 'LATE_BUFFER')?.label || '15');
         const isLate = checkIsLate(checkInDateTime, startTimeStr, buffer);
+
+        // Determine targetWorkType
+        let targetWorkType: 'OFFICE' | 'WFH' | 'SITE' = 'OFFICE';
+        const { data: approvedRemoteReq } = await supabase
+            .from('leave_requests')
+            .select('type')
+            .eq('user_id', request.userId)
+            .eq('start_date', shiftDateStr)
+            .in('type', ['WFH', 'ONSITE'])
+            .eq('status', 'APPROVED')
+            .maybeSingle();
+
+        if (approvedRemoteReq) {
+            targetWorkType = approvedRemoteReq.type === 'WFH' ? 'WFH' : 'SITE';
+        } else {
+            const combinedText = `${finalReason || ''} ${request.reason || ''} ${freshLog?.note || ''}`;
+            if (combinedText.includes('[REMOTE:WFH]') || combinedText.includes('[PROVISIONAL_WFH]')) {
+                targetWorkType = 'WFH';
+            } else if (combinedText.includes('[REMOTE:ONSITE]') || combinedText.includes('[REMOTE:SITE]') || combinedText.includes('[PROVISIONAL_ONSITE]')) {
+                targetWorkType = 'SITE';
+            } else if (freshLog?.work_type === 'WFH' || freshLog?.work_type === 'SITE' || freshLog?.work_type === 'ONSITE') {
+                targetWorkType = freshLog.work_type === 'ONSITE' ? 'SITE' : (freshLog.work_type as any);
+            }
+        }
  
         const payload = buildAttendanceCorrectionPayload({
             userId: request.userId,
@@ -271,7 +352,8 @@ export async function approveAttendanceCorrection({
             reason: finalReason,
             originalStatusNote,
             existingNote: cleanedNote,
-            existingWorkType: freshLog?.work_type
+            existingWorkType: freshLog?.work_type,
+            targetWorkType
         });
         await supabase.from('attendance_logs').upsert(payload, { onConflict: 'user_id, date' });
     } else if (behavior?.correctionTarget === 'CHECKOUT_ONLY') {
@@ -382,11 +464,12 @@ export async function approveAttendanceCorrection({
 
     if (behavior?.correctionTarget !== 'CHECKOUT_ONLY') {
         const configData = masterOptions.filter(o => o.type === 'WORK_CONFIG');
-        const startTimeStr = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
+        const defaultStartTime = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
         const buffer = parseInt(configData?.find(c => c.key === 'LATE_BUFFER')?.label || '15');
         
+        const referenceStartTime = customStartTime || defaultStartTime;
         const checkInDateTime = new Date(`${shiftDateStr}T${timeStr}:00`);
-        const isLate = checkIsLate(checkInDateTime, startTimeStr, buffer);
+        const isLate = checkIsLate(checkInDateTime, referenceStartTime, buffer);
         
         let lateMinutes = 0;
         let calculatedStatus: 'LATE' | 'ON_TIME' = 'ON_TIME';
@@ -416,16 +499,26 @@ export async function approveAttendanceCorrection({
                 calculatedStatus = 'ON_TIME';
                 lateMinutes = 0;
             }
-        } else if (behavior?.verifyLateness && isLate) {
+        } else if (isLate || (behavior?.verifyLateness && isLate)) {
             calculatedStatus = 'LATE';
-            lateMinutes = getLateMinutes(checkInDateTime, startTimeStr, buffer);
+            lateMinutes = getLateMinutes(checkInDateTime, referenceStartTime, buffer);
         }
 
-        await processAction(request.userId, 'ATTENDANCE_CHECK_IN', { 
-            status: calculatedStatus, 
-            time: checkInTimeForAction,
-            lateMinutes: lateMinutes
-        });
+        if (calculatedStatus === 'LATE') {
+            await processAction(request.userId, 'ATTENDANCE_LATE', { 
+                status: 'LATE', 
+                time: checkInTimeForAction,
+                lateMinutes: lateMinutes,
+                date: shiftDateStr
+            });
+        } else {
+            await processAction(request.userId, 'ATTENDANCE_CHECK_IN', { 
+                status: 'ON_TIME', 
+                time: checkInTimeForAction,
+                lateMinutes: 0,
+                date: shiftDateStr
+            });
+        }
 
         if (behavior?.correctionTarget === 'BOTH') {
             await processAction(request.userId, 'ATTENDANCE_CHECK_OUT', { 

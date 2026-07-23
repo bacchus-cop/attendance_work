@@ -383,3 +383,35 @@ export const resolveAttendanceLogStatus = (
     return (currentStatus as any) || 'ACTION_REQUIRED';
 };
 
+/**
+ * Calculates the maximum allowed check-in time based on the latest shift and buffer.
+ * e.g., if shifts are ['08:00', '08:30', '09:00'] and buffer is 15 mins, max allowed time is '09:15'.
+ */
+export function getMaxShiftWithBuffer(masterOptions: any[] = []): { maxShiftTimeStr: string; maxAllowedTimeStr: string; bufferMinutes: number } {
+    const shiftsEnabledOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_ENABLED');
+    const shiftsListOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
+    const startTimeOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'START_TIME');
+    const lateBufferOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_BUFFER');
+
+    const bufferMinutes = parseInt(lateBufferOpt?.label || '15', 10);
+    const shiftsEnabled = shiftsEnabledOpt?.label === 'true';
+
+    let maxShiftTimeStr = startTimeOpt?.label || '09:00';
+
+    if (shiftsEnabled && shiftsListOpt?.label) {
+        const shifts = shiftsListOpt.label.split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (shifts.length > 0) {
+            shifts.sort();
+            maxShiftTimeStr = shifts[shifts.length - 1];
+        }
+    }
+
+    const [h, m] = maxShiftTimeStr.split(':').map(Number);
+    const totalMinutes = (isNaN(h) ? 9 : h) * 60 + (isNaN(m) ? 0 : m) + bufferMinutes;
+    const maxH = Math.floor(totalMinutes / 60) % 24;
+    const maxM = totalMinutes % 60;
+    const maxAllowedTimeStr = `${String(maxH).padStart(2, '0')}:${String(maxM).padStart(2, '0')}`;
+
+    return { maxShiftTimeStr, maxAllowedTimeStr, bufferMinutes };
+}
+

@@ -7,6 +7,7 @@ import SidebarBadge from './SidebarBadge';
 import NotificationPill from './NotificationPill';
 import AIStatusBadge from './common/AIStatusBadge';
 import { useMasterDataContext } from '../context/MasterDataContext';
+import { BRAND_CONFIG } from '../config/brand';
 
 interface SidebarProps {
   currentUser: User;
@@ -120,6 +121,31 @@ const Sidebar: React.FC<SidebarProps> = ({
       };
     }).filter(group => group.items.length > 0);
   }, [activeViews]);
+
+  // Brand Name & Subtitle derived dynamically from masterOptions or BRAND_CONFIG
+  const brandName = useMemo(() => {
+    const sysNameOpt = masterOptions.find(o => 
+      (o.type === 'WORK_CONFIG' || o.type === 'SYSTEM_CONFIG' || o.type === 'BRAND_CONFIG') &&
+      (o.key === 'SYSTEM_NAME' || o.key === 'APP_NAME' || o.key === 'BRAND_NAME' || o.key === 'COMPANY_NAME')
+    ) || masterOptions.find(o => o.key === 'SYSTEM_NAME' || o.key === 'APP_NAME' || o.key === 'BRAND_NAME');
+    
+    return sysNameOpt?.label || BRAND_CONFIG.name || 'Kontent OS';
+  }, [masterOptions]);
+
+  const { mainPart, subPart } = useMemo(() => {
+    const trimmed = brandName.trim();
+    const parts = trimmed.split(/\s+/);
+    if (parts.length > 1) {
+      return {
+        mainPart: parts.slice(0, -1).join(' '),
+        subPart: parts[parts.length - 1]
+      };
+    }
+    return {
+      mainPart: trimmed,
+      subPart: ''
+    };
+  }, [brandName]);
 
   const handleLogoClick = () => {
     const now = Date.now();
@@ -401,7 +427,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </motion.div>
         
         {!isCollapsed && (
-          <div className="sidebar-item-text">
+          <div className="sidebar-item-text overflow-hidden">
             <motion.div
               initial="hidden"
               animate="visible"
@@ -409,35 +435,46 @@ const Sidebar: React.FC<SidebarProps> = ({
                 hidden: { opacity: 0 },
                 visible: {
                   opacity: 1,
-                  transition: { staggerChildren: 0.1, delayChildren: 0.2 }
+                  transition: { staggerChildren: 0.05, delayChildren: 0.1 }
                 }
               }}
-              className="flex items-center"
+              className="flex items-center flex-wrap"
             >
-              {"Kontent".split('').map((char, i) => (
+              {mainPart.split('').map((char, i) => (
                 <motion.span
-                  key={i}
+                  key={`${char}-${i}`}
                   variants={{
                     hidden: { opacity: 0, y: 5 },
                     visible: { opacity: 1, y: 0 }
                   }}
                   className={`text-xl font-bold ${themeClasses.text} tracking-tight leading-none font-inter drop-shadow-sm`}
                 >
-                  {char}
+                  {char === ' ' ? '\u00A0' : char}
                 </motion.span>
               ))}
             </motion.div>
             
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              className="flex items-center gap-1.5 mt-1"
-            >
-              <div className={`h-[2px] w-4 ${themeClasses.brandAccentBg} rounded-full`} />
-              <p className={`text-[10px] font-bold ${themeClasses.brandAccentText} tracking-[0.3em] uppercase font-inter`}>OS</p>
-              <div className={`h-[2px] flex-1 bg-gradient-to-r ${themeClasses.brandAccentGradient} to-transparent rounded-full`} />
-            </motion.div>
+            {subPart ? (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+                className="flex items-center gap-1.5 mt-1"
+              >
+                <div className={`h-[2px] w-4 ${themeClasses.brandAccentBg} rounded-full`} />
+                <p className={`text-[10px] font-bold ${themeClasses.brandAccentText} tracking-[0.3em] uppercase font-inter`}>{subPart}</p>
+                <div className={`h-[2px] flex-1 bg-gradient-to-r ${themeClasses.brandAccentGradient} to-transparent rounded-full`} />
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.4 }}
+                className="flex items-center gap-1.5 mt-1"
+              >
+                <div className={`h-[2px] flex-1 bg-gradient-to-r ${themeClasses.brandAccentGradient} to-transparent rounded-full`} />
+              </motion.div>
+            )}
           </div>
         )}
       </div>
