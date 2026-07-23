@@ -1,7 +1,7 @@
 export const BRAND_CONFIG = {
-  name: 'bacchusinter',
-  companyName: 'Bacchusinter Co., Ltd.',
-  title: 'bacchusinter',
+  name: 'Kontent OS',
+  companyName: 'Kontent OS Co., Ltd.',
+  title: 'Kontent OS',
   tagline: 'เปลี่ยนความวุ่นวายหลังบ้านให้เป็นระบบระเบียบ',
   description: 'แพลตฟอร์มบริหารจัดการงานสร้างสรรค์ที่เน้น Workflow ของครีเอเตอร์โดยเฉพาะ',
   supportEmail: 'support@kontentos.ai',
