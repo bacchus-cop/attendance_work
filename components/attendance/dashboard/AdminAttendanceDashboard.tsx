@@ -283,6 +283,9 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
 
         // Calculate Absents
         Object.values(statsMap).forEach(stat => {
+            const user = users.find(u => u.id === stat.userId);
+            const userStartDate = user?.startDate ? new Date(user.startDate) : (user?.createdAt ? new Date(user.createdAt) : null);
+
             // Set of logged dates and leave dates for O(1) lookups
             const loggedDates = new Set(stat.logs.map(l => l.date));
             const leaveDates = new Set(
@@ -292,6 +295,14 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
             );
 
             workingDaysInMonth.forEach(day => {
+                if (userStartDate) {
+                    const dayStr = format(day, 'yyyy-MM-dd');
+                    const startStr = format(userStartDate, 'yyyy-MM-dd');
+                    // หากวันทำงานนั้นๆ เกิดขึ้นก่อนวันที่พนักงานเริ่มงานจริง ให้ข้ามไป ไม่นับเป็นวันขาดงาน
+                    if (dayStr < startStr) {
+                        return;
+                    }
+                }
                 // Check if this day is in the future
                 const isFutureDay = (day.getFullYear() > today.getFullYear()) ||
                                     (day.getFullYear() === today.getFullYear() && day.getMonth() > today.getMonth()) ||

@@ -41,19 +41,20 @@ const queryClient = new QueryClient({
 });
 
 function App() {
-  // --- ROUTING CHECK: LINE Webhook pending user ID ---
-  const queryParams = new URLSearchParams(window.location.search);
-  const lineUserIdParam = queryParams.get('line_user_id');
-  if (lineUserIdParam) {
-    sessionStorage.setItem('pending_line_user_id', lineUserIdParam.trim());
-  }
+  // --- ROUTING CHECK: LINE Webhook & Pending Deep Link Capture on Mount ---
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const lineUserIdParam = queryParams.get('line_user_id');
+    if (lineUserIdParam) {
+      sessionStorage.setItem('pending_line_user_id', lineUserIdParam.trim());
+    }
 
-  // --- ROUTING CHECK: Pending Deep Link Capture ---
-  const viewParam = queryParams.get('view');
-  const highlightReqIdParam = queryParams.get('highlightReqId');
-  if (viewParam || highlightReqIdParam) {
-    sessionStorage.setItem('juijui_pending_deep_link', window.location.search);
-  }
+    const viewParam = queryParams.get('view');
+    const highlightReqIdParam = queryParams.get('highlightReqId');
+    if (viewParam || highlightReqIdParam) {
+      sessionStorage.setItem('juijui_pending_deep_link', window.location.search);
+    }
+  }, []);
 
   // --- ROUTING CHECK: Magic Link (Script Share) ---
   const path = window.location.pathname;

@@ -1,7 +1,7 @@
 export const BRAND_CONFIG = {
-  name: 'Bacchusinter',
+  name: 'BACCHUS INTER',
   companyName: 'Bacchusinter Co., Ltd.',
-  title: 'Bacchusinter',
+  title: 'BACCHUS INTER',
   tagline: 'เปลี่ยนความวุ่นวายหลังบ้านให้เป็นระบบระเบียบ',
   description: 'แพลตฟอร์มบริหารจัดการงานสร้างสรรค์ที่เน้น Workflow ของครีเอเตอร์โดยเฉพาะ',
   supportEmail: 'bacchusinter@kontentos.ai',

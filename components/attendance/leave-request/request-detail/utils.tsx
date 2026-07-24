@@ -24,6 +24,7 @@ export interface ParsedReason {
     linkId: string | null;
     remoteType: string | null;
     distance: string | null;
+    actualCheckInTime: string | null;
 }
 
 export const parseReason = (reason: string): ParsedReason => {
@@ -59,6 +60,14 @@ export const parseReason = (reason: string): ParsedReason => {
     if (distanceMatch) {
         distance = distanceMatch[1];
         text = text.replace(/\[DISTANCE:[^\]]+\]/g, '');
+    }
+
+    // Extract [ACTUAL_CHECK_IN:HH:MM(:SS)?]
+    const actualCheckInMatch = text.match(/\[ACTUAL_CHECK_IN:(\d{2}:\d{2})(:\d{2})?\]/);
+    let actualCheckInTime: string | null = null;
+    if (actualCheckInMatch) {
+        actualCheckInTime = actualCheckInMatch[1];
+        text = text.replace(/\[ACTUAL_CHECK_IN:\d{2}:\d{2}(:\d{2})?\]/g, '');
     }
     
     const isLateSubmission = text.includes('[LATE_SUBMISSION]');
@@ -175,7 +184,8 @@ export const parseReason = (reason: string): ParsedReason => {
         proofUrl,
         linkId,
         remoteType,
-        distance
+        distance,
+        actualCheckInTime
     };
 };
 

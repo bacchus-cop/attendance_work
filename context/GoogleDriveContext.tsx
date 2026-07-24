@@ -34,10 +34,16 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [tokenClient, setTokenClient] = useState<any>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const { showToast } = useToast();
+    const activeTokenRef = useRef<string | null>(null);
 
     const handleAuthSuccessToken = (token: string) => {
+        const isNewToken = activeTokenRef.current !== token;
+        activeTokenRef.current = token;
         setAccessToken(token);
-        showToast('เชื่อมต่อ Google Drive สำเร็จ 🔓', 'success');
+
+        if (isNewToken) {
+            showToast('เชื่อมต่อ Google Drive สำเร็จ 🔓', 'success');
+        }
 
         if (pendingAction.current === 'PICK') {
             createPicker(token, pendingCallback.current);
@@ -63,6 +69,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     const data = await response.json();
                     if (data && data.accessToken) {
                         setAccessToken(data.accessToken);
+                        activeTokenRef.current = data.accessToken;
                         return data.accessToken;
                     }
                 }
@@ -185,6 +192,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const logout = async () => {
         setAccessToken(null);
+        activeTokenRef.current = null;
         try {
             await fetch('/api/auth/google/logout', { method: 'POST' });
         } catch (e) {
@@ -368,6 +376,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 // --- SESSION INTEGRITY: If unauthorized, clear token ---
                 if (response.status === 401 || errorReason === 'authError' || errorReason === 'invalid_grant') {
                     setAccessToken(null);
+                    activeTokenRef.current = null;
                     showToast('การเชื่อมต่อ Google Drive หมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
                 }
 

@@ -501,6 +501,8 @@ const LeaveFormContainer: React.FC<Props> = ({
                                         hours={otHours} setHours={setOtHours} 
                                         otType={otType}
                                         setOtType={setOtType}
+                                        minDate={minDate}
+                                        maxDate={maxDate}
                                     />
                                 ) : isTimeSpecific ? (
                                     <TimeCorrectionInputs 

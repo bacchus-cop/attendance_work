@@ -2,6 +2,7 @@ import React from 'react';
 import { LogIn, Palmtree, Hourglass, ShieldCheck, AlertCircle, ArrowRight, Flame, AlertTriangle, Briefcase, Cloud, FileText } from 'lucide-react';
 import { LeaveType, LocationDef, AttendanceStats, LeaveRequest, AttendanceLog } from '../../../../../types/attendance';
 import ForgotCheckInControl from '../../ForgotCheckInControl';
+import { parseReason } from '../../../leave-request/request-detail/utils';
 
 interface NotCheckedInDisplayProps {
     dayStatus: { mode: string; name: string };
@@ -111,7 +112,7 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
             )}
 
             {/* APPROVED OVERTIME BANNER */}
-            {isApprovedLeaveToday && todayActiveLeave?.type === 'OVERTIME' && (
+            {isApprovedLeaveToday && todayActiveLeave?.type === 'OVERTIME' && !approvedFixedOtToday && (
                 <div className="bg-indigo-50/80 border border-indigo-200 rounded-xl p-3 flex items-center justify-between mb-2 animate-in slide-in-from-top-2">
                     <div className="flex items-center gap-2.5">
                         <div className="bg-indigo-100 p-1.5 rounded-full text-indigo-600">
@@ -246,7 +247,7 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
                         <div className="flex items-start gap-2">
                             <span className="font-bold text-amber-900 shrink-0">📝 ภารกิจ/รายละเอียดงาน:</span>
                             <span className="font-semibold text-slate-800 break-words leading-relaxed">
-                                {approvedFixedOtToday.reason || 'ปฏิบัติงาน OT เหมาจ่ายตามที่ได้รับอนุมัติ'}
+                                {parseReason(approvedFixedOtToday.reason).cleanReason || 'ปฏิบัติงาน OT เหมาจ่ายตามที่ได้รับอนุมัติ'}
                             </span>
                         </div>
                         <div className="flex items-center gap-2">

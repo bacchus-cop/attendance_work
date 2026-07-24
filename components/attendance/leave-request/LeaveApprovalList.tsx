@@ -48,35 +48,10 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
     const { showAlert, showConfirm } = useGlobalDialog();
     const { annualHolidays, calendarExceptions, masterOptions } = useMasterData();
     const [searchParams, setSearchParams] = useSearchParams();
-    const highlightReqId = searchParams.get('highlightReqId');
+    const highlightReqId = searchParams.get('highlightReqId') || searchParams.get('id');
 
     const [filterStatus, setFilterStatus] = useState<'PENDING' | 'HISTORY'>('PENDING');
     const [historySubFilter, setHistorySubFilter] = useState<HistoryFilter>('ALL');
-    
-    // Auto-adjust category and filter status based on tab or highlighted request status
-    useEffect(() => {
-        const tabParam = searchParams.get('tab');
-        if (highlightReqId) {
-            setActiveCategory('ALL');
-            const matchingReq = requests.find(r => r.id === highlightReqId);
-            if (matchingReq) {
-                if (matchingReq.status === 'PENDING') {
-                    setFilterStatus('PENDING');
-                } else {
-                    setFilterStatus('HISTORY');
-                    if (matchingReq.status === 'APPROVED') {
-                        setHistorySubFilter('APPROVED');
-                    } else if (matchingReq.status === 'REJECTED') {
-                        setHistorySubFilter('REJECTED');
-                    }
-                }
-            }
-        } else if (tabParam === 'ot-requests') {
-            setActiveCategory('OT');
-        } else if (tabParam === 'leave-requests') {
-            setActiveCategory('LEAVE');
-        }
-    }, [highlightReqId, requests, searchParams]);
     
     // State for Request Detail Modal
     const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
@@ -214,6 +189,36 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
             return dateB - dateA;
         });
     }, [requests, historicalCache, selectedMonth, selectedYear, isMonthFilterEnabled, isCustomRangeEnabled, customRangeRequests, allRequestsLoaded, sixtyDaysAgo]);
+
+    // Auto-adjust category, filter status, and open modal based on tab or highlighted request ID
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (highlightReqId) {
+            setActiveCategory('ALL');
+            const matchingReq = combinedRequests.find(r => r.id === highlightReqId);
+            if (matchingReq) {
+                if (matchingReq.status === 'PENDING') {
+                    setFilterStatus('PENDING');
+                } else {
+                    setFilterStatus('HISTORY');
+                    if (matchingReq.status === 'APPROVED') {
+                        setHistorySubFilter('APPROVED');
+                    } else if (matchingReq.status === 'REJECTED') {
+                        setHistorySubFilter('REJECTED');
+                    }
+                }
+                
+                // Auto-open modal if not already open for this request
+                if (!selectedRequest || selectedRequest.id !== highlightReqId) {
+                    setSelectedRequest(matchingReq);
+                }
+            }
+        } else if (tabParam === 'ot-requests') {
+            setActiveCategory('OT');
+        } else if (tabParam === 'leave-requests') {
+            setActiveCategory('LEAVE');
+        }
+    }, [highlightReqId, combinedRequests, searchParams, selectedRequest]);
 
     const isCategoryDimmed = (cat: 'LEAVE' | 'LATE_FORGOT' | 'OT') => {
         return activeCategory !== 'ALL' && activeCategory !== cat;
@@ -476,6 +481,13 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
                         onClose={() => {
                             setSelectedRequest(null);
                             setIsRejectModeRequested(false);
+                            // Clear highlight parameters from URL so the modal doesn't re-open
+                            setSearchParams(prev => {
+                                const next = new URLSearchParams(prev);
+                                next.delete('highlightReqId');
+                                next.delete('id');
+                                return next;
+                            }, { replace: true });
                         }}
                         onApprove={onApprove}
                         onReject={onReject}

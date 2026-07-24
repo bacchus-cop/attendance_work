@@ -114,6 +114,18 @@ export const ApprovalCardDetails: React.FC<ApprovalCardDetailsProps> = ({
                     </span>
                 )}
 
+                {parsed.isProvisionalLate && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-violet-50 text-violet-700 border-violet-200/60 flex items-center gap-1 animate-pulse shadow-sm">
+                        <AlertTriangle className="w-3 h-3 text-violet-500" /> เข้าสายแบบจำลอง (รออนุมัติสิทธิ์)
+                    </span>
+                )}
+
+                {parsed.isProvisionalCheckout && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-rose-50 text-rose-700 border-rose-200/60 flex items-center gap-1 animate-pulse shadow-sm">
+                        <AlertTriangle className="w-3 h-3 text-rose-500" /> ลืมลงเวลาออกงานจำลอง (รออนุมัติสิทธิ์)
+                    </span>
+                )}
+
                 {parsed.isProvisionalGps && (
                     <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-purple-50 text-purple-700 border-purple-200/60 flex items-center gap-1 animate-pulse shadow-sm">
                         <AlertTriangle className="w-3 h-3 text-purple-500" /> 📍 ลงเวลาแบบจำลอง (อุทธรณ์พิกัด GPS)
@@ -147,6 +159,12 @@ export const ApprovalCardDetails: React.FC<ApprovalCardDetailsProps> = ({
                 {parsed.time && (
                     <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-indigo-100 text-indigo-700 border-indigo-200/60 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> เวลา: {parsed.time} น.
+                    </span>
+                )}
+
+                {parsed.actualCheckInTime && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-lg font-bold border bg-teal-50 text-teal-700 border-teal-200/60 flex items-center gap-1 shadow-sm">
+                        <Clock className="w-3 h-3 text-teal-500" /> เวลาสแกนจริง: {parsed.actualCheckInTime} น.
                     </span>
                 )}
 
