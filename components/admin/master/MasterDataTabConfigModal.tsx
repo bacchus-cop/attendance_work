@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom'; // 1. นำเข้า ReactDOM สำหรับทำ Portal
 import { Check, Settings, ToggleLeft, ToggleRight, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MASTER_META } from './MasterTabNavigation';
@@ -83,7 +84,7 @@ const MasterDataTabConfigModal: React.FC<MasterDataTabConfigModalProps> = ({
         }
     };
 
-    return (
+    return ReactDOM.createPortal(
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
@@ -91,6 +92,7 @@ const MasterDataTabConfigModal: React.FC<MasterDataTabConfigModalProps> = ({
                         initial={{ scale: 0.95, y: 15, opacity: 0 }}
                         animate={{ scale: 1, y: 0, opacity: 1 }}
                         exit={{ scale: 0.95, y: 15, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
                         className="bg-white border border-gray-100 rounded-3xl p-6 w-full max-w-5xl shadow-2xl text-gray-800 max-h-[90vh] flex flex-col"
                     >
                         {/* Header */}
@@ -221,7 +223,8 @@ const MasterDataTabConfigModal: React.FC<MasterDataTabConfigModalProps> = ({
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body // ส่งออกไปเรนเดอร์ที่ body โดยตรง
     );
 };
 
