@@ -258,10 +258,13 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
                     stat.hasProvisionalForgot = true;
                 }
 
+                const isGpsRejected = !!log.note?.includes('[REJECTED GPS_SPOOF_APPEAL]') || 
+                                      !!log.note?.includes('[REJECTED_GPS_SPOOF_APPEAL]');
+
                 if (log.status === 'LEAVE' || log.workType === 'LEAVE') {
                     stat.leaves++;
                 } else {
-                    if (!isProvisional) {
+                    if (!isProvisional && !isGpsRejected) {
                         stat.present++;
                     }
 

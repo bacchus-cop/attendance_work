@@ -11,7 +11,7 @@ import {
     parseOtDetailsFromReason,
     processHpRefundIfEligible
 } from '../../utils/adminApprovalHelpers';
-import { checkIsLate, getLateMinutes, mergeAttendanceNotes, resolveAttendanceLogStatus, getMaxShiftWithBuffer } from '../../lib/attendanceUtils';
+import { checkIsLate, getLateMinutes, mergeAttendanceNotes, resolveAttendanceLogStatus, getMaxShiftWithBuffer, getICTTime } from '../../lib/attendanceUtils';
 import { publishToTeamChannel } from './communicationHelpers';
 
 /**
@@ -210,16 +210,22 @@ export async function approveAttendanceCorrection({
         // Parse ACTUAL_CHECK_IN from request.reason (supporting optional seconds)
         const actualCheckInMatch = request.reason.match(/\[ACTUAL_CHECK_IN:(\d{2}:\d{2})(:\d{2})?\]/);
         const actualRequestedTimeStr = actualCheckInMatch ? actualCheckInMatch[1] : timeStr;
-        const approvedLateDateTime = new Date(`${shiftDateStr}T${actualRequestedTimeStr}:00`);
+        
+        const [approvedHour, approvedMinute] = actualRequestedTimeStr.split(':').map(Number);
+        const approvedMinutesSinceMidnight = approvedHour * 60 + approvedMinute;
         
         let isActuallyLate = false;
+        let diffLateMinutes = 0;
+        let actualTimeStr = '00:00';
+        
         if (actualCheckInDateTime) {
-            const checkInCompare = new Date(actualCheckInDateTime);
-            checkInCompare.setSeconds(0, 0);
-            const approvedCompare = new Date(approvedLateDateTime);
-            approvedCompare.setSeconds(0, 0);
-            if (checkInCompare > approvedCompare) {
+            const { hour, minute, totalMinutes: actualMinutesSinceMidnight } = getICTTime(actualCheckInDateTime);
+            actualTimeStr = `${hour}:${minute}`;
+            
+            // If actual check-in time is AFTER the approved late time, they are still late!
+            if (actualMinutesSinceMidnight > approvedMinutesSinceMidnight) {
                 isActuallyLate = true;
+                diffLateMinutes = actualMinutesSinceMidnight - approvedMinutesSinceMidnight;
             }
         }
 
@@ -248,6 +254,18 @@ export async function approveAttendanceCorrection({
         await supabase.from('attendance_logs')
             .update({ status: targetStatus, note: newNote, work_type: targetWorkType })
             .eq('id', freshLog.id);
+
+        // Recalculate and trigger ATTENDANCE_CHECK_IN action for gamification
+        try {
+            await processAction(request.userId, 'ATTENDANCE_CHECK_IN', {
+                status: isActuallyLate ? 'LATE' : 'ON_TIME',
+                time: actualTimeStr,
+                lateMinutes: diffLateMinutes,
+                date: actualCheckInDateTime || request.startDate
+            });
+        } catch (gameErr) {
+            console.error('Failed to process ATTENDANCE_CHECK_IN gamification action on LATE_ENTRY approval:', gameErr);
+        }
     } else if (behavior?.correctionTarget === 'BOTH') {
         const checkInDateTime = new Date(`${shiftDateStr}T${timeStr}:00`);
         const checkOutDateTime = new Date(`${shiftDateStr}T${endTimeStr || '18:00'}:00`);

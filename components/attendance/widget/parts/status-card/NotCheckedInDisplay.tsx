@@ -44,7 +44,27 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
 }) => {
     return (
         <>
-            {todayLog?.status === 'ACTION_REQUIRED' && (
+            {todayLog?.status === 'ACTION_REQUIRED' && (todayLog?.note?.includes('[REJECTED GPS_SPOOF_APPEAL]') || todayLog?.note?.includes('[REJECTED_GPS_SPOOF_APPEAL]')) ? (
+                 <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4 rounded-xl border border-red-600 shadow-lg flex flex-col gap-3 text-left mb-3 animate-pulse-slow">
+                     <div className="flex items-start gap-2.5 text-white">
+                         <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                         <div className="text-left">
+                             <span className="block text-sm font-extrabold text-white">🚨 ถูกปฏิเสธการลงเวลา (GPS ปลอม/ผิดปกติ)</span>
+                             <span className="block text-xs text-red-100 leading-normal mt-1">
+                                 การยื่นอุทธรณ์พิกัด GPS สำหรับวันนี้โดนแอดมินปฏิเสธ: {todayLog?.note ? todayLog.note.replace(/\[.*?\]/g, '').trim() || 'พิกัดไม่มีความคลาดเคลื่อนหรืออยู่ในรูปแบบจำลองพิกัด' : 'พิกัดไม่มีความคลาดเคลื่อนหรืออยู่ในรูปแบบจำลองพิกัด'}
+                             </span>
+                         </div>
+                     </div>
+                     {onNavigateToHistory && (
+                         <button
+                             onClick={onNavigateToHistory}
+                             className="w-full py-2 bg-white text-red-700 hover:bg-red-50 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                         >
+                             <span>🔄 ยื่นอุทธรณ์พิกัด/ส่งข้อมูลความเห็นใหม่ที่ประวัติ</span>
+                         </button>
+                     )}
+                 </div>
+            ) : todayLog?.status === 'ACTION_REQUIRED' ? (
                  <div className="bg-gradient-to-r from-red-50 to-rose-50 px-4 py-3 rounded-xl border border-red-200 shadow-sm flex flex-col gap-2 text-left mb-3 animate-pulse-slow">
                     <div className="flex items-start gap-2.5">
                         <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -81,7 +101,7 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
                         </button>
                     )}
                 </div>
-            )}
+            ) : null}
 
             {/* HOLIDAY WARNING BANNER */}
             {dayStatus.mode === 'HOLIDAY' && (

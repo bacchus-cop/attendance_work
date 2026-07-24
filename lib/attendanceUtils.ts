@@ -159,22 +159,54 @@ export const parseAttendanceMetadata = (note: string | undefined) => {
     };
 };
 
+export interface ICTTimeResult {
+    hour: string;
+    minute: string;
+    second: string;
+    totalMinutes: number;
+}
+
+/**
+ * Converts any Date or string representing a date-time into ICT (Asia/Bangkok) hour, minute, second and total minutes since midnight.
+ */
+export const getICTTime = (date: Date | string): ICTTimeResult => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const hour = parts.find(p => p.type === 'hour')?.value || '00';
+    const minute = parts.find(p => p.type === 'minute')?.value || '00';
+    const second = parts.find(p => p.type === 'second')?.value || '00';
+    
+    let hNum = parseInt(hour, 10);
+    if (hNum === 24) hNum = 0;
+    const hStr = String(hNum).padStart(2, '0');
+    
+    return {
+        hour: hStr,
+        minute,
+        second,
+        totalMinutes: hNum * 60 + parseInt(minute, 10)
+    };
+};
+
 /**
  * Check if a specific time is considered "Late" based on dynamic config string (e.g. "10:00")
  */
 export const checkIsLate = (checkInTime: Date | string | null, startTimeStr: string, bufferMinutes: number = 0): boolean => {
     if (!checkInTime) return false;
     try {
-        const checkIn = typeof checkInTime === 'string' ? new Date(checkInTime) : checkInTime;
-        const [targetHour, targetMinute] = startTimeStr.split(':').map(Number);
-        
-        // Create target time object for the same day as checkInTime
-        const targetTime = setMinutes(setHours(checkIn, targetHour), targetMinute + bufferMinutes);
-        
-        // If checkInTime is AFTER targetTime, it is late
-        return isBefore(targetTime, checkIn);
+        const { totalMinutes } = getICTTime(checkInTime);
+        const [sh, sm] = startTimeStr.split(':').map(Number);
+        const shiftMinutes = sh * 60 + sm;
+        return totalMinutes > (shiftMinutes + bufferMinutes);
     } catch (e) {
-        console.error("Error parsing start time", e);
+        console.error("Error checking is late", e);
         return false; // Default to not late if config error
     }
 };
@@ -191,17 +223,15 @@ export const getLateMinutes = (
 ): number => {
     if (!checkInTime) return 0;
     try {
-        const checkIn = typeof checkInTime === 'string' ? new Date(checkInTime) : checkInTime;
-        const [targetHour, targetMinute] = startTimeStr.split(':').map(Number);
+        const { totalMinutes } = getICTTime(checkInTime);
+        const [sh, sm] = startTimeStr.split(':').map(Number);
+        const shiftMinutes = sh * 60 + sm;
         
-        const officialStartTime = setMinutes(setHours(checkIn, targetHour), targetMinute);
-        const lateLimitTime = setMinutes(setHours(checkIn, targetHour), targetMinute + bufferMinutes);
-        
-        // If check-in time is AFTER late limit, compute exact late minutes from official starting time
-        if (isBefore(lateLimitTime, checkIn)) {
-            return Math.max(0, differenceInMinutes(checkIn, officialStartTime));
+        if (totalMinutes > (shiftMinutes + bufferMinutes)) {
+            // Calculated from the official start time
+            return totalMinutes - shiftMinutes;
         }
-        return 0; // Not late
+        return 0; // Not late or within buffer
     } catch (e) {
         return 0;
     }
@@ -288,9 +318,7 @@ export const getMatchedShiftSlot = (
         return (ah * 60 + am) - (bh * 60 + bm);
     });
 
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    const { totalMinutes: currentTotalMinutes } = getICTTime(now);
 
     // Find the first shift slot we are early or exactly on-time for
     for (const shift of sortedShifts) {

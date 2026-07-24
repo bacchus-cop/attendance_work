@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import LandingPage from './components/landing/LandingPage';
 import AuthPage from './components/AuthPage';
 import AppRouter from './routes/AppRouter';
+import { BRAND_CONFIG } from './config/brand';
 import PublicScriptViewer from './components/public/PublicScriptViewer';
 import { TaskProvider } from './context/TaskContext';
 import { GameConfigProvider } from './context/GameConfigContext';
@@ -86,7 +87,7 @@ function App() {
 
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showLogin, setShowLogin] = useState(false);
+  const [showLogin, setShowLogin] = useState(BRAND_CONFIG.initialRouteMode === 2);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   // --- INITIAL AUTH CHECK ---

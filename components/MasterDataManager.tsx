@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMasterDataView, MasterTab } from '../hooks/useMasterDataView';
-import { Info, Loader2, Smile, Gift, Trash2, Power, Plus, Edit2, LayoutTemplate, RefreshCcw } from 'lucide-react';
+import { Info, Loader2, Smile, Gift, Trash2, Power, Plus, Edit2, LayoutTemplate, RefreshCcw, Settings } from 'lucide-react';
 import MentorTip from './MentorTip';
 import DashboardConfigModal from './DashboardConfigModal';
 import MaintenancePanel from './admin/maintenance/MaintenancePanel';
@@ -9,6 +9,7 @@ import GeneralMasterList from './admin/GeneralMasterList';
 import AnnualHolidayManager from './admin/AnnualHolidayManager';
 import { useGreetings } from '../hooks/useGreetings';
 import { useMasterData } from '../hooks/useMasterData';
+import { useToast } from '../context/ToastContext';
 
 // Import New Refactored Components
 import MasterTabNavigation, { MASTER_META } from './admin/master/MasterTabNavigation';
@@ -24,6 +25,7 @@ import TribunalSettingsView from './admin/master/views/TribunalSettingsView';
 import WikiCategoryMasterView from './admin/master/views/WikiCategoryMasterView';
 import StorageHubMasterView from './admin/master/views/StorageHubMasterView';
 import SystemPolicyView from './admin/master/views/SystemPolicyView';
+import MasterDataTabConfigModal from './admin/master/MasterDataTabConfigModal';
 
 const MasterDataManager: React.FC = () => {
     const { 
@@ -52,6 +54,57 @@ const MasterDataManager: React.FC = () => {
     // Local state for parent selection in nested views
     const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
 
+    const [isTabConfigOpen, setIsTabConfigOpen] = useState(false);
+    const { showToast } = useToast();
+
+    const activeTabsConfig = useMemo(() => {
+        const config = masterOptions.find(o => o.type === 'MASTER_DATA_CONFIG' && o.key === 'ACTIVE_TABS');
+        if (!config) return null;
+        try {
+            return JSON.parse(config.label) as string[];
+        } catch (e) {
+            console.error("Failed to parse master data active tabs config", e);
+            return null;
+        }
+    }, [masterOptions]);
+
+    const handleSaveTabConfig = async (selectedTabs: string[]) => {
+        try {
+            const existingConfig = masterOptions.find(o => o.type === 'MASTER_DATA_CONFIG' && o.key === 'ACTIVE_TABS');
+            const payloadLabel = JSON.stringify(selectedTabs);
+            
+            let success = false;
+            if (existingConfig) {
+                success = await updateMasterOption({
+                    ...existingConfig,
+                    label: payloadLabel
+                });
+            } else {
+                success = await addMasterOption({
+                    type: 'MASTER_DATA_CONFIG',
+                    key: 'ACTIVE_TABS',
+                    label: payloadLabel,
+                    color: '',
+                    sortOrder: 1,
+                    isActive: true
+                });
+            }
+            if (success) {
+                showToast('บันทึกการตั้งค่าแท็บระบบเรียบร้อยแล้ว! ✨', 'success');
+                
+                // If the currently active tab is no longer visible, select the first available tab
+                if (selectedTabs.length > 0 && !selectedTabs.includes(activeTab)) {
+                    handleSwitchTab(selectedTabs[0] as MasterTab);
+                }
+            } else {
+                showToast('ไม่สามารถบันทึกข้อมูลได้', 'error');
+            }
+        } catch (error: any) {
+            console.error("Failed to save tab config", error);
+            showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+        }
+    };
+
     const handleSwitchTab = (tab: MasterTab) => {
         setActiveTab(tab);
         setIsEditing(false);
@@ -79,20 +132,29 @@ const MasterDataManager: React.FC = () => {
             <MentorTip variant="orange" messages={["Maintenance Menu ใหม่! เช็คพื้นที่ Storage ได้แล้วนะ", "Game Balancing! ปรับค่า XP/HP ได้โดยไม่ต้องแก้โค้ดแล้ว", "Operational Calendar! กำหนดวันทำงาน/วันหยุดพิเศษได้ที่นี่"]} />
 
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-800 flex items-center">
                         จัดการข้อมูลระบบ ⚙️ (Master Data)
                     </h1>
                     <p className="text-gray-500 mt-1">กำหนดตัวเลือก, Dashboard และดูแลรักษาฐานข้อมูล</p>
                 </div>
-                <button 
-                    onClick={seedDefaults}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors text-xs font-bold"
-                    title="หากมีข้อมูลใหม่ๆ ที่ระบบเพิ่มมา (เช่น No Show) ให้กดปุ่มนี้เพื่อซิงค์"
-                >
-                    <RefreshCcw className="w-4 h-4" /> ซิงค์ค่าเริ่มต้น (Sync Defaults)
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setIsTabConfigOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors text-xs font-bold"
+                        title="ตั้งค่าปุ่มแถบซ้ายที่จะแสดงผล"
+                    >
+                        <Settings className="w-4 h-4" /> ตั้งค่าแท็บระบบ (Manage Displayed Tabs)
+                    </button>
+                    <button 
+                        onClick={seedDefaults}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors text-xs font-bold"
+                        title="หากมีข้อมูลใหม่ๆ ที่ระบบเพิ่มมา (เช่น No Show) ให้กดปุ่มนี้เพื่อซิงค์"
+                    >
+                        <RefreshCcw className="w-4 h-4" /> ซิงค์ค่าเริ่มต้น (Sync Defaults)
+                    </button>
+                </div>
             </div>
 
             {/* Main Layout */}
@@ -102,6 +164,7 @@ const MasterDataManager: React.FC = () => {
                 <MasterTabNavigation 
                     activeTab={activeTab} 
                     onTabChange={handleSwitchTab} 
+                    masterOptions={masterOptions}
                 />
 
                 {/* 2. Main Content Area */}
@@ -300,6 +363,14 @@ const MasterDataManager: React.FC = () => {
                     onSave={handleSaveDashboardConfig} 
                 />
             )}
+
+            {/* Master Data Tab Configuration Modal */}
+            <MasterDataTabConfigModal 
+                isOpen={isTabConfigOpen}
+                onClose={() => setIsTabConfigOpen(false)}
+                activeTabsConfig={activeTabsConfig}
+                onSave={handleSaveTabConfig}
+            />
         </div>
     );
 };

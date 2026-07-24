@@ -143,15 +143,17 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                     <XCircle className="w-4 h-4" /> ปฏิเสธคำขอ
                 </button>
 
-                <button
-                    type="button"
-                    onClick={() => setIsAdjustPickerOpen(true)}
-                    disabled={isSubmitting}
-                    className="px-4 py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-amber-100 cursor-pointer"
-                    id="adjust-picker-trigger-btn"
-                >
-                    <Clock className="w-4 h-4" /> เลือกเวลาอื่น
-                </button>
+                {isTimeSpecific && (
+                    <button
+                        type="button"
+                        onClick={() => setIsAdjustPickerOpen(true)}
+                        disabled={isSubmitting}
+                        className="px-4 py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-amber-100 cursor-pointer"
+                        id="adjust-picker-trigger-btn"
+                    >
+                        <Clock className="w-4 h-4" /> เลือกเวลาอื่น
+                    </button>
+                )}
 
                 <button
                     type="button"
@@ -173,27 +175,43 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                     className="flex-1 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
                     id="approve-requested-trigger-btn"
                 >
-                    <CheckCircle2 className="w-4 h-4" /> {isSubmitting ? 'กำลังอนุมัติ...' : `อนุมัติตามกะที่เลือก (${isShiftApplicable ? selectedShift : defaultCheckInTime})`}
+                    <CheckCircle2 className="w-4 h-4" /> {
+                        isSubmitting 
+                            ? 'กำลังอนุมัติ...' 
+                            : !isTimeSpecific 
+                                ? 'อนุมัติคำขอ'
+                                : requestType === 'OVERTIME'
+                                    ? 'อนุมัติทำงานล่วงเวลา (OT)'
+                                    : requestType === 'FORGOT_CHECKOUT'
+                                        ? `อนุมัติเวลาออกงาน (${defaultCheckInTime})`
+                                        : requestType === 'OUT_OF_RANGE_CHECKOUT'
+                                            ? `อนุมัติลงเวลานอกพื้นที่ (${defaultCheckInTime})`
+                                            : requestType === 'FORGOT_BOTH'
+                                                ? 'อนุมัติเวลาเข้า-ออกงาน'
+                                                : `อนุมัติตามกะที่เลือก (${isShiftApplicable ? selectedShift : defaultCheckInTime})`
+                    }
                 </button>
 
-                <TimePickerModal
-                    isOpen={isAdjustPickerOpen}
-                    onClose={() => setIsAdjustPickerOpen(false)}
-                    onSelect={(time) => {
-                        setIsAdjustPickerOpen(false);
-                        setSelectedShift(time);
-                        const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                        if (time > maxAllowedTimeStr) {
-                            showAlert(
-                                `ไม่สามารถอนุมัติได้: เวลาที่เลือก (${time} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                                'เวลาเกินกำหนดสายสุด'
-                            );
-                            return;
-                        }
-                        onApprove(time);
-                    }}
-                    initialTime={selectedShift || defaultCheckInTime}
-                />
+                {isTimeSpecific && (
+                    <TimePickerModal
+                        isOpen={isAdjustPickerOpen}
+                        onClose={() => setIsAdjustPickerOpen(false)}
+                        onSelect={(time) => {
+                            setIsAdjustPickerOpen(false);
+                            setSelectedShift(time);
+                            const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
+                            if (time > maxAllowedTimeStr) {
+                                showAlert(
+                                    `ไม่สามารถอนุมัติได้: เวลาที่เลือก (${time} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
+                                    'เวลาเกินกำหนดสายสุด'
+                                );
+                                return;
+                            }
+                            onApprove(time);
+                        }}
+                        initialTime={selectedShift || defaultCheckInTime}
+                    />
+                )}
             </div>
 
             {/* Rejection Modal Portal */}

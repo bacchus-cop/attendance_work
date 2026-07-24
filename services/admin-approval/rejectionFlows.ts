@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { checkIsLate, getLateMinutes, mergeAttendanceNotes, calculateCheckOutStatus, getMatchedShiftSlot } from '../../lib/attendanceUtils';
+import { checkIsLate, getLateMinutes, mergeAttendanceNotes, calculateCheckOutStatus, getMatchedShiftSlot, getICTTime } from '../../lib/attendanceUtils';
 
 /**
  * Handles rejection logic for WFH and Onsite requests.
@@ -236,9 +236,8 @@ export async function rejectLateEntryRequest({
         if (freshLog.check_in_time) {
             try {
                 actualCheckInDateTime = new Date(freshLog.check_in_time);
-                const hours = String(actualCheckInDateTime.getHours()).padStart(2, '0');
-                const minutes = String(actualCheckInDateTime.getMinutes()).padStart(2, '0');
-                actualTimeStr = `${hours}:${minutes}`;
+                const { hour, minute } = getICTTime(actualCheckInDateTime);
+                actualTimeStr = `${hour}:${minute}`;
             } catch (e) {
                 actualCheckInDateTime = null;
             }
