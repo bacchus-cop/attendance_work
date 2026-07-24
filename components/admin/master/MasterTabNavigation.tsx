@@ -27,7 +27,7 @@ export const MASTER_META: Record<string, { label: string, icon: any, desc: strin
     INVENTORY: { label: 'Equipment Categories', icon: Package, desc: 'หมวดหมู่อุปกรณ์หลักและย่อย (ใช้ในหน้า Checklist)', group: 'INVENTORY' },
     ITEM_CONDITION: { label: 'Item Condition', icon: AlertTriangle, desc: 'สภาพอุปกรณ์ (เช่น Good, Broken, Lost) ใช้แปะป้ายสถานะของ', group: 'INVENTORY' },
     POSITION: { label: 'Positions', icon: Briefcase, desc: 'ตำแหน่งงานและหน้าที่ความรับผิดชอบ (ใช้ในหน้าสมัครและหน้าทีม)', group: 'TEAM' },
-    ATTENDANCE_RULES: { label: '⚙️ HR System Rules', icon: Clock, desc: 'บริหารกฎกติกาการเข้างาน, การลา, ขาด, สาย, และสิทธิ์พนักงานทั้งหมด', group: 'TEAM' },
+    ATTENDANCE_RULES: { label: 'HR System Rules', icon: Clock, desc: 'บริหารกฎกติกาการเข้างาน, การลา, ขาด, สาย, และสิทธิ์พนักงานทั้งหมด', group: 'TEAM' },
     LOCATIONS: { label: 'พิกัดออฟฟิศหลัก', icon: MapPin, desc: 'จัดการพิกัดและรัศมี GPS ของสำนักงานใหญ่หรือออฟฟิศสาขาหลัก', group: 'TEAM' },
     REJECTION_REASON: { label: 'Reject Reasons', icon: ShieldAlert, desc: 'เหตุผลที่ส่งแก้งาน (QC) ใช้เก็บสถิติปัญหาที่พบบ่อย', group: 'TEAM' },
 
