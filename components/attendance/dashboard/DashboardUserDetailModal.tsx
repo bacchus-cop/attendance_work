@@ -10,13 +10,14 @@ import { AttendanceLog } from '../../../types/attendance';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAttendanceSummary } from '../../../lib/attendanceUtils';
 import { useUserSession } from '../../../context/UserSessionContext';
+import { useMasterData } from '../../../hooks/useMasterData';
 
 // Import our new subcomponents
 import { DetailModalHeader } from './modal/DetailModalHeader';
 import { DetailModalFilterGrid, FilterType } from './modal/DetailModalFilterGrid';
 import { AttendanceRecordCard } from './modal/AttendanceRecordCard';
 import { OvertimeBreakdownSection } from './modal/OvertimeBreakdownSection';
-import { RecordDetailModal, DetailRecordPayload } from './modal/RecordDetailModal';
+import { RecordDetailModal, DetailRecordPayload, formatSpecialTypeName } from './modal/RecordDetailModal';
 
 interface UserStat {
     userId: string;
@@ -50,6 +51,14 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     const [isScrolled, setIsScrolled] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState<DetailRecordPayload | null>(null);
     const { leaveRequests, otRequests } = useUserSession();
+    const { masterOptions } = useMasterData();
+
+    const multipleShifts = useMemo(() => {
+        const workConfig = masterOptions.filter(opt => opt.type === 'WORK_CONFIG');
+        const enabled = workConfig.find(c => c.key === 'MULTIPLE_SHIFTS_ENABLED')?.label === 'true';
+        const shiftsList = workConfig.find(c => c.key === 'MULTIPLE_SHIFTS_LIST')?.label || '';
+        return { enabled, shiftsList };
+    }, [masterOptions]);
 
     // Categorize dates
     const onTimeLogs = useMemo(() => {
@@ -59,11 +68,11 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
             const summary = getAttendanceSummary(
                 l.checkInTime,
                 l.checkOutTime,
-                { startTime, buffer: lateBuffer, minHours: 9 }
+                { startTime, buffer: lateBuffer, minHours: 9, note: l.note, multipleShifts }
             );
             return !summary.isLate;
         }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [stat.logs, startTime, lateBuffer]);
+    }, [stat.logs, startTime, lateBuffer, multipleShifts]);
 
     const lateLogs = useMemo(() => {
         return stat.logs.filter(l => {
@@ -71,11 +80,11 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
             const summary = getAttendanceSummary(
                 l.checkInTime,
                 l.checkOutTime,
-                { startTime, buffer: lateBuffer, minHours: 9 }
+                { startTime, buffer: lateBuffer, minHours: 9, note: l.note, multipleShifts }
             );
             return summary.isLate;
         }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [stat.logs, startTime, lateBuffer]);
+    }, [stat.logs, startTime, lateBuffer, multipleShifts]);
 
     const leaveLogs = useMemo(() => {
         return stat.logs.filter(l => l.status === 'LEAVE' || l.workType === 'LEAVE')
@@ -83,12 +92,25 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     }, [stat.logs]);
 
     const absentDates = useMemo(() => {
+        // หาค่าวันเริ่มงานจริงจาก startDate หรือวันสร้างบัญชี (createdAt)
+        const userStartDate = user.startDate ? new Date(user.startDate) : (user.createdAt ? new Date(user.createdAt) : null);
+
         return workingDaysInMonth.filter(day => {
             if (day > new Date()) return false;
+
+            // ตรวจสอบวันเริ่มงาน: หากวันทำงานในเดือนนั้นๆ เกิดขึ้นก่อนวันที่พนักงานเริ่มงานจริง ให้ข้ามไป
+            if (userStartDate) {
+                const dayStr = format(day, 'yyyy-MM-dd');
+                const startStr = format(userStartDate, 'yyyy-MM-dd');
+                if (dayStr < startStr) {
+                    return false;
+                }
+            }
+
             const dateStr = format(day, 'yyyy-MM-dd');
             return !stat.logs.some(l => l.date === dateStr);
         }).sort((a, b) => b.getTime() - a.getTime());
-    }, [workingDaysInMonth, stat.logs]);
+    }, [workingDaysInMonth, stat.logs, user.startDate, user.createdAt]);
 
     // Calculate OT stats using ot_requests only
     const approvedOtRequests = useMemo(() => {
@@ -297,7 +319,7 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
                                             key={log.id}
                                             date={new Date(log.date)}
                                             variant="leave"
-                                            badgeText={log.workType || 'LEAVE'}
+                                            badgeText={formatSpecialTypeName(log.workType)}
                                             note={log.note}
                                             onClick={() => setSelectedRecord({ type: 'LEAVE', data: log })}
                                         />

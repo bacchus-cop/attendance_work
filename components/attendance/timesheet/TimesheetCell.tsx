@@ -13,7 +13,14 @@ interface TimesheetCellProps {
     dayStatus: { status: 'WORK_DAY' | 'HOLIDAY', source: string, desc: string };
     isToday: boolean;
     onCellClick: (log: AttendanceLog | null, leaveRequest?: any) => void;
-    workConfig: { startTime: string; buffer: number };
+    workConfig: { 
+        startTime: string; 
+        buffer: number;
+        multipleShifts?: {
+            enabled?: boolean;
+            shiftsList?: string[] | string;
+        };
+    };
     userStartDate?: Date | string | null;
 }
 
@@ -130,7 +137,7 @@ const TimesheetCellComponent: React.FC<TimesheetCellProps> = ({
         );
     }
 
-    const late = log.checkInTime && checkIsLate(log.checkInTime, workConfig.startTime, workConfig.buffer);
+    const late = log.checkInTime && checkIsLate(log.checkInTime, workConfig.startTime, workConfig.buffer, log.note, workConfig.multipleShifts);
     const isLeave = log.status === 'LEAVE' || log.workType === 'LEAVE';
     const isPendingVerify = log.status === 'PENDING_VERIFY';
     const isHardAbsent = log.status === 'ABSENT' || log.status === 'NO_SHOW';
@@ -273,7 +280,9 @@ const areEqual = (prevProps: TimesheetCellProps, nextProps: TimesheetCellProps) 
         prevProps.leaveRequest?.reason === nextProps.leaveRequest?.reason &&
         // Compare workConfig
         prevProps.workConfig.startTime === nextProps.workConfig.startTime &&
-        prevProps.workConfig.buffer === nextProps.workConfig.buffer
+        prevProps.workConfig.buffer === nextProps.workConfig.buffer &&
+        prevProps.workConfig.multipleShifts?.enabled === nextProps.workConfig.multipleShifts?.enabled &&
+        prevProps.workConfig.multipleShifts?.shiftsList === nextProps.workConfig.multipleShifts?.shiftsList
     );
 };
 

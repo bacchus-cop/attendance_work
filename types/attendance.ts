@@ -5,6 +5,7 @@ export interface ShiftSlotResult {
     targetStartTime: string;
     isLate: boolean;
     isBlocked: boolean;
+    isExceededLastShift?: boolean;
     lateMinutes: number;
 }
 
@@ -52,7 +53,7 @@ export interface AttendanceStats {
 
 // --- NEW: Leave Request Types (Updated) ---
 // Added 'WFH' to the union type
-export type LeaveType = 'SICK' | 'VACATION' | 'PERSONAL' | 'EMERGENCY' | 'LATE_ENTRY' | 'OVERTIME' | 'FORGOT_CHECKIN' | 'FORGOT_CHECKOUT' | 'FORGOT_BOTH' | 'WFH' | 'UNPAID' | 'ONSITE' | 'OUT_OF_RANGE_CHECKOUT' | 'GPS_SPOOF_APPEAL';
+export type LeaveType = 'SICK' | 'VACATION' | 'PERSONAL' | 'EMERGENCY' | 'LATE_ENTRY' | 'OVERTIME' | 'FORGOT_CHECKIN' | 'FORGOT_CHECKOUT' | 'FORGOT_BOTH' | 'WFH' | 'UNPAID' | 'ONSITE' | 'OUT_OF_RANGE_CHECKOUT' | 'GPS_SPOOF_APPEAL' | 'EARLY_LEAVE';
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface LeaveRequest {

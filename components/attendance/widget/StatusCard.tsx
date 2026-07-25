@@ -241,10 +241,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
         }
     };
 
-    const handleCheckOutRequest = async (timeStr: string, reason: string) => {
+    const handleCheckOutRequest = async (timeStr: string, reason: string, requestType?: LeaveType) => {
         const now = new Date();
-        const formattedReason = `[TIME:${timeStr}] ${reason} (Location Mismatch)`;
-        return await onCheckOutRequest('OUT_OF_RANGE_CHECKOUT', now, now, formattedReason);
+        const typeToSubmit = requestType || 'OUT_OF_RANGE_CHECKOUT';
+        const formattedReason = typeToSubmit === 'EARLY_LEAVE'
+            ? `[EARLY:${timeStr}] ${reason}`
+            : `[TIME:${timeStr}] ${reason} (Location Mismatch)`;
+        return await onCheckOutRequest(typeToSubmit, now, now, formattedReason);
     };
 
     const handleOvertimeSubmit = async (otMinutes: number, reason: string) => {

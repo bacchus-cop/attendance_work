@@ -91,7 +91,17 @@ export async function approveSpecialWorkRequest({
                 newNote = newNote.replace(/\s+/g, ' ').trim();
             }
             
-            const targetStatus = freshLog.check_out_time ? 'COMPLETED' : 'WORKING';
+            const { startTime: startTimeStr, lateBuffer: buffer, multipleShifts } = parseWorkConfig(masterOptions);
+            let isLate = false;
+            let lateMinutes = 0;
+
+            if (freshLog.check_in_time) {
+                const checkInDate = new Date(freshLog.check_in_time);
+                isLate = checkIsLate(checkInDate, startTimeStr, buffer, freshLog.note, multipleShifts);
+                lateMinutes = isLate ? getLateMinutes(checkInDate, startTimeStr, buffer, freshLog.note, multipleShifts) : 0;
+            }
+
+            const targetStatus = isLate ? 'LATE' : (freshLog.check_out_time ? 'COMPLETED' : 'WORKING');
 
             await supabase.from('attendance_logs')
                 .update({ 
@@ -103,12 +113,6 @@ export async function approveSpecialWorkRequest({
             // Award check-in points on approval!
             if (freshLog.check_in_time) {
                 const checkInDate = new Date(freshLog.check_in_time);
-                const configData = masterOptions.filter(o => o.type === 'WORK_CONFIG');
-                const startTimeStr = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
-                const buffer = parseInt(configData?.find(c => c.key === 'LATE_BUFFER')?.label || '15');
-                const isLate = checkIsLate(checkInDate, startTimeStr, buffer);
-                const lateMinutes = isLate ? getLateMinutes(checkInDate, startTimeStr, buffer) : 0;
-                
                 await processAction(request.userId, 'ATTENDANCE_CHECK_IN', {
                     status: isLate ? 'LATE' : 'ON_TIME',
                     time: format(checkInDate, 'HH:mm'),
@@ -271,6 +275,12 @@ export async function approveAttendanceCorrection({
         const checkOutDateTime = new Date(`${shiftDateStr}T${endTimeStr || '18:00'}:00`);
         const originalStatusNote = freshLog?.status === 'ABSENT' ? '[ORIGINALLY: ABSENT] ' : '';
 
+        // Calculate isLate considering MULTIPLE_SHIFTS_ENABLED
+        const { startTime: startTimeStr, lateBuffer: buffer } = parseWorkConfig(masterOptions);
+        const { maxShiftTimeStr } = getMaxShiftWithBuffer(masterOptions);
+        const referenceStart = maxShiftTimeStr || startTimeStr;
+        const isLate = checkIsLate(checkInDateTime, referenceStart, buffer);
+
         // Determine targetWorkType
         const targetWorkType = await deduceTargetWorkType({
             userId: request.userId,
@@ -286,6 +296,7 @@ export async function approveAttendanceCorrection({
             type: 'FORGOT_BOTH',
             checkInTime: checkInDateTime.toISOString(),
             checkOutTime: checkOutDateTime.toISOString(),
+            isLate,
             reason: request.reason,
             originalStatusNote,
             existingNote: freshLog?.note,
@@ -300,7 +311,9 @@ export async function approveAttendanceCorrection({
         const cleanedNote = cleanAttendanceNoteTags(freshLog?.note || '', request.type);
  
         const { startTime: startTimeStr, lateBuffer: buffer } = parseWorkConfig(masterOptions);
-        const isLate = checkIsLate(checkInDateTime, startTimeStr, buffer);
+        const { maxShiftTimeStr } = getMaxShiftWithBuffer(masterOptions);
+        const referenceStart = maxShiftTimeStr || startTimeStr;
+        const isLate = checkIsLate(checkInDateTime, referenceStart, buffer);
 
         // Determine targetWorkType
         const targetWorkType = await deduceTargetWorkType({
@@ -401,8 +414,9 @@ export async function approveAttendanceCorrection({
 
     if (behavior?.correctionTarget !== 'CHECKOUT_ONLY') {
         const { startTime: defaultStartTime, lateBuffer: buffer } = parseWorkConfig(masterOptions);
+        const { maxShiftTimeStr } = getMaxShiftWithBuffer(masterOptions);
         
-        const referenceStartTime = customStartTime || defaultStartTime;
+        const referenceStartTime = customStartTime || maxShiftTimeStr || defaultStartTime;
         const checkInDateTime = new Date(`${shiftDateStr}T${timeStr}:00`);
         const isLate = checkIsLate(checkInDateTime, referenceStartTime, buffer);
         
@@ -576,9 +590,9 @@ export async function approveGpsSpoofAppealRequest({
         // Award check-in points on GPS spoof appeal approval!
         if (freshLog.check_in_time) {
             const checkInDate = new Date(freshLog.check_in_time);
-            const { startTime: startTimeStr, lateBuffer: buffer } = parseWorkConfig(masterOptions);
-            const isLate = checkIsLate(checkInDate, startTimeStr, buffer);
-            const lateMinutes = isLate ? getLateMinutes(checkInDate, startTimeStr, buffer) : 0;
+            const { startTime: startTimeStr, lateBuffer: buffer, multipleShifts } = parseWorkConfig(masterOptions);
+            const isLate = checkIsLate(checkInDate, startTimeStr, buffer, freshLog.note, multipleShifts);
+            const lateMinutes = isLate ? getLateMinutes(checkInDate, startTimeStr, buffer, freshLog.note, multipleShifts) : 0;
 
             await processAction(request.userId, 'ATTENDANCE_CHECK_IN', {
                 status: isLate ? 'LATE' : 'ON_TIME',

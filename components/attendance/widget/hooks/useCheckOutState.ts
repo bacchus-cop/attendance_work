@@ -15,7 +15,7 @@ interface UseCheckOutStateProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (location?: { lat: number, lng: number }, locationName?: string, reason?: string) => Promise<void>;
-    onRequest: (time: string, reason: string) => Promise<boolean>;
+    onRequest: (time: string, reason: string, requestType?: any) => Promise<boolean>;
     availableLocations: LocationDef[];
     checkInTime: Date;
     onOvertimeSubmit?: (otMinutes: number, reason: string) => Promise<boolean>;
@@ -434,7 +434,8 @@ export const useCheckOutState = ({
 
         // Perform the provisional check-out directly first
         const provTag = '[PROVISIONAL_CHECKOUT]';
-        const reasonWithProv = `[TIME:${time}] ${finalReason} ${provTag}`;
+        const timeTag = checkOutStatus === 'EARLY_LEAVE' ? `[EARLY:${time}]` : `[TIME:${time}]`;
+        const reasonWithProv = `${timeTag} ${finalReason} ${provTag}`;
         await onConfirm(
             { lat: currentLat, lng: currentLng }, 
             matchedLocation?.name || 'Unknown Location', 
@@ -442,7 +443,8 @@ export const useCheckOutState = ({
         );
 
         // Also submit the formal request for admin review/approval
-        await onRequest(time, finalReason);
+        const requestType = checkOutStatus === 'EARLY_LEAVE' ? 'EARLY_LEAVE' : 'OUT_OF_RANGE_CHECKOUT';
+        await onRequest(time, finalReason, requestType);
 
         setIsSubmitting(false);
         onClose();

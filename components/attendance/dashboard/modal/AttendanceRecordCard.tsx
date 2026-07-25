@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import th from 'date-fns/locale/th';
 import { Clock, ArrowRight } from 'lucide-react';
 import { parseReason } from '../../leave-request/request-detail/utils';
+import { AttendanceConditionBadges, AttendanceReasonBox } from '../../shared/AttendanceBadges';
 
 export type RecordVariant = 'on-time' | 'late' | 'absent' | 'leave' | 'appeal';
 
@@ -12,6 +13,8 @@ interface AttendanceRecordCardProps {
     timeLabel?: string;
     badgeText?: string;
     note?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
     onClick?: () => void;
 }
 
@@ -21,9 +24,11 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
     timeLabel,
     badgeText,
     note,
+    checkInTime,
+    checkOutTime,
     onClick
 }) => {
-    const parsed = parseReason(note || '');
+    const parsed = parseReason(note || '', checkInTime, checkOutTime);
     const isProvisionalWfh = parsed.isProvisionalWfh;
     const isProvisionalOnsite = parsed.isProvisionalOnsite;
     const isProvisionalForgotCheckin = parsed.isProvisionalForgotCheckin;
@@ -85,6 +90,9 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
         }
     }[variant];
 
+    const hasCleanReason = !!parsed.cleanReason?.trim();
+    const showNoteBox = isProvisional || hasCleanReason;
+
     return (
         <div 
             onClick={onClick}
@@ -108,31 +116,7 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
                             <span className={`px-2 py-0.5 ${config.badgeBg} ${config.badgeText} rounded-lg text-[9px] font-bold uppercase shrink-0`}>
                                 {badgeText || variant.toUpperCase()}
                             </span>
-                            {isProvisionalWfh && (
-                                <span className="px-2 py-0.5 bg-sky-100 text-sky-700 border border-sky-200 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1 animate-pulse shrink-0">
-                                    ⚠️ WFH แบบจำลอง
-                                </span>
-                            )}
-                            {isProvisionalOnsite && (
-                                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1 animate-pulse shrink-0">
-                                    ⚠️ On-site แบบจำลอง
-                                </span>
-                            )}
-                            {isProvisionalForgotCheckin && (
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1 animate-pulse shrink-0">
-                                    ⚠️ ลืมลงเวลาแบบจำลอง
-                                </span>
-                            )}
-                            {isProvisionalCheckout && (
-                                <span className="px-2 py-0.5 bg-pink-100 text-pink-700 border border-pink-200 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1 animate-pulse shrink-0">
-                                    ⚠️ เช็คเอาท์แบบจำลอง
-                                </span>
-                            )}
-                            {isProvisionalLate && (
-                                <span className="px-2 py-0.5 bg-violet-100 text-violet-700 border border-violet-200 rounded-lg text-[9px] font-bold uppercase flex items-center gap-1 animate-pulse shrink-0">
-                                    ⚠️ อยู่ระหว่างการอุทธรณ์
-                                </span>
-                            )}
+                            <AttendanceConditionBadges parsed={parsed} size="sm" />
                             {variant === 'absent' ? (
                                 <p className="text-[10px] font-bold text-rose-400 ml-1">
                                     {timeLabel || 'No record found'}
@@ -156,11 +140,9 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
                 </div>
             </div>
 
-            {/* Display clean reasons or provisional descriptions beautifully */}
-            {(isProvisional || (note && variant !== 'leave' && variant !== 'absent')) && (
-                <p className="text-[10px] text-slate-500 italic bg-slate-50 border border-slate-100/60 rounded-xl px-3 py-1.5 line-clamp-2 leading-relaxed">
-                    "{parsed.cleanReason || 'ลงเวลางานโดยไม่มีใบคำขออนุมัติล่วงหน้า (ระบบสร้างใบคำขอให้อัตโนมัติ)'}"
-                </p>
+            {/* Display clean reasons or provisional descriptions using central AttendanceReasonBox */}
+            {showNoteBox && (
+                <AttendanceReasonBox parsed={parsed} rawNote={note} showTitle={false} />
             )}
         </div>
     );

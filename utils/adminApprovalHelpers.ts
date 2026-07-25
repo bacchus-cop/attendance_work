@@ -152,13 +152,14 @@ export function buildAttendanceCorrectionPayload({
     if (type === 'FORGOT_BOTH') {
         const finalNote = mergeAttendanceNotes(existingNote, `${originalStatusNote}[APPROVED FORGOT_BOTH] ${reason}`);
         const resolvedStatus = resolveAttendanceLogStatus(checkInTime, checkOutTime, finalNote);
+        const finalStatus = resolvedStatus === 'COMPLETED' && isLate ? 'LATE' : resolvedStatus;
         return {
             user_id: userId,
             date: date,
             check_in_time: checkInTime,
             check_out_time: checkOutTime,
             work_type: resolvedWorkType,
-            status: resolvedStatus,
+            status: finalStatus,
             note: finalNote
         };
     } else if (type === 'FORGOT_CHECKIN' || type === 'LATE_ENTRY') {
@@ -198,7 +199,16 @@ export function parseWorkConfig(masterOptions: any[]) {
     const configData = (masterOptions || []).filter(o => o.type === 'WORK_CONFIG');
     const startTime = configData.find(c => c.key === 'START_TIME')?.label || '10:00';
     const lateBuffer = parseInt(configData.find(c => c.key === 'LATE_BUFFER')?.label || '15', 10);
-    return { startTime, lateBuffer };
+    const shiftsEnabled = configData.find(c => c.key === 'MULTIPLE_SHIFTS_ENABLED')?.label === 'true';
+    const shiftsList = configData.find(c => c.key === 'MULTIPLE_SHIFTS_LIST')?.label || '';
+    return {
+        startTime,
+        lateBuffer,
+        multipleShifts: {
+            enabled: shiftsEnabled,
+            shiftsList
+        }
+    };
 }
 
 /**

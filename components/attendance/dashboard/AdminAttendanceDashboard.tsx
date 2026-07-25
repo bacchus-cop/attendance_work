@@ -165,6 +165,13 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
         setLateBuffer(buffer);
     }, [masterOptions]);
 
+    const multipleShifts = useMemo(() => {
+        const workConfig = masterOptions.filter(opt => opt.type === 'WORK_CONFIG');
+        const enabled = workConfig.find(c => c.key === 'MULTIPLE_SHIFTS_ENABLED')?.label === 'true';
+        const shiftsList = workConfig.find(c => c.key === 'MULTIPLE_SHIFTS_LIST')?.label || '';
+        return { enabled, shiftsList };
+    }, [masterOptions]);
+
     // Fetch Logs for the selected month or range
     useEffect(() => {
         const start = format(dateFilterMode === 'MONTH' ? startOfMonth(currentMonth) : customStartDate, 'yyyy-MM-dd');
@@ -271,13 +278,13 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
                     const summary = getAttendanceSummary(
                         log.checkInTime,
                         log.checkOutTime,
-                        { startTime, buffer: lateBuffer, minHours: 9 }
+                        { startTime, buffer: lateBuffer, minHours: 9, note: log.note, multipleShifts }
                     );
 
                     if (summary.isLate) {
                         stat.late++;
                     }
-                    const lateMins = getLateMinutes(log.checkInTime, startTime, lateBuffer);
+                    const lateMins = getLateMinutes(log.checkInTime, startTime, lateBuffer, log.note, multipleShifts);
                     stat.totalLateMinutes = (stat.totalLateMinutes || 0) + lateMins;
                     stat.totalHours += summary.workHours;
                 }

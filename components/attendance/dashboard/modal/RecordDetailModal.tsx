@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import th from 'date-fns/locale/th';
-import { parseReason, getTypeName as getLeaveTypeName } from '../../leave-request/request-detail/utils';
+import { parseReason, getTypeName as getLeaveTypeName, formatSpecialTypeName } from '../../leave-request/request-detail/utils';
+import { AttendanceStatusBadge, AttendanceConditionBadges, AttendanceReasonBox, AttendanceProvisionalBanner } from '../../shared/AttendanceBadges';
 
 export type DetailRecordType = 'ATTENDANCE' | 'LEAVE' | 'OT' | 'ABSENT';
 
@@ -21,21 +22,7 @@ interface RecordDetailModalProps {
     onClose: () => void;
 }
 
-// Friendly Work / Request Type Name Formatter
-const formatSpecialTypeName = (typeStr: string | undefined): string => {
-    if (!typeStr) return 'ทำงาน ณ สถานที่ตั้ง';
-    const upper = typeStr.toUpperCase();
-    if (upper === 'WFH') return 'ขอทำงานที่บ้าน (WFH)';
-    if (upper === 'ONSITE' || upper === 'SITE') return 'ทำงานนอกสถานที่ (On-site)';
-    if (upper === 'OFFICE') return 'ทำงาน ณ สำนักงานใหญ่';
-    if (upper === 'LATE_ENTRY') return 'คำขอเข้าสาย (Late Entry)';
-    if (upper === 'EARLY_LEAVE') return 'คำขอกลับก่อนเวลา (Early Leave)';
-    if (upper === 'FORGOT_CHECKIN') return 'คำขอลืมลงเวลาเข้างาน (Forgot Check-in)';
-    if (upper === 'FORGOT_CHECKOUT') return 'คำขอลืมลงเวลาออกงาน (Forgot Check-out)';
-    if (upper === 'FORGOT_BOTH') return 'คำขอลืมบันทึกเวลาทั้งเข้าและออก';
-    if (upper === 'OUT_OF_RANGE_CHECKOUT') return 'ลงเวลานอกพื้นที่ (Out of Range)';
-    return getLeaveTypeName(typeStr) || typeStr;
-};
+export { formatSpecialTypeName };
 
 export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, onClose }) => {
     const [copiedGps, setCopiedGps] = useState(false);
@@ -110,78 +97,33 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                         {/* 1. ATTENDANCE TYPE */}
                         {type === 'ATTENDANCE' && (() => {
                             const note = data.note || '';
-                            const parsed = parseReason(note);
-                            const checkInStr = data.checkInTime ? format(new Date(data.checkInTime), 'HH:mm:ss น.') : (data.checkIn_time || data.check_in_time || '--:--:--');
+                            const checkInTimeVal = data.checkInTime || data.checkIn_time || data.check_in_time;
+                            const checkOutTimeVal = data.checkOutTime || data.checkOut_time || data.check_out_time;
+                            const parsed = parseReason(note, checkInTimeVal, checkOutTimeVal);
+                            const checkInStr = data.checkInTime ? format(new Date(data.checkInTime), 'HH:mm:ss น.') : (data.checkIn_time || data.check_out_time || '--:--:--');
                             const checkOutStr = data.checkOutTime ? format(new Date(data.checkOutTime), 'HH:mm:ss น.') : (data.checkOut_time || data.check_out_time || 'ยังไม่ได้เช็คเอาท์');
-
-                            const lat = data.checkInLat || data.check_in_lat || data.lat;
-                            const lng = data.checkInLng || data.check_in_lng || data.lng;
-                            const gpsCoords = lat && lng ? `${lat}, ${lng}` : null;
-                            const locationName = data.locationName || data.site_name || data.location_name || (parsed.isProvisionalWfh ? 'Work From Home' : parsed.isProvisionalOnsite ? 'นอกสถานที่ (On-site)' : 'สำนักงานใหญ่');
-                            const photoUrl = data.checkInPhoto || data.selfie_url || data.proofUrl || data.attachment_url;
+                            const locationName = data.locationName || data.location_name || 'ไม่ได้ระบุสถานที่';
+                            const photoUrl = data.photoUrl || data.photo_url || data.image_url;
+                            const lat = data.latitude || data.lat;
+                            const lng = data.longitude || data.lng;
+                            const gpsCoords = (lat && lng) ? `${lat}, ${lng}` : null;
 
                             return (
                                 <>
+                                    {/* Provisional Alert Banner */}
+                                    <AttendanceProvisionalBanner parsed={parsed} />
+
                                     {/* Status & Badges Section */}
                                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">สถานะการลงเวลา</span>
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className={`px-2.5 py-1 rounded-xl text-xs font-bold uppercase ${
-                                                    data.status === 'LATE' || data.status === 'APPEAL' 
-                                                        ? 'bg-amber-100 text-amber-700' 
-                                                        : 'bg-emerald-100 text-emerald-700'
-                                                }`}>
-                                                    {data.status === 'LATE' ? 'ลงเวลาสาย' : data.status === 'APPEAL' ? 'อุทธรณ์เวลา' : 'ตรงเวลา'}
-                                                </span>
+                                                <AttendanceStatusBadge status={data.status} isEarlyLeaveAcceptPenalty={parsed.isEarlyLeaveAcceptPenalty} />
                                             </div>
                                         </div>
 
                                         {/* Provisional & Special Condition Badges */}
-                                        {(parsed.isProvisionalWfh || parsed.isProvisionalOnsite || parsed.isProvisionalForgotCheckin || parsed.isProvisionalCheckout || parsed.isProvisionalLate || parsed.isLocationMismatch || parsed.isLateSubmission || parsed.forgotCheckoutPenalty) && (
-                                            <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
-                                                {parsed.isProvisionalWfh && (
-                                                    <span className="px-2.5 py-1 bg-sky-100 text-sky-800 border border-sky-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        🏠 WFH แบบจำลอง (รออนุมัติ)
-                                                    </span>
-                                                )}
-                                                {parsed.isProvisionalOnsite && (
-                                                    <span className="px-2.5 py-1 bg-orange-100 text-orange-800 border border-orange-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        📍 On-site แบบจำลอง (รออนุมัติ)
-                                                    </span>
-                                                )}
-                                                {parsed.isProvisionalForgotCheckin && (
-                                                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        ⏰ ลืมลงเวลาแบบจำลอง
-                                                    </span>
-                                                )}
-                                                {parsed.isProvisionalLate && (
-                                                    <span className="px-2.5 py-1 bg-violet-100 text-violet-800 border border-violet-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        ⏳ ขอเข้าสายแบบจำลอง
-                                                    </span>
-                                                )}
-                                                {parsed.isProvisionalCheckout && (
-                                                    <span className="px-2.5 py-1 bg-pink-100 text-pink-800 border border-pink-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        🚪 เช็คเอาท์แบบจำลอง
-                                                    </span>
-                                                )}
-                                                {parsed.isLocationMismatch && (
-                                                    <span className="px-2.5 py-1 bg-rose-100 text-rose-800 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        📍 นอกรัศมีพื้นที่ (Location Mismatch)
-                                                    </span>
-                                                )}
-                                                {parsed.isLateSubmission && (
-                                                    <span className="px-2.5 py-1 bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        ⏰ ยื่นขอย้อนหลัง (Late Submission)
-                                                    </span>
-                                                )}
-                                                {parsed.forgotCheckoutPenalty && (
-                                                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1">
-                                                        🚪 ลืมตอกบัตรออก (Penalized)
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
+                                        <AttendanceConditionBadges parsed={parsed} status={data.status} size="md" hideProvisional={true} />
                                     </div>
 
                                     {/* Scan Times Grid */}
@@ -207,7 +149,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                                                 <MapPin className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" />
                                                 <div>
                                                     <p className="text-xs font-bold text-slate-800">{locationName}</p>
-                                                    <p className="text-[11px] text-slate-500 mt-0.5">ประเภท: {data.workType || 'ทำงาน ณ สถานที่ตั้ง'}</p>
+                                                    <p className="text-[11px] text-slate-500 mt-0.5">ประเภท: {formatSpecialTypeName(data.workType)}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -237,16 +179,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                                     </div>
 
                                     {/* Reasons / Full Notes */}
-                                    {note && (
-                                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
-                                            <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
-                                                <FileText className="w-3.5 h-3.5 text-slate-400" /> เหตุผล / หมายเหตุฉบับเต็ม
-                                            </p>
-                                            <p className="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-wrap pt-1">
-                                                {parsed.cleanReason || note}
-                                            </p>
-                                        </div>
-                                    )}
+                                    <AttendanceReasonBox parsed={parsed} rawNote={note} />
 
                                     {/* Proof Image / Selfie */}
                                     {photoUrl && (

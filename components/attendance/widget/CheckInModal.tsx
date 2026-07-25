@@ -88,6 +88,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
         isGpsAppealActive,
         setIsGpsAppealActive,
         isUserLate,
+        isExceededLastShift,
         lateMinutes,
         isShiftsEnabled,
         shiftsList,
@@ -198,6 +199,7 @@ const CheckInModal: React.FC<CheckInModalProps> = ({
                                 {showLateIntervention && (
                                     <LateInterventionOverlay
                                         startTime={effectiveDisplayStartTime}
+                                        isExceededLastShift={isExceededLastShift}
                                         onSwitchToLeave={() => {
                                             onClose();
                                             if (onSwitchToLeave) {

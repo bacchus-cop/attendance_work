@@ -164,6 +164,14 @@ export function useCheckInState({
         return getMatchedShiftSlot(now, shiftsList, lateBuffer);
     }, [isShiftsEnabled, shiftsList, lateBuffer, isOpen]);
 
+    const isExceededLastShift = useMemo(() => {
+        if (approvedLateTime) return false;
+        if (isShiftsEnabled && shiftResult) {
+            return !!shiftResult.isExceededLastShift;
+        }
+        return false;
+    }, [isShiftsEnabled, shiftResult, approvedLateTime]);
+
     const isUserLate = useMemo(() => {
         if (hasAcceptedLateness) return false;
         if (hasLateRequest && !approvedLateTime) return false;
@@ -223,13 +231,17 @@ export function useCheckInState({
     }, [isShiftsEnabled, shiftResult, startTime, approvedLateTime, pendingLateTime, lateBuffer]);
 
     useEffect(() => {
+        if (isOpen && isExceededLastShift && !showLateIntervention) {
+            setShowLateIntervention(true);
+            return;
+        }
         if (step === 'CONFIRM_LOCATION' && isGpsSecure && isUserLate && isOpen && !showLateIntervention && !showLatePenaltyBreakdown) {
             const timer = setTimeout(() => {
                 setShowLateIntervention(true);
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [step, isGpsSecure, isUserLate, isOpen, showLateIntervention, showLatePenaltyBreakdown]);
+    }, [step, isGpsSecure, isUserLate, isOpen, showLateIntervention, showLatePenaltyBreakdown, isExceededLastShift]);
 
     const checkLocation = () => {
         runCheckLocation(
@@ -282,6 +294,12 @@ export function useCheckInState({
 
     const handleSubmit = async (forceCheckIn = false, typeToSubmit?: WorkLocation, bypassFile?: boolean, passProvisionalOnsite?: boolean) => {
         if (isSubmitting) return;
+
+        if (isExceededLastShift && !approvedLateTime) {
+            if (typeToSubmit) setSelectedType(typeToSubmit);
+            setShowLateIntervention(true);
+            return;
+        }
 
         const targetType = typeToSubmit || selectedType;
         if (!targetType) return;
@@ -520,6 +538,7 @@ export function useCheckInState({
         isGpsSecure,
         gpsThreatReason,
         isUserLate,
+        isExceededLastShift,
         lateMinutes,
         isShiftsEnabled,
         shiftsList,

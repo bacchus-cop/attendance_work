@@ -45,7 +45,16 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
     const workConfig = useMemo(() => {
         const startTime = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'START_TIME')?.label || '10:00';
         const buffer = parseInt(masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_BUFFER')?.label || '15');
-        return { startTime, buffer };
+        const shiftsEnabled = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_ENABLED')?.label === 'true';
+        const shiftsList = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST')?.label || '';
+        return {
+            startTime,
+            buffer,
+            multipleShifts: {
+                enabled: shiftsEnabled,
+                shiftsList
+            }
+        };
     }, [masterOptions]);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchTerm, setSearchTerm] = useState('');

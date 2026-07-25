@@ -107,7 +107,7 @@ export function formatCorrectionNote(
     
     const targetTag = `[TARGET_SHIFT:${targetShift}]`;
     const actualTag = hasCustomActual ? `[ACTUAL_CHECK_IN:${actualTime}]` : '';
-    const timeTag = endTime ? `[TIME:${targetShift}-${endTime}]` : `[TIME:${targetShift}]`;
+    const timeTag = endTime ? `[TIME:${actualTime}-${endTime}]` : `[TIME:${actualTime}]`;
 
     const tags = [targetTag, actualTag, timeTag].filter(Boolean).join(' ');
     return cleanReason ? `${tags} ${cleanReason}` : tags;

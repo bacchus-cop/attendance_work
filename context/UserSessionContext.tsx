@@ -549,6 +549,7 @@ export const UserSessionProvider: React.FC<{ sessionUser: any, children: React.R
             if (updates.name) payload.full_name = updates.name;
             if (updates.position) payload.position = updates.position;
             if (updates.role) payload.role = updates.role;
+            if (updates.employmentType !== undefined) payload.employment_type = updates.employmentType;
             if (updates.workDays) payload.work_days = updates.workDays;
             if (updates.baseSalary !== undefined) payload.base_salary = updates.baseSalary;
             if (updates.bankAccount !== undefined) payload.bank_account = updates.bankAccount;

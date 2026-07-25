@@ -1,6 +1,6 @@
 import React from 'react';
 import { AttendanceLog } from '../../../../types/attendance';
-import { findPendingRegistryItemByNote, getWorkTypeStyles } from '../../../../constants/attendanceRegistry';
+import { findPendingRegistryItemByNote, getWorkTypeStyles, WORK_TYPE_REGISTRY } from '../../../../constants/attendanceRegistry';
 import { format, isSameDay } from 'date-fns';
 import th from 'date-fns/locale/th';
 import { 
@@ -291,13 +291,11 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
             <td className="px-6 py-4">
                 <div className="flex flex-col gap-1">
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border uppercase tracking-wide w-fit ${workTypeStyles.bg} ${workTypeStyles.text} ${workTypeStyles.border}`}>
-                        {log.workType}
+                        {WORK_TYPE_REGISTRY[log.workType]?.label || log.workType}
                     </span>
-                    {!isLeave && (
-                        <span className="text-xs text-gray-500 truncate max-w-[120px]" title={getLocationDisplay(log)}>
-                            {getLocationDisplay(log)}
-                        </span>
-                    )}
+                    <span className={`text-xs text-gray-500 truncate max-w-[120px] ${isLeave ? 'italic font-medium text-slate-500' : ''}`} title={getLocationDisplay(log)}>
+                        {getLocationDisplay(log)}
+                    </span>
                 </div>
             </td>
             <td className="px-6 py-4 text-center">

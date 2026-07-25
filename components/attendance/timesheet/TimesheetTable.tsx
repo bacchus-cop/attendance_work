@@ -16,7 +16,14 @@ interface TimesheetTableProps {
     leaveRequests?: any[];
     getEffectiveDayStatus: (date: Date) => { status: 'WORK_DAY' | 'HOLIDAY', source: string, desc: string };
     onCellClick: (log: AttendanceLog | null, leaveRequest?: any) => void;
-    workConfig: { startTime: string; buffer: number };
+    workConfig: { 
+        startTime: string; 
+        buffer: number;
+        multipleShifts?: {
+            enabled?: boolean;
+            shiftsList?: string[] | string;
+        };
+    };
 }
 
 const rowVariants = {

@@ -2,6 +2,7 @@
 import { differenceInMinutes, addMinutes, isBefore, setHours, setMinutes, parse } from 'date-fns';
 import { isWorkingDay } from '../utils/judgeUtils';
 import { AnnualHoliday, User, ShiftSlotResult } from '../types';
+import { calculateShiftAndActualTime } from '../utils/shiftCalculator';
 
 /**
  * Calculates the number of working days between two dates.
@@ -195,14 +196,75 @@ export const getICTTime = (date: Date | string): ICTTimeResult => {
     };
 };
 
+export interface MultipleShiftsConfig {
+    enabled?: boolean;
+    shiftsList?: string[] | string;
+}
+
+/**
+ * Determines the target shift start time (e.g. "08:00", "08:30", "09:00")
+ * Priority:
+ * 1. [TARGET_SHIFT:HH:mm] tag in note
+ * 2. If multiple shifts enabled and shiftsList available:
+ *    Matches checkInTime against shift slots using calculateShiftAndActualTime logic.
+ * 3. Fallback to default startTimeStr
+ */
+export const getEffectiveStartTime = (
+    checkInTime: Date | string | null,
+    defaultStartTimeStr: string,
+    note?: string | null,
+    multipleShifts?: MultipleShiftsConfig
+): string => {
+    // 1. Check for [TARGET_SHIFT:HH:mm] tag in note
+    if (note) {
+        const targetShiftMatch = note.match(/\[TARGET_SHIFT:(\d{1,2}:\d{2})\]/);
+        if (targetShiftMatch && targetShiftMatch[1]) {
+            return targetShiftMatch[1];
+        }
+        const timeMatch = note.match(/\[TIME:(\d{1,2}:\d{2})(?:-\d{1,2}:\d{2})?\]/);
+        if (timeMatch && timeMatch[1]) {
+            return timeMatch[1];
+        }
+    }
+
+    // 2. Check for Multiple Shifts if enabled
+    if (multipleShifts && multipleShifts.enabled && checkInTime) {
+        let shiftsArray: string[] = [];
+        if (Array.isArray(multipleShifts.shiftsList)) {
+            shiftsArray = multipleShifts.shiftsList;
+        } else if (typeof multipleShifts.shiftsList === 'string') {
+            shiftsArray = multipleShifts.shiftsList.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        if (shiftsArray.length > 0) {
+            const checkInDate = typeof checkInTime === 'string' ? new Date(checkInTime) : checkInTime;
+            const { hour, minute } = getICTTime(checkInDate);
+            const timeStr = `${hour}:${minute}`;
+            const result = calculateShiftAndActualTime(timeStr, shiftsArray);
+            if (result && result.targetShift) {
+                return result.targetShift;
+            }
+        }
+    }
+
+    return defaultStartTimeStr || '08:00';
+};
+
 /**
  * Check if a specific time is considered "Late" based on dynamic config string (e.g. "10:00")
  */
-export const checkIsLate = (checkInTime: Date | string | null, startTimeStr: string, bufferMinutes: number = 0): boolean => {
+export const checkIsLate = (
+    checkInTime: Date | string | null, 
+    startTimeStr: string, 
+    bufferMinutes: number = 0,
+    note?: string | null,
+    multipleShifts?: MultipleShiftsConfig
+): boolean => {
     if (!checkInTime) return false;
     try {
+        const effectiveStartTime = getEffectiveStartTime(checkInTime, startTimeStr, note, multipleShifts);
         const { totalMinutes } = getICTTime(checkInTime);
-        const [sh, sm] = startTimeStr.split(':').map(Number);
+        const [sh, sm] = effectiveStartTime.split(':').map(Number);
         const shiftMinutes = sh * 60 + sm;
         return totalMinutes > (shiftMinutes + bufferMinutes);
     } catch (e) {
@@ -219,12 +281,15 @@ export const checkIsLate = (checkInTime: Date | string | null, startTimeStr: str
 export const getLateMinutes = (
     checkInTime: Date | string | null, 
     startTimeStr: string, 
-    bufferMinutes: number = 0
+    bufferMinutes: number = 0,
+    note?: string | null,
+    multipleShifts?: MultipleShiftsConfig
 ): number => {
     if (!checkInTime) return 0;
     try {
+        const effectiveStartTime = getEffectiveStartTime(checkInTime, startTimeStr, note, multipleShifts);
         const { totalMinutes } = getICTTime(checkInTime);
-        const [sh, sm] = startTimeStr.split(':').map(Number);
+        const [sh, sm] = effectiveStartTime.split(':').map(Number);
         const shiftMinutes = sh * 60 + sm;
         
         if (totalMinutes > (shiftMinutes + bufferMinutes)) {
@@ -259,18 +324,26 @@ export interface AttendanceSummary {
     requiredEndTime: Date | null;
 }
 
+export interface AttendanceSummaryConfig {
+    startTime: string;
+    buffer: number;
+    minHours: number;
+    note?: string | null;
+    multipleShifts?: MultipleShiftsConfig;
+}
+
 /**
  * Comprehensive attendance summary calculation.
  */
 export const getAttendanceSummary = (
     checkInTime: Date | string | null,
     checkOutTime: Date | string | null,
-    config: { startTime: string; buffer: number; minHours: number }
+    config: AttendanceSummaryConfig
 ): AttendanceSummary => {
     const checkIn = checkInTime ? (typeof checkInTime === 'string' ? new Date(checkInTime) : checkInTime) : null;
     const checkOut = checkOutTime ? (typeof checkOutTime === 'string' ? new Date(checkOutTime) : checkOutTime) : null;
 
-    const isLate = checkIn ? checkIsLate(checkIn, config.startTime, config.buffer) : false;
+    const isLate = checkIn ? checkIsLate(checkIn, config.startTime, config.buffer, config.note, config.multipleShifts) : false;
     const workHours = calculateWorkHours(checkIn, checkOut);
     
     let requiredEndTime = null;
@@ -307,6 +380,7 @@ export const getMatchedShiftSlot = (
             targetStartTime: '08:00',
             isLate: false,
             isBlocked: false,
+            isExceededLastShift: false,
             lateMinutes: 0
         };
     }
@@ -330,6 +404,7 @@ export const getMatchedShiftSlot = (
                 targetStartTime: shift,
                 isLate: false,
                 isBlocked: false,
+                isExceededLastShift: false,
                 lateMinutes: 0
             };
         }
@@ -342,12 +417,14 @@ export const getMatchedShiftSlot = (
 
     const diff = currentTotalMinutes - lastShiftTotalMinutes;
     const isLate = diff > 0;
-    const isBlocked = diff > bufferMinutes;
+    const isExceededLastShift = diff > bufferMinutes;
+    const isBlocked = isExceededLastShift;
 
     return {
         targetStartTime: lastShift,
         isLate,
         isBlocked,
+        isExceededLastShift,
         lateMinutes: isLate ? diff : 0
     };
 };

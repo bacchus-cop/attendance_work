@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import { checkIsLate, getLateMinutes, mergeAttendanceNotes, calculateCheckOutStatus, getMatchedShiftSlot, getICTTime } from '../../lib/attendanceUtils';
+import { parseWorkConfig } from '../../utils/adminApprovalHelpers';
 
 /**
  * Handles rejection logic for WFH and Onsite requests.
@@ -67,9 +68,7 @@ export async function rejectWfhOnsiteRequest({
                 note: cleanedNote
             }).eq('id', freshLog.id);
         } else if (mode === 'KEEP_WORKING') {
-            const configData = masterOptions.filter(o => o.type === 'WORK_CONFIG');
-            const startTimeStr = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
-            const buffer = parseInt(configData?.find(c => c.key === 'LATE_BUFFER')?.label || '15');
+            const { startTime: startTimeStr, lateBuffer: buffer, multipleShifts } = parseWorkConfig(masterOptions);
 
             let timeStr = '10:00';
             if (customCheckInTime) {
@@ -86,14 +85,14 @@ export async function rejectWfhOnsiteRequest({
             }
 
             const checkInDateTime = new Date(`${req.start_date}T${timeStr}:00`);
-            const isLate = checkIsLate(checkInDateTime, startTimeStr, buffer);
+            const isLate = checkIsLate(checkInDateTime, startTimeStr, buffer, freshLog.note, multipleShifts);
 
             let lateMinutes = 0;
             let calculatedStatus: 'LATE' | 'ON_TIME' = 'ON_TIME';
 
             if (isLate) {
                 calculatedStatus = 'LATE';
-                lateMinutes = getLateMinutes(checkInDateTime, startTimeStr, buffer);
+                lateMinutes = getLateMinutes(checkInDateTime, startTimeStr, buffer, freshLog.note, multipleShifts);
             }
 
             try {

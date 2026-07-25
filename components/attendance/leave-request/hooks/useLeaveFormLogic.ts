@@ -207,8 +207,8 @@ export const useLeaveFormLogic = ({
                     const [targetH, targetM] = targetTime.split(':').map(Number);
                     finalStartDate = new Date(year, month - 1, day, targetH, targetM, 0, 0);
                 } else {
-                    const [shiftH, shiftM] = mappedShift.split(':').map(Number);
-                    finalStartDate = new Date(year, month - 1, day, shiftH, shiftM, 0, 0);
+                    const [actualH, actualM] = actualCheckIn.split(':').map(Number);
+                    finalStartDate = new Date(year, month - 1, day, actualH, actualM, 0, 0);
                 }
 
                 if (selectedType === 'FORGOT_BOTH') {

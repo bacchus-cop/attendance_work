@@ -47,7 +47,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     const [rejectionReason, setRejectionReason] = useState('');
     const [adjustedTime, setAdjustedTime] = useState(defaultCheckInTime);
     const [selectedShift, setSelectedShift] = useState<string>(() => {
-        if (defaultCheckInTime && shiftsList.includes(defaultCheckInTime)) return defaultCheckInTime;
+        if (defaultCheckInTime) return defaultCheckInTime;
         return shiftsList[0] || '08:00';
     });
     const [rejectionMode, setRejectionMode] = useState<'ABSENT' | 'ACTION_REQUIRED' | 'KEEP_WORKING'>('ABSENT');
@@ -58,9 +58,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     useEffect(() => {
         if (defaultCheckInTime) {
             setAdjustedTime(defaultCheckInTime);
-            if (shiftsList.includes(defaultCheckInTime)) {
-                setSelectedShift(defaultCheckInTime);
-            }
+            setSelectedShift(defaultCheckInTime);
         }
     }, [defaultCheckInTime]);
 
@@ -172,11 +170,12 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onApprove(targetTime);
                     }}
                     disabled={isSubmitting}
-                    className="flex-1 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
+                    className="px-4 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
                     id="approve-requested-trigger-btn"
                 >
-                    <CheckCircle2 className="w-4 h-4" /> {
-                        isSubmitting 
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>
+                        {isSubmitting 
                             ? 'กำลังอนุมัติ...' 
                             : !isTimeSpecific 
                                 ? 'อนุมัติคำขอ'
@@ -188,8 +187,8 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                             ? `อนุมัติลงเวลานอกพื้นที่ (${defaultCheckInTime})`
                                             : requestType === 'FORGOT_BOTH'
                                                 ? 'อนุมัติเวลาเข้า-ออกงาน'
-                                                : `อนุมัติตามกะที่เลือก (${isShiftApplicable ? selectedShift : defaultCheckInTime})`
-                    }
+                                                : `อนุมัติตามกะที่เลือก (${isShiftApplicable ? selectedShift : defaultCheckInTime})`}
+                    </span>
                 </button>
 
                 {isTimeSpecific && (
