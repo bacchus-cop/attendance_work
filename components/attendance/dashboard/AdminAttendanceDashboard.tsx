@@ -324,9 +324,26 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
                                 day.getFullYear() === today.getFullYear();
 
                 if (isToday) {
+                    // 1. กำหนดเวลาเริ่มงานหลักเป็นตัวแปรตั้งต้นก่อน (เช่น 10:00)
+                    let targetStartTime = startTime; 
+
+                    // 2. ถ้าเปิดใช้งาน MULTIPLE_SHIFTS ให้ดึงกะที่สายที่สุดมาใช้งานแทน
+                    if (multipleShifts.enabled && multipleShifts.shiftsList) {
+                        const shifts = multipleShifts.shiftsList
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(Boolean);
+                        
+                        if (shifts.length > 0) {
+                            shifts.sort(); // เรียงลำดับเวลาจากเช้าสุดไปสายสุด (เช่น "08:00" -> "08:30" -> "09:00")
+                            targetStartTime = shifts[shifts.length - 1]; // เลือกเวลาที่สายที่สุด (เช่น "09:00")
+                        }
+                    }
+
+                    // 3. นำเวลาที่เลือกได้ (targetStartTime) มาแปลงเป็นชั่วโมงและนาทีเพื่อเปรียบเทียบตามเดิม
                     let [startHour, startMin] = [10, 0];
-                    if (startTime && startTime.includes(':')) {
-                        const parts = startTime.split(':');
+                    if (targetStartTime && targetStartTime.includes(':')) {
+                        const parts = targetStartTime.split(':');
                         startHour = parseInt(parts[0], 10) || 10;
                         startMin = parseInt(parts[1], 10) || 0;
                     }
@@ -370,7 +387,7 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
         });
 
         return Object.values(statsMap);
-    }, [users, logs, startTime, lateBuffer, workingDaysInMonth, otRequests, currentMonth, dateFilterMode, customStartDate, customEndDate]);
+    }, [users, logs, startTime, lateBuffer, workingDaysInMonth, otRequests, currentMonth, dateFilterMode, customStartDate, customEndDate, multipleShifts]);
 
     // Index users by ID for O(1) lookups
     const userMap = useMemo(() => {

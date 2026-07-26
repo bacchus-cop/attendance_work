@@ -77,7 +77,7 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
 
     // GPS Appeal check
     const isGpsAppealApproved = noteText.includes('[APPROVED GPS_SPOOF_APPEAL]');
-    const isGpsAppealRejected = noteText.includes('[REJECTED GPS_SPOOF_APPEAL]') || noteText.includes('[REJECTED_GPS_SPOOF_APPEAL]');
+    const isGpsAppealRejected = !isGpsAppealApproved && (noteText.includes('[REJECTED GPS_SPOOF_APPEAL]') || noteText.includes('[REJECTED_GPS_SPOOF_APPEAL]'));
 
     const late = isLate(log);
     const pendingItem = findPendingRegistryItemByNote(log.note || '');
@@ -91,9 +91,9 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
     const isForgotBothApproved = noteText.includes('[APPROVED FORGOT_BOTH]');
     const isLateEntryApproved = noteText.includes('[APPROVED LATE_ENTRY]');
     
-    const isForgotCheckInRejected = noteText.includes('[REJECTED FORGOT_CHECKIN]');
-    const isForgotBothRejected = noteText.includes('[REJECTED FORGOT_BOTH]');
-    const isLateEntryRejected = noteText.includes('[REJECTED LATE_ENTRY]');
+    const isForgotCheckInRejected = !isForgotCheckInApproved && noteText.includes('[REJECTED FORGOT_CHECKIN]');
+    const isForgotBothRejected = !isForgotBothApproved && noteText.includes('[REJECTED FORGOT_BOTH]');
+    const isLateEntryRejected = !isLateEntryApproved && noteText.includes('[REJECTED LATE_ENTRY]');
 
     const isProvisionalLate = pendingItem?.id === 'LATE_ENTRY';
     const isProvisionalGpsAppeal = (pendingItem?.id === 'GPS_SPOOF_APPEAL' || noteText.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || noteText.includes('[GPS_SPOOF_APPEAL_PENDING]')) && !isGpsAppealApproved && !isGpsAppealRejected;
@@ -127,12 +127,12 @@ export const AttendanceRow: React.FC<AttendanceRowProps> = React.memo(({
     
     // 2. กลุ่มคำขอ ลงเวลานอกพื้นที่ (OUT_OF_RANGE_CHECKOUT)
     const isOutOfRangeApproved = noteText.includes('[APPROVED OUT_OF_RANGE_CHECKOUT]');
-    const isOutOfRangeRejected = noteText.includes('[REJECTED OUT_OF_RANGE_CHECKOUT]');
+    const isOutOfRangeRejected = !isOutOfRangeApproved && noteText.includes('[REJECTED OUT_OF_RANGE_CHECKOUT]');
     const isOutOfRangePending = pendingItem?.id === 'OUT_OF_RANGE_CHECKOUT' || (noteText.includes('[PROVISIONAL_CHECKOUT]') && noteText.includes('(Location Mismatch)')) || noteText.includes('[OUT_OF_RANGE_CHECKOUT_PENDING]');
     
     // 3. กลุ่มคำขอ ลืมเช็คเอาท์ (FORGOT_CHECKOUT)
     const isForgotCheckOutApproved = noteText.includes('[APPROVED FORGOT_CHECKOUT]');
-    const isForgotCheckOutRejected = noteText.includes('[REJECTED FORGOT_CHECKOUT]');
+    const isForgotCheckOutRejected = !isForgotCheckOutApproved && noteText.includes('[REJECTED FORGOT_CHECKOUT]');
     const isForgotCheckOutPending = pendingItem?.id === 'FORGOT_CHECKOUT' || (noteText.includes('[PROVISIONAL_CHECKOUT]') && !noteText.includes('[EARLY:') && !noteText.includes('(Location Mismatch)')) || noteText.includes('[FORGOT_CHECKOUT_PENDING]');
 
     return (

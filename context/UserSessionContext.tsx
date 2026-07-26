@@ -429,8 +429,31 @@ export const UserSessionProvider: React.FC<{ sessionUser: any, children: React.R
                 const currentCleanEmail = (currentUserProfile.email || '').trim().toLowerCase();
                 
                 if (cleanNewEmail && cleanNewEmail !== currentCleanEmail && !cleanNewEmail.endsWith('@juijui.local')) {
-                    const { error: authError } = await supabase.auth.updateUser({ email: cleanNewEmail });
-                    if (authError) throw authError;
+                    if (currentCleanEmail.endsWith('@juijui.local')) {
+                        // Use our backend admin-bypass route because changing from a mock local email domain
+                        // triggers GoTrue/SMTP "Secure email change" verification errors for the non-existent domain.
+                        const sessionData = await supabase.auth.getSession();
+                        const token = sessionData.data.session?.access_token;
+                        if (!token) throw new Error('ไม่พบข้อมูลเซสชันการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง');
+
+                        const res = await fetch('/api/auth/update-email', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ email: cleanNewEmail })
+                        });
+
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.error || 'ไม่สามารถอัปเดตอีเมลผ่านระบบหลังบ้านได้');
+                        }
+                    } else {
+                        // Regular flow for normal email addresses
+                        const { error: authError } = await supabase.auth.updateUser({ email: cleanNewEmail });
+                        if (authError) throw authError;
+                    }
                     payload.email = cleanNewEmail;
                 }
             }

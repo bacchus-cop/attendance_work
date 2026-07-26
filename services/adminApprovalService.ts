@@ -158,7 +158,8 @@ export const adminApprovalService = {
             customEndTime || otReq.endTime,
             finalHours,
             adminNote,
-            isTimeModified
+            isTimeModified,
+            isFixedOt
         );
 
         if (finalDbNote) {
@@ -172,7 +173,9 @@ export const adminApprovalService = {
         // Build a custom notification message with edit logs
         let notifMsg = `คำขอ OT วันที่: ${dateDisplay} (${finalHours} ชม.) ได้รับการอนุมัติแล้ว\nรายละเอียดเดิม: ${otReq.reason}`;
         
-        if (isTimeModified) {
+        if (isFixedOt) {
+            notifMsg += `\n\n⚙️ [อนุมัติ OT แบบเหมาจ่าย (Lump-sum)]`;
+        } else if (isTimeModified) {
             const origStartStr = otReq.startTime.substring(0, 5);
             const origEndStr = otReq.endTime.substring(0, 5);
             const newStartStr = (customStartTime || otReq.startTime).substring(0, 5);

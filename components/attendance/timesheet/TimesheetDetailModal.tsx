@@ -109,6 +109,7 @@ const Lightbox: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose
 interface TimesheetDetailModalProps {
     log?: AttendanceLog | null;
     leaveRequest?: any | null;
+    otRequest?: any | null;
     onClose: () => void;
 }
 
@@ -151,13 +152,15 @@ const modalVariants = {
     }),
 };
 
-const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveRequest, onClose }) => {
+const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveRequest, otRequest, onClose }) => {
     const [showLightbox, setShowLightbox] = useState(false);
     const [lightboxUrl, setLightboxUrl] = useState('');
     const isMobile = useIsMobile();
 
-    const displayDate = log ? new Date(log.date) : (leaveRequest ? new Date(leaveRequest.start_date) : new Date());
-    const note = log?.note || leaveRequest?.reason || '';
+    const displayDate = log 
+        ? new Date(log.date) 
+        : (leaveRequest ? new Date(leaveRequest.start_date) : (otRequest ? new Date(otRequest.date) : new Date()));
+    const note = log?.note || leaveRequest?.reason || otRequest?.reason || '';
     
     const logParsed = parseReason(log?.note || '', log?.checkInTime, log?.checkOutTime);
     const requestParsed = parseReason(leaveRequest?.reason || '');
@@ -321,7 +324,7 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
                         <div className="flex justify-between items-start shrink-0">
                             <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] mb-1">
-                                    {log ? 'Time Analysis Log' : 'Leave Request Detail'}
+                                    {log ? 'Time Analysis Log' : (leaveRequest ? 'Leave Request Detail' : 'Overtime Request Detail')}
                                 </p>
                                 <h3 className="text-2xl md:text-3xl font-bold text-slate-800">
                                     {format(displayDate, 'EEEE d MMMM', { locale: th })}
@@ -332,6 +335,14 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
                                       leaveRequest.status === 'PENDING' ? 'bg-amber-100 text-amber-700 border-amber-200' : 
                                       'bg-red-100 text-red-700 border-red-200'}`}>
                                         {leaveRequest.status === 'APPROVED' ? 'อนุมัติแล้ว' : leaveRequest.status === 'PENDING' ? 'รออนุมัติ' : 'ปฏิเสธ'} · {formatSpecialTypeName(leaveRequest.type)}
+                                    </div>
+                                )}
+                                {otRequest && (
+                                    <div className={`mt-2 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold tracking-widest border shrink-0
+                                    ${otRequest.status === 'APPROVED' ? 'bg-purple-100 text-purple-700 border-purple-200' : 
+                                      otRequest.status === 'PENDING' ? 'bg-amber-100 text-amber-700 border-amber-200' : 
+                                      'bg-red-100 text-red-700 border-red-200'}`}>
+                                        {otRequest.status === 'APPROVED' ? 'อนุมัติแล้ว' : otRequest.status === 'PENDING' ? 'รออนุมัติ' : 'ปฏิเสธ'} · {otRequest.is_fixed ? 'OT แบบเหมาจ่าย' : 'OT รายชั่วโมง'}
                                     </div>
                                 )}
                                 {log && !leaveRequest && (() => {
@@ -350,7 +361,7 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
                                 </div>
                         </div>
                         <div className="p-3 md:p-4 bg-indigo-50 text-indigo-600 rounded-[1.25rem] md:rounded-[1.5rem] shadow-inner shrink-0">
-                            {leaveRequest ? <Info className="w-6 h-6 md:w-8 md:h-8" /> : <Clock className="w-6 h-6 md:w-8 md:h-8" />}
+                            {leaveRequest || otRequest ? <Info className="w-6 h-6 md:w-8 md:h-8" /> : <Clock className="w-6 h-6 md:w-8 md:h-8" />}
                         </div>
                     </div>
 
@@ -371,7 +382,7 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
                                 <p className="text-[10px] text-slate-500 mt-2 font-bold flex items-center"><MapPin className="w-3 h-3 mr-1 text-slate-300"/> {log.checkOutLocationName || 'Unspecified'}</p>
                             </div>
                         </div>
-                    ) : leaveRequest && (
+                    ) : leaveRequest ? (
                         <div className="bg-slate-50 p-5 md:p-6 rounded-[2rem] border border-slate-100 shrink-0">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-2">
@@ -390,6 +401,53 @@ const TimesheetDetailModal: React.FC<TimesheetDetailModalProps> = ({ log, leaveR
                                 </div>
                                 <span className="text-xs font-bold text-slate-800 uppercase tracking-widest">{formatSpecialTypeName(leaveRequest.type)}</span>
                             </div>
+                        </div>
+                    ) : otRequest && (
+                        <div className="bg-purple-50/55 p-5 md:p-6 rounded-[2rem] border border-purple-100 shrink-0">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-purple-600" />
+                                    <span className="text-xs font-bold text-slate-600">เวลาปฏิบัติงานล่วงเวลา</span>
+                                </div>
+                                <span className="text-xs font-mono font-bold text-purple-700">
+                                    {otRequest.start_time ? otRequest.start_time.substring(0, 5) : '--:--'} น. - {otRequest.end_time ? otRequest.end_time.substring(0, 5) : '--:--'} น.
+                                </span>
+                            </div>
+                            <div className="h-[1px] bg-purple-100 w-full mb-4"></div>
+                            
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Info className="w-4 h-4 text-purple-600" />
+                                    <span className="text-xs font-bold text-slate-600">จำนวนชั่วโมงที่ขอ</span>
+                                </div>
+                                <span className="text-xs font-bold text-purple-800">
+                                    {otRequest.duration_hours ? Number(otRequest.duration_hours).toFixed(2) : '0.00'} ชม.
+                                </span>
+                            </div>
+                            <div className="h-[1px] bg-purple-100 w-full mb-4"></div>
+
+                            {otRequest.is_fixed && (
+                                <div className="bg-purple-100/60 border border-purple-200/50 p-3.5 rounded-2xl text-purple-900 mb-4 flex gap-2.5 items-start">
+                                    <span className="text-sm">⭐</span>
+                                    <div className="flex-1">
+                                        <h6 className="font-bold text-[11px] text-purple-950">รายการทำงานล่วงเวลาแบบเหมาจ่าย (OT Fixed)</h6>
+                                        <p className="text-[10px] leading-relaxed text-purple-800/90 font-medium">
+                                            ได้รับการยกเว้นการตรวจสอบสแกนออก ระบบจะคำนวณและประมวลผลให้โดยอัตโนมัติ
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {otRequest.computed_payout !== undefined && (
+                                <div className="flex items-center justify-between mt-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-slate-600">ประมาณการเงินได้ (Payout)</span>
+                                    </div>
+                                    <span className="text-sm font-extrabold text-purple-700">
+                                        ฿{Number(otRequest.computed_payout || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
 

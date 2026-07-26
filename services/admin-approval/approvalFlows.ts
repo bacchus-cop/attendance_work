@@ -39,15 +39,18 @@ export async function approveSpecialWorkRequest({
     let updatedReason = request.reason;
 
     if (request.type === 'OVERTIME') {
-        isTimeModified = (customStartTime !== undefined) || (customEndTime !== undefined) || (customOtHours !== undefined);
-        if (isTimeModified) {
+        const isFixedOt = (request as any).isFixed || (request as any).is_fixed || (request.reason && request.reason.includes('[OT:FIXED]'));
+        
+        if (isFixedOt) {
+            isTimeModified = true;
             const { origStart, origEnd, origHours, cleanReason } = parseOtDetailsFromReason(request.reason || '');
-
-            const newStart = customStartTime || origStart;
-            const newEnd = customEndTime || origEnd;
-            const newHours = customOtHours !== undefined ? customOtHours : origHours;
-
-            updatedReason = `[OT:${newStart}-${newEnd}] (${newHours}hr) ${cleanReason}`;
+            
+            const newStart = '00:00';
+            const newEnd = '00:00';
+            const newHours = 0;
+            
+            let fixedCleanReason = cleanReason.replace(/\[OT:FIXED\]/g, '').trim();
+            updatedReason = `[OT:FIXED] [OT:${newStart}-${newEnd}] (${newHours}hr) ${fixedCleanReason}`.trim();
             
             const { finalDbNote: computedDbNote } = buildOtAuditLog(
                 origStart,
@@ -57,9 +60,33 @@ export async function approveSpecialWorkRequest({
                 newEnd,
                 newHours,
                 adminNote,
+                true,
                 true
             );
             finalDbNote = computedDbNote;
+        } else {
+            isTimeModified = (customStartTime !== undefined) || (customEndTime !== undefined) || (customOtHours !== undefined);
+            if (isTimeModified) {
+                const { origStart, origEnd, origHours, cleanReason } = parseOtDetailsFromReason(request.reason || '');
+
+                const newStart = customStartTime || origStart;
+                const newEnd = customEndTime || origEnd;
+                const newHours = customOtHours !== undefined ? customOtHours : origHours;
+
+                updatedReason = `[OT:${newStart}-${newEnd}] (${newHours}hr) ${cleanReason}`;
+                
+                const { finalDbNote: computedDbNote } = buildOtAuditLog(
+                    origStart,
+                    origEnd,
+                    origHours,
+                    newStart,
+                    newEnd,
+                    newHours,
+                    adminNote,
+                    true
+                );
+                finalDbNote = computedDbNote;
+            }
         }
     }
 
@@ -185,8 +212,8 @@ export async function approveAttendanceCorrection({
     const registryItem = getRegistryItem(request.type);
     const behavior = registryItem?.approvalBehavior;
 
-    // Hard lock: check if timeStr exceeds max shift + buffer
-    if (behavior?.correctionTarget !== 'CHECKOUT_ONLY' && timeStr && timeStr !== '00:00') {
+    // Hard lock: check if timeStr exceeds max shift + buffer (Skip this lock for LATE_ENTRY as late entries can be at any time)
+    if (request.type !== 'LATE_ENTRY' && behavior?.correctionTarget !== 'CHECKOUT_ONLY' && timeStr && timeStr !== '00:00') {
         const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
         if (timeStr > maxAllowedTimeStr) {
             throw new Error(`ไม่อนุญาตให้อนุมัติ: เวลาที่ระบุ (${timeStr} น.) เกินกำหนดเวลาสายสุดของกะงาน (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`);

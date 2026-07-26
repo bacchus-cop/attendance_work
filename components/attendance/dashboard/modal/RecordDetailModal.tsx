@@ -204,8 +204,50 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                         {/* 2. LEAVE / PERMISSION TYPE */}
                         {type === 'LEAVE' && (() => {
                             const parsed = parseReason(data.reason || data.note || '');
-                            const leaveType = data.type || data.workType || 'LEAVE';
-                            const status = data.status || 'APPROVED';
+                            const leaveTypeMatch = data.note?.match(/\[(?:APPROVED|REJECTED) LEAVE: (.*?)\]/);
+                            let leaveType = leaveTypeMatch ? leaveTypeMatch[1] : (data.type || data.workType || 'LEAVE');
+                            
+                            if (data.note) {
+                                if (data.note.includes('SICK_LEAVE')) leaveType = 'SICK_LEAVE';
+                                else if (data.note.includes('VACATION_LEAVE')) leaveType = 'VACATION_LEAVE';
+                                else if (data.note.includes('PERSONAL_LEAVE')) leaveType = 'PERSONAL_LEAVE';
+                                else if (data.note.includes('EMERGENCY_LEAVE')) leaveType = 'EMERGENCY_LEAVE';
+                                else if (data.note.includes('UNPAID_LEAVE')) leaveType = 'UNPAID_LEAVE';
+                            }
+
+                            const isNoteRejected = data.note && (
+                                data.note.includes('[REJECTED SICK_LEAVE]') ||
+                                data.note.includes('[REJECTED VACATION_LEAVE]') ||
+                                data.note.includes('[REJECTED PERSONAL_LEAVE]') ||
+                                data.note.includes('[REJECTED EMERGENCY_LEAVE]') ||
+                                data.note.includes('[REJECTED UNPAID_LEAVE]') ||
+                                data.note.includes('[REJECTED LEAVE:') ||
+                                data.note.includes('ปฏิเสธ')
+                            );
+                            
+                            const isNoteApproved = data.note && (
+                                data.note.includes('[APPROVED SICK_LEAVE]') ||
+                                data.note.includes('[APPROVED VACATION_LEAVE]') ||
+                                data.note.includes('[APPROVED PERSONAL_LEAVE]') ||
+                                data.note.includes('[APPROVED EMERGENCY_LEAVE]') ||
+                                data.note.includes('[APPROVED UNPAID_LEAVE]') ||
+                                data.note.includes('[APPROVED LEAVE:')
+                            );
+
+                            const rawStatus = data.status || 'APPROVED';
+                            let status = rawStatus;
+                            if (rawStatus === 'LEAVE' || rawStatus === 'APPROVED') {
+                                if (isNoteRejected) {
+                                    status = 'REJECTED';
+                                } else {
+                                    status = 'APPROVED';
+                                }
+                            } else if (isNoteRejected) {
+                                status = 'REJECTED';
+                            } else if (isNoteApproved) {
+                                status = 'APPROVED';
+                            }
+
                             const attachment = data.attachment_url || data.attachmentUrl;
 
                             return (
@@ -257,7 +299,16 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                             const reqStartStr = data.startTime || '18:30';
                             const reqEndStr = data.endTime || '20:30';
                             const multiplierLabel = data.type === 'NORMAL_DAY' ? 'วันทำงานปกติ (1.5x)' : data.type === 'HOLIDAY' ? 'วันหยุดปกติ (2.0x)' : 'วันหยุดพิเศษ (3.0x)';
-                            const scanStatusText = data.scanStatus === 'OK' ? 'เช็คเอาท์ตามจริง ครบกำหนดตามช่วงเวลาที่ขอ' : data.scanStatus === 'EARLY' ? `กลับก่อนเวลา! สแกนจริงได้ ${data.actualScannedHours?.toFixed(2)} ชม.` : 'ไม่พบสแกนเช็คเอาท์';
+                            
+                            const isFixed = data.scanStatus === 'FIXED' || !!(data.reason && data.reason.includes('[OT:FIXED]')) || (data.startTime === '00:00' && data.endTime === '00:00');
+
+                            const scanStatusText = isFixed
+                                ? 'ได้รับการยกเว้นการตรวจสอบสแกนออกเนื่องจากเป็นรายการทำงานล่วงเวลาแบบเหมาจ่าย'
+                                : data.scanStatus === 'OK'
+                                    ? 'เช็คเอาท์ตามจริง ครบกำหนดตามช่วงเวลาที่ขอ'
+                                    : data.scanStatus === 'EARLY'
+                                        ? `กลับก่อนเวลา! สแกนจริงได้ ${data.actualScannedHours?.toFixed(2)} ชม.`
+                                        : 'ไม่พบสแกนเช็คเอาท์';
 
                             return (
                                 <>
@@ -269,7 +320,7 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                                             </span>
                                         </div>
                                         <p className="text-xs text-purple-600 font-medium pt-1">
-                                            ช่วงเวลาที่อนุมัติ: <strong>{reqStartStr} - {reqEndStr} น.</strong>
+                                            ช่วงเวลาที่อนุมัติ: <strong>{isFixed ? 'เหมาจ่าย' : `${reqStartStr} - ${reqEndStr} น.`}</strong>
                                         </p>
                                     </div>
 
@@ -277,11 +328,15 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase">ขออนุมัติ</p>
-                                            <p className="text-sm font-bold text-slate-700 mt-1">{data.reqHours?.toFixed(2) || '0.00'} ชม.</p>
+                                            <p className="text-sm font-bold text-slate-700 mt-1">
+                                                {isFixed ? '0.00 ชม.' : `${(data.reqHours || 0).toFixed(2)} ชม.`}
+                                            </p>
                                         </div>
                                         <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase">สแกนจริง</p>
-                                            <p className="text-sm font-bold text-slate-700 mt-1">{data.actualScannedHours?.toFixed(2) || '0.00'} ชม.</p>
+                                            <p className="text-sm font-bold text-slate-700 mt-1">
+                                                {isFixed ? 'เหมาจ่าย' : `${(data.actualScannedHours || 0).toFixed(2)} ชม.`}
+                                            </p>
                                         </div>
                                         <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl">
                                             <p className="text-[10px] font-bold text-indigo-500 uppercase">จ่ายจริง</p>

@@ -80,9 +80,11 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
         ).length;
     }, [logs]);
     const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+    const [otRequests, setOtRequests] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedLog, setSelectedLog] = useState<AttendanceLog | null>(null);
     const [selectedLeaveRequest, setSelectedLeaveRequest] = useState<any | null>(null);
+    const [selectedOtRequest, setSelectedOtRequest] = useState<any | null>(null);
 
     // Smart Calendar Data
     const { annualHolidays } = useAnnualHolidays();
@@ -151,6 +153,16 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
                 if (leaveError) throw leaveError;
                 setLeaveRequests(leaveData || []);
 
+                // 3. Fetch OT Requests
+                const { data: otData, error: otError } = await supabase
+                    .from('ot_requests')
+                    .select('*')
+                    .gte('date', startStr)
+                    .lte('date', endStr);
+                
+                if (otError) throw otError;
+                setOtRequests(otData || []);
+
             } catch (err) {
                 console.error("Fetch data failed", err);
             } finally {
@@ -178,9 +190,19 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
             }, () => fetchData())
             .subscribe();
 
+        const otChannel = supabase.channel('admin-timesheet-ot')
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'ot_requests',
+                filter: `date=gte.${startStr}&date=lte.${endStr}`
+            }, () => fetchData())
+            .subscribe();
+
         return () => {
             supabase.removeChannel(logsChannel);
             supabase.removeChannel(leavesChannel);
+            supabase.removeChannel(otChannel);
         };
     }, [dateRange]);
 
@@ -270,22 +292,26 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
                 filteredAndGroupedUsers={filteredAndGroupedUsers}
                 logs={logs}
                 leaveRequests={leaveRequests}
+                otRequests={otRequests}
                 getEffectiveDayStatus={getEffectiveDayStatus}
                 workConfig={workConfig}
-                onCellClick={(log, leaveReq) => {
+                onCellClick={(log, leaveReq, otReq) => {
                     setSelectedLog(log);
                     setSelectedLeaveRequest(leaveReq);
+                    setSelectedOtRequest(otReq);
                 }}
             />
 
             <AnimatePresence>
-                {(selectedLog || selectedLeaveRequest) && (
+                {(selectedLog || selectedLeaveRequest || selectedOtRequest) && (
                     <TimesheetDetailModal 
                         log={selectedLog}
                         leaveRequest={selectedLeaveRequest}
+                        otRequest={selectedOtRequest}
                         onClose={() => {
                             setSelectedLog(null);
                             setSelectedLeaveRequest(null);
+                            setSelectedOtRequest(null);
                         }}
                     />
                 )}

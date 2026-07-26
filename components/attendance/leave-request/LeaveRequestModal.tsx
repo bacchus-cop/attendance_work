@@ -68,37 +68,65 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
     const startTime = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'START_TIME')?.label || '10:00';
     const lateBuffer = parseInt(masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_BUFFER')?.label || '15');
 
+    const shiftsEnabledOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && (o.key === 'MULTIPLE_SHIFTS_ENABLED' || o.key === 'MULTIPLE_SHIFTS_ENABLE'));
+    const shiftsListOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
+    const isShiftsEnabled = shiftsEnabledOpt?.label === 'true';
+
+    const { earliestStartTimeStr, latestStartTimeStr } = useMemo(() => {
+        let earliest = startTime;
+        let latest = startTime;
+        if (isShiftsEnabled && shiftsListOpt?.label) {
+            const shiftsList = shiftsListOpt.label.split(',').map(s => s.trim()).filter(Boolean);
+            if (shiftsList.length > 0) {
+                const sortedShifts = [...shiftsList].sort((a, b) => {
+                    const [ah, am] = a.split(':').map(Number);
+                    const [bh, bm] = b.split(':').map(Number);
+                    return (ah * 60 + am) - (bh * 60 + bm);
+                });
+                earliest = sortedShifts[0];
+                latest = sortedShifts[sortedShifts.length - 1];
+            }
+        }
+        return { earliestStartTimeStr: earliest, latestStartTimeStr: latest };
+    }, [startTime, isShiftsEnabled, shiftsListOpt]);
+
     const isForgotCheckInAllowed = useMemo(() => {
         if (initialDate) return true;
         if (!!todayLog) return false;
-        if (!startTime) return false;
+        if (!earliestStartTimeStr || !latestStartTimeStr) return false;
 
         const now = new Date();
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const workStartTime = setMinutes(setHours(now, startHour), startMinute);
-        const showAfterTime = addMinutes(workStartTime, lateBuffer);
-        const hideAfterTime = addHours(workStartTime, 12);
+        const [earliestHour, earliestMinute] = earliestStartTimeStr.split(':').map(Number);
+        const earliestWorkStartTime = setMinutes(setHours(now, earliestHour), earliestMinute);
+        const showAfterTime = addMinutes(earliestWorkStartTime, lateBuffer);
+
+        const [latestHour, latestMinute] = latestStartTimeStr.split(':').map(Number);
+        const latestWorkStartTime = setMinutes(setHours(now, latestHour), latestMinute);
+        const hideAfterTime = addHours(latestWorkStartTime, 12);
 
         try {
             return isWithinInterval(now, { start: showAfterTime, end: hideAfterTime });
         } catch (e) {
             return false;
         }
-    }, [startTime, lateBuffer, todayLog, initialDate]);
+    }, [earliestStartTimeStr, latestStartTimeStr, lateBuffer, todayLog, initialDate]);
 
     const forgotCheckInWindow = useMemo(() => {
-        if (!startTime) return { showStr: '', hideStr: '' };
+        if (!earliestStartTimeStr || !latestStartTimeStr) return { showStr: '', hideStr: '' };
         const now = new Date();
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const workStartTime = setMinutes(setHours(now, startHour), startMinute);
-        const showAfterTime = addMinutes(workStartTime, lateBuffer);
-        const hideAfterTime = addHours(workStartTime, 12);
+        const [earliestHour, earliestMinute] = earliestStartTimeStr.split(':').map(Number);
+        const earliestWorkStartTime = setMinutes(setHours(now, earliestHour), earliestMinute);
+        const showAfterTime = addMinutes(earliestWorkStartTime, lateBuffer);
+
+        const [latestHour, latestMinute] = latestStartTimeStr.split(':').map(Number);
+        const latestWorkStartTime = setMinutes(setHours(now, latestHour), latestMinute);
+        const hideAfterTime = addHours(latestWorkStartTime, 12);
         
         return {
             showStr: format(showAfterTime, 'HH:mm'),
             hideStr: format(hideAfterTime, 'HH:mm')
         };
-    }, [startTime, lateBuffer]);
+    }, [earliestStartTimeStr, latestStartTimeStr, lateBuffer]);
 
     const isForgotCheckOutAllowed = useMemo(() => {
         return outdatedLogs && outdatedLogs.length > 0;
@@ -111,7 +139,7 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 if (fixedType === 'FORGOT_CHECKIN' && !isForgotCheckInAllowed) {
                     onClose();
                     showAlert(
-                        `การแจ้งลืมลงเวลาเข้างาน จะสามารถส่งคำขอได้หลังจากเวลาเริ่มงานไปแล้ว ${startTime} + ${lateBuffer} นาที จนถึงไม่เกิน 12 ชั่วโมงหลังเริ่มงานเท่านั้น (ช่วงเวลาที่กำหนดคือ ${forgotCheckInWindow.showStr} น. - ${forgotCheckInWindow.hideStr} น.) ในเวลอนอกเหนือจากนี้กรุณาทำการลงเวลาเข้างานตามปกติครับ`,
+                        `การแจ้งลืมลงเวลาเข้างาน จะสามารถส่งคำขอได้หลังจากเวลาเริ่มงานไปแล้ว ${earliestStartTimeStr} + ${lateBuffer} นาที จนถึงไม่เกิน 12 ชั่วโมงหลังเริ่มงานเท่านั้น (ช่วงเวลาที่กำหนดคือ ${forgotCheckInWindow.showStr} น. - ${forgotCheckInWindow.hideStr} น.) ในเวลอนอกเหนือจากนี้กรุณาทำการลงเวลาเข้างานตามปกติครับ`,
                         "เงื่อนไขการส่งคำร้อง"
                     );
                     return;

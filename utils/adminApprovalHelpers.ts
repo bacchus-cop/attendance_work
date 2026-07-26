@@ -77,10 +77,13 @@ export function buildOtAuditLog(
     newEnd: string,
     finalHours: number,
     adminNote?: string,
-    isTimeModified?: boolean
+    isTimeModified?: boolean,
+    isFixed?: boolean
 ): { auditLogText: string; finalDbNote: string } {
     let auditLogText = '';
-    if (isTimeModified) {
+    if (isFixed) {
+        auditLogText = `⚙️ [อนุมัติ OT แบบเหมาจ่าย (Lump-sum)]`;
+    } else if (isTimeModified) {
         const origStartStr = origStart.substring(0, 5);
         const origEndStr = origEnd.substring(0, 5);
         const newStartStr = newStart.substring(0, 5);

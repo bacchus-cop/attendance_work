@@ -40,7 +40,11 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, us
       const currentCleanEmail = (user.email || '').trim().toLowerCase();
       
       if (cleanNewEmail && cleanNewEmail !== currentCleanEmail && !cleanNewEmail.endsWith('@juijui.local')) {
-        showToast('ระบบส่งลิงก์ยืนยันไปที่อีเมลใหม่เรียบร้อยแล้ว! อย่าลืมเข้าไปกดยืนยันในกล่องจดหมายของคุณเพื่อเปิดใช้งานการกู้คืนรหัสผ่านนะครับ 📧✨', 'success');
+        if (currentCleanEmail.endsWith('@juijui.local')) {
+          showToast('เชื่อมต่ออีเมลของคุณกับระบบเสร็จสมบูรณ์! ตอนนี้คุณสามารถใช้อีเมลนี้ในการล็อกอินและกู้คืนรหัสผ่านได้ทันทีครับ 📧✨', 'success');
+        } else {
+          showToast('ระบบส่งลิงก์ยืนยันไปที่อีเมลใหม่เรียบร้อยแล้ว! อย่าลืมเข้าไปกดยืนยันในกล่องจดหมายของคุณเพื่อเปิดใช้งานการกู้คืนรหัสผ่านนะครับ 📧✨', 'success');
+        }
       } else {
         showToast('บันทึกการแก้ไขโปรไฟล์เรียบร้อยแล้ว ✨', 'success');
       }

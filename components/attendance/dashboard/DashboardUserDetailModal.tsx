@@ -87,16 +87,26 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     }, [stat.logs, startTime, lateBuffer, multipleShifts]);
 
     const leaveLogs = useMemo(() => {
-        return stat.logs.filter(l => l.status === 'LEAVE' || l.workType === 'LEAVE')
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return stat.logs.filter(l => {
+            const hasLeaveNote = l.note && (
+                l.note.includes('LEAVE') || 
+                l.note.includes('SICK') || 
+                l.note.includes('VACATION') || 
+                l.note.includes('PERSONAL') || 
+                l.note.includes('EMERGENCY') || 
+                l.note.includes('UNPAID')
+            );
+            return l.status === 'LEAVE' || l.workType === 'LEAVE' || hasLeaveNote;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [stat.logs]);
 
     const absentDates = useMemo(() => {
         // หาค่าวันเริ่มงานจริงจาก startDate หรือวันสร้างบัญชี (createdAt)
         const userStartDate = user.startDate ? new Date(user.startDate) : (user.createdAt ? new Date(user.createdAt) : null);
+        const today = new Date();
 
         return workingDaysInMonth.filter(day => {
-            if (day > new Date()) return false;
+            if (day > today) return false;
 
             // ตรวจสอบวันเริ่มงาน: หากวันทำงานในเดือนนั้นๆ เกิดขึ้นก่อนวันที่พนักงานเริ่มงานจริง ให้ข้ามไป
             if (userStartDate) {
@@ -107,10 +117,47 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
                 }
             }
 
+            // 🌟 เพิ่มเงื่อนไขเหมือนหน้าหลัก: ถ้าเป็นวันนี้แต่ยังไม่ถึงเวลาเข้างาน ให้ข้ามไปก่อน (ยังไม่แสดง Absent)
+            const isToday = day.getDate() === today.getDate() &&
+                            day.getMonth() === today.getMonth() &&
+                            day.getFullYear() === today.getFullYear();
+
+            if (isToday) {
+                // 1. กำหนดเวลาเริ่มงานหลักเป็นตัวแปรตั้งต้นก่อน (เช่น 10:00)
+                let targetStartTime = startTime; 
+
+                // 2. ถ้าเปิดใช้งาน MULTIPLE_SHIFTS ให้ดึงกะที่สายที่สุดมาใช้งานแทน
+                if (multipleShifts.enabled && multipleShifts.shiftsList) {
+                    const shifts = multipleShifts.shiftsList
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(Boolean);
+                    
+                    if (shifts.length > 0) {
+                        shifts.sort(); // เรียงลำดับเวลาจากเช้าสุดไปสายสุด (เช่น "08:00" -> "08:30" -> "09:00")
+                        targetStartTime = shifts[shifts.length - 1]; // เลือกเวลาที่สายที่สุด (เช่น "09:00")
+                    }
+                }
+
+                // 3. นำเวลาที่เลือกได้ (targetStartTime) มาแปลงเป็นชั่วโมงและนาทีเพื่อเปรียบเทียบตามเดิม
+                let [startHour, startMin] = [10, 0];
+                if (targetStartTime && targetStartTime.includes(':')) {
+                    const parts = targetStartTime.split(':');
+                    startHour = parseInt(parts[0], 10) || 10;
+                    startMin = parseInt(parts[1], 10) || 0;
+                }
+                const currentHour = today.getHours();
+                const currentMin = today.getMinutes();
+
+                if (currentHour < startHour || (currentHour === startHour && currentMin < startMin)) {
+                    return false;
+                }
+            }
+
             const dateStr = format(day, 'yyyy-MM-dd');
             return !stat.logs.some(l => l.date === dateStr);
         }).sort((a, b) => b.getTime() - a.getTime());
-    }, [workingDaysInMonth, stat.logs, user.startDate, user.createdAt]);
+    }, [workingDaysInMonth, stat.logs, user.startDate, user.createdAt, startTime, multipleShifts]);
 
     // Calculate OT stats using ot_requests only
     const approvedOtRequests = useMemo(() => {
@@ -137,10 +184,10 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     const stats = useMemo(() => ({
         present: stat.present,
         late: stat.late,
-        absent: stat.absent,
+        absent: absentDates.length,
         leaves: stat.leaves,
         otHours: totalOtHours
-    }), [stat, totalOtHours]);
+    }), [stat, totalOtHours, absentDates]);
 
     return createPortal(
         <motion.div 
@@ -314,16 +361,27 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
                                     </h4>
                                 </div>
                                 <div className="grid grid-cols-1 gap-3">
-                                    {leaveLogs.map(log => (
-                                        <AttendanceRecordCard 
-                                            key={log.id}
-                                            date={new Date(log.date)}
-                                            variant="leave"
-                                            badgeText={formatSpecialTypeName(log.workType)}
-                                            note={log.note}
-                                            onClick={() => setSelectedRecord({ type: 'LEAVE', data: log })}
-                                        />
-                                    ))}
+                                    {leaveLogs.map(log => {
+                                        const leaveTypeMatch = log.note?.match(/\[(?:APPROVED|REJECTED) LEAVE: (.*?)\]/);
+                                        let extractedType = leaveTypeMatch ? leaveTypeMatch[1] : log.workType;
+                                        if (log.note) {
+                                            if (log.note.includes('SICK_LEAVE')) extractedType = 'SICK_LEAVE';
+                                            else if (log.note.includes('VACATION_LEAVE')) extractedType = 'VACATION_LEAVE';
+                                            else if (log.note.includes('PERSONAL_LEAVE')) extractedType = 'PERSONAL_LEAVE';
+                                            else if (log.note.includes('EMERGENCY_LEAVE')) extractedType = 'EMERGENCY_LEAVE';
+                                            else if (log.note.includes('UNPAID_LEAVE')) extractedType = 'UNPAID_LEAVE';
+                                        }
+                                        return (
+                                            <AttendanceRecordCard 
+                                                key={log.id}
+                                                date={new Date(log.date)}
+                                                variant="leave"
+                                                badgeText={formatSpecialTypeName(extractedType)}
+                                                note={log.note}
+                                                onClick={() => setSelectedRecord({ type: 'LEAVE', data: log })}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </motion.section>
                         )}

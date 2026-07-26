@@ -17,6 +17,7 @@ interface ActionFooterProps {
     defaultCheckInTime?: string;
     isProvisional?: boolean;
     initialRejectMode?: boolean;
+    isFixed?: boolean;
 }
 
 export const ActionFooter: React.FC<ActionFooterProps> = ({
@@ -26,7 +27,8 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
     requestType,
     defaultCheckInTime = '10:00',
     isProvisional = false,
-    initialRejectMode = false
+    initialRejectMode = false,
+    isFixed = false
 }) => {
     const { masterOptions } = useMasterDataContext();
     const { showAlert } = useGlobalDialog();
@@ -141,7 +143,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                     <XCircle className="w-4 h-4" /> ปฏิเสธคำขอ
                 </button>
 
-                {isTimeSpecific && (
+                {isTimeSpecific && !isFixed && (
                     <button
                         type="button"
                         onClick={() => setIsAdjustPickerOpen(true)}
@@ -159,7 +161,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         const targetTime = isShiftApplicable 
                             ? selectedShift 
                             : (isTimeSpecific ? defaultCheckInTime : undefined);
-                        if (targetTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType || '')) {
+                        if (targetTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH'].includes(requestType || '')) {
                             const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
                             if (targetTime > maxAllowedTimeStr) {
                                 showAlert(
@@ -202,7 +204,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onSelect={(time) => {
                             setIsAdjustPickerOpen(false);
                             setSelectedShift(time);
-                            if (['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType || '')) {
+                            if (['FORGOT_CHECKIN', 'FORGOT_BOTH'].includes(requestType || '')) {
                                 const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
                                 if (time > maxAllowedTimeStr) {
                                     showAlert(

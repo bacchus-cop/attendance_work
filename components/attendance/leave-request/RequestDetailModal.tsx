@@ -83,6 +83,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     ));
 
     const parsed = parseReason(request?.reason || '');
+    const isFixedOt = !!(request && ((request as any).isFixed || (request as any).is_fixed || parsed.isFixedOt));
 
     useEffect(() => {
         setAdminNote('');
@@ -103,6 +104,10 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                     sTime = '';
                     eTime = '';
                 }
+            }
+            if (isFixedOt) {
+                sTime = '00:00';
+                eTime = '00:00';
             }
             setEditStartTime(sTime);
             setEditEndTime(eTime);
@@ -177,7 +182,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 ? (customStartTimeArg || editStartTime || undefined)
                 : (customStartTimeArg || editStartTime || undefined);
 
-            if (finalStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY', 'TIME_CORRECTION'].includes(request.type)) {
+            if (finalStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'TIME_CORRECTION'].includes(request.type)) {
                 const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
                 if (finalStartTime > maxAllowedTimeStr) {
                     showAlert(
@@ -225,7 +230,9 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         .filter(Boolean);
 
     const registryItem = request ? getRegistryItem(request.type) : undefined;
-    const defaultCheckInTime = parsed.time || parsed.targetShift || registryItem?.rules?.defaultTargetTime || shiftsList[0] || '08:30';
+    const defaultCheckInTime = isFixedOt 
+        ? '00:00' 
+        : (parsed.time || parsed.targetShift || registryItem?.rules?.defaultTargetTime || shiftsList[0] || '08:30');
 
     return createPortal(
         <motion.div 
@@ -306,7 +313,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                                         originalStartTime={originalStartTime}
                                         originalEndTime={originalEndTime}
                                         originalOtHours={originalOtHours}
-                                        isFixed={request.isFixed || request.is_fixed || parsed.isFixedOt}
+                                        isFixed={isFixedOt}
                                     />
                                 )}
 
@@ -339,6 +346,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                                     defaultCheckInTime={defaultCheckInTime}
                                     isProvisional={isProvisional}
                                     initialRejectMode={initialRejectMode}
+                                    isFixed={isFixedOt}
                                 />
                             )}
                         </div>
@@ -450,7 +458,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                                                 originalStartTime={originalStartTime}
                                                 originalEndTime={originalEndTime}
                                                 originalOtHours={originalOtHours}
-                                                isFixed={request.isFixed || request.is_fixed || parsed.isFixedOt}
+                                                isFixed={isFixedOt}
                                             />
                                         )}
 
@@ -483,6 +491,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                                             defaultCheckInTime={defaultCheckInTime}
                                             isProvisional={isProvisional}
                                             initialRejectMode={initialRejectMode}
+                                            isFixed={isFixedOt}
                                         />
                                     )}
                                 </div>

@@ -48,6 +48,7 @@ const TimeCorrectionInputs: React.FC<Props> = ({
 
     const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
         if (selectedType === 'LATE_ENTRY') return true;
+        if (selectedType === 'FORGOT_CHECKIN' || selectedType === 'FORGOT_BOTH') return false;
         if (!time) return false;
         return !shiftsList.includes(time);
     });
@@ -57,12 +58,19 @@ const TimeCorrectionInputs: React.FC<Props> = ({
             setIsCustomMode(true);
             return;
         }
+        if (selectedType === 'FORGOT_CHECKIN' || selectedType === 'FORGOT_BOTH') {
+            setIsCustomMode(false);
+            if (time && !shiftsList.includes(time)) {
+                setTime(shiftsList[0] || '08:00');
+            }
+            return;
+        }
         if (time && shiftsList.includes(time) && !isCustomMode) {
             // Keep shift matched
         } else if (time && !shiftsList.includes(time)) {
             setIsCustomMode(true);
         }
-    }, [time, shiftsList, selectedType]);
+    }, [time, shiftsList, selectedType, setTime]);
 
     const handleSelectShift = (shiftTime: string) => {
         setIsCustomMode(false);
@@ -119,6 +127,8 @@ const TimeCorrectionInputs: React.FC<Props> = ({
                         onSelectShift={handleSelectShift}
                         onSelectCustom={handleSelectCustom}
                         isDisabled={selectedType === 'LATE_ENTRY'}
+                        disableCustomMode={selectedType === 'FORGOT_CHECKIN' || selectedType === 'FORGOT_BOTH'}
+                        disableCustomModeReason="ระบบไม่อนุญาตให้กรอกเวลาเองสำหรับคำร้องขอแจ้งลืมลงเวลาเข้างาน หากต้องการกำหนดเวลานอกกะปกติ กรุณาทำเรื่องแจ้งขอเข้าสาย (Late Request) แทนค่ะ"
                     />
 
                     {isCustomMode && (

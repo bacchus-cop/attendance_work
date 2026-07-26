@@ -34,7 +34,9 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
     const isProvisionalForgotCheckin = parsed.isProvisionalForgotCheckin;
     const isProvisionalCheckout = parsed.isProvisionalCheckout;
     const isProvisionalLate = parsed.cleanReason.includes('[APPEAL_PENDING]') || note?.includes('[APPEAL_PENDING]') || note?.includes('[PROVISIONAL_LATE_ENTRY]');
-    const isProvisional = isProvisionalWfh || isProvisionalOnsite || isProvisionalForgotCheckin || isProvisionalCheckout || isProvisionalLate;
+    const isProvisional = variant !== 'leave' && (isProvisionalWfh || isProvisionalOnsite || isProvisionalForgotCheckin || isProvisionalCheckout || isProvisionalLate);
+
+    const isRejectedLeave = variant === 'leave' && (note?.includes('[REJECTED') || note?.includes('ปฏิเสธ'));
 
     // Style configuration based on variant
     const config = {
@@ -87,8 +89,18 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
             badgeBg: 'bg-sky-100',
             badgeText: 'text-sky-600',
             iconColor: 'text-sky-400'
+        },
+        'leave-rejected': {
+            bg: 'bg-rose-50',
+            border: 'border-rose-100',
+            textPrimary: 'text-rose-600',
+            textSecondary: 'text-rose-400',
+            hoverShadow: 'hover:shadow-rose-100/50',
+            badgeBg: 'bg-rose-100',
+            badgeText: 'text-rose-600',
+            iconColor: 'text-rose-400'
         }
-    }[variant];
+    }[isRejectedLeave ? 'leave-rejected' : variant];
 
     const hasCleanReason = !!parsed.cleanReason?.trim();
     const showNoteBox = isProvisional || hasCleanReason;
@@ -116,15 +128,22 @@ export const AttendanceRecordCard: React.FC<AttendanceRecordCardProps> = ({
                             <span className={`px-2 py-0.5 ${config.badgeBg} ${config.badgeText} rounded-lg text-[9px] font-bold uppercase shrink-0`}>
                                 {badgeText || variant.toUpperCase()}
                             </span>
-                            <AttendanceConditionBadges parsed={parsed} size="sm" />
+                            <AttendanceConditionBadges parsed={parsed} size="sm" hideProvisional={variant === 'leave'} />
                             {variant === 'absent' ? (
                                 <p className="text-[10px] font-bold text-rose-400 ml-1">
                                     {timeLabel || 'No record found'}
                                 </p>
                             ) : variant === 'leave' ? (
-                                <p className="text-[10px] font-bold text-slate-400 italic truncate max-w-[150px] ml-1">
-                                    "{parsed.cleanReason || 'No reason'}"
-                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5 ml-1">
+                                    {isRejectedLeave && (
+                                        <span className="text-[9px] font-extrabold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded-md uppercase shrink-0">
+                                            ไม่อนุมัติ
+                                        </span>
+                                    )}
+                                    <p className="text-[10px] font-bold text-slate-400 italic truncate max-w-[150px]">
+                                        "{parsed.cleanReason || 'No reason'}"
+                                    </p>
+                                </div>
                             ) : (
                                 <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 ml-1">
                                     <Clock className="w-3 h-3" /> {timeLabel || '--:--'}

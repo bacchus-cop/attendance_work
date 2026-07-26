@@ -114,11 +114,13 @@ const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
                 return;
             }
 
-            const shiftsEnabledOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_ENABLED');
+            const shiftsEnabledOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && (o.key === 'MULTIPLE_SHIFTS_ENABLED' || o.key === 'MULTIPLE_SHIFTS_ENABLE'));
             const shiftsListOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
             const isShiftsEnabled = shiftsEnabledOpt?.label === 'true';
 
-            let effectiveStartTimeStr = startTime;
+            let earliestStartTimeStr = startTime;
+            let latestStartTimeStr = startTime;
+
             if (isShiftsEnabled && shiftsListOpt?.label) {
                 const shiftsList = shiftsListOpt.label.split(',').map(s => s.trim()).filter(Boolean);
                 if (shiftsList.length > 0) {
@@ -127,26 +129,24 @@ const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
                         const [bh, bm] = b.split(':').map(Number);
                         return (ah * 60 + am) - (bh * 60 + bm);
                     });
-                    effectiveStartTimeStr = sortedShifts[sortedShifts.length - 1];
+                    earliestStartTimeStr = sortedShifts[0];
+                    latestStartTimeStr = sortedShifts[sortedShifts.length - 1];
                 }
             }
 
-            if (!effectiveStartTimeStr) return;
+            if (!earliestStartTimeStr || !latestStartTimeStr) return;
 
             const now = new Date();
-            const [startHour, startMinute] = effectiveStartTimeStr.split(':').map(Number);
-            
-            // Base Start Time (Today - latest shift if multi-shifts enabled)
-            const workStartTime = setMinutes(setHours(now, startHour), startMinute);
-            
-            // Start Window: Latest Shift Start Time + Buffer (Before this, user should use normal Check-in)
-            const showAfterTime = addMinutes(workStartTime, lateBuffer);
-            
-            // End Window: Latest Shift Start Time + 12 Hours (Prevent overnight/late night confusion)
-            const hideAfterTime = addHours(workStartTime, 12);
+            const [earliestHour, earliestMinute] = earliestStartTimeStr.split(':').map(Number);
+            const earliestWorkStartTime = setMinutes(setHours(now, earliestHour), earliestMinute);
+            const showAfterTime = addMinutes(earliestWorkStartTime, lateBuffer);
+
+            const [latestHour, latestMinute] = latestStartTimeStr.split(':').map(Number);
+            const latestWorkStartTime = setMinutes(setHours(now, latestHour), latestMinute);
+            const hideAfterTime = addHours(latestWorkStartTime, 12);
 
             try {
-                // Check if NOW is within the window
+                // Check if NOW is within the window (Starts after first shift buffer, ends 12 hours after last shift)
                 const shouldShow = isWithinInterval(now, { start: showAfterTime, end: hideAfterTime });
                 setIsVisible(shouldShow);
             } catch (e) {

@@ -359,7 +359,7 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
             ? customStartTime
             : (parsed.time || undefined);
 
-        if (targetTime) {
+        if (targetTime && req.type !== 'LATE_ENTRY') {
             const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
             if (targetTime > maxAllowedTimeStr) {
                 await showAlert(

@@ -39,7 +39,7 @@ export const useAttendanceStats = (userId: string) => {
         const startTimeStr = configData?.find(c => c.key === 'START_TIME')?.label || '10:00';
         const buffer = parseInt(configData?.find(c => c.key === 'LATE_BUFFER')?.label || '0');
         const multipleShifts = {
-            enabled: configData?.find(c => c.key === 'MULTIPLE_SHIFTS_ENABLED')?.label === 'true',
+            enabled: configData?.find(c => c.key === 'MULTIPLE_SHIFTS_ENABLED' || c.key === 'MULTIPLE_SHIFTS_ENABLE')?.label === 'true',
             shiftsList: configData?.find(c => c.key === 'MULTIPLE_SHIFTS_LIST')?.label || ''
         };
 

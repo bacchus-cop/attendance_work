@@ -8,6 +8,8 @@ interface ShiftCardSelectorProps {
     onSelectShift: (shiftTime: string) => void;
     onSelectCustom: () => void;
     isDisabled?: boolean;
+    disableCustomMode?: boolean;
+    disableCustomModeReason?: string;
 }
 
 const getShiftBadgeLabel = (_timeStr: string, index: number): string => {
@@ -20,7 +22,9 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
     isCustomMode,
     onSelectShift,
     onSelectCustom,
-    isDisabled = false
+    isDisabled = false,
+    disableCustomMode = false,
+    disableCustomModeReason
 }) => {
     return (
         <div className="space-y-3">
@@ -114,14 +118,14 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
                 {/* Custom Time Option Card */}
                 <button
                     type="button"
-                    disabled={isDisabled}
+                    disabled={isDisabled || disableCustomMode}
                     onClick={onSelectCustom}
                     className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col justify-between group ${
                         isCustomMode
-                            ? isDisabled
+                            ? (isDisabled || disableCustomMode)
                                 ? 'bg-gradient-to-br from-amber-50/40 to-orange-50/40 border-amber-200/50 shadow-sm ring-0'
                                 : 'bg-gradient-to-br from-amber-50/90 to-orange-50/80 border-amber-500 shadow-lg shadow-amber-100/60 ring-2 ring-amber-400/20'
-                            : isDisabled
+                            : (isDisabled || disableCustomMode)
                                 ? 'bg-gray-50 border-dashed border-gray-150 cursor-not-allowed opacity-60'
                                 : 'bg-white border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/20'
                     }`}
@@ -136,11 +140,11 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
                         >
                             ระบุเอง
                         </span>
-                        <div className="flex items-center gap-1.5 text-amber-700">
+                        <div className={`flex items-center gap-1.5 ${isDisabled || disableCustomMode ? 'text-slate-400' : 'text-amber-700'}`}>
                             <Clock className={`w-5 h-5 ${isCustomMode ? 'text-amber-600' : 'text-slate-400'}`} />
                             <span
                                 className={`text-sm font-semibold ${
-                                    isCustomMode ? 'text-amber-900' : 'text-slate-700'
+                                    isCustomMode ? 'text-amber-900' : 'text-slate-500'
                                 }`}
                             >
                                 กรอกเวลาเอง
@@ -150,11 +154,20 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
 
                     <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                         <span className={isCustomMode ? 'text-amber-700 font-medium' : 'text-slate-400'}>
-                            {isCustomMode ? 'กำลังใช้งาน' : 'เลือกเวลานอกกะ'}
+                            {isCustomMode ? 'กำลังใช้งาน' : (isDisabled || disableCustomMode) ? 'ไม่สามารถใช้ได้' : 'เลือกเวลานอกกะ'}
                         </span>
                     </div>
                 </button>
             </div>
+
+            {disableCustomMode && disableCustomModeReason && (
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200/50 rounded-2xl flex items-start gap-2.5 shadow-sm text-xs text-amber-800 font-medium animate-in fade-in duration-300">
+                    <span className="text-amber-500 font-bold leading-none mt-0.5">●</span>
+                    <span className="leading-relaxed font-sarabun text-left">
+                        {disableCustomModeReason}
+                    </span>
+                </div>
+            )}
         </div>
     );
 };
