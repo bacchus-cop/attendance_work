@@ -428,8 +428,11 @@ export const UserSessionProvider: React.FC<{ sessionUser: any, children: React.R
                 const cleanNewEmail = updates.email.trim().toLowerCase();
                 const currentCleanEmail = (currentUserProfile.email || '').trim().toLowerCase();
                 
-                if (cleanNewEmail && cleanNewEmail !== currentCleanEmail && !cleanNewEmail.endsWith('@juijui.local')) {
-                    if (currentCleanEmail.endsWith('@juijui.local')) {
+                const isMockNewEmail = cleanNewEmail.endsWith('@juijui.local') || cleanNewEmail.endsWith('@juijui-app.com');
+                const isMockCurrentEmail = currentCleanEmail.endsWith('@juijui.local') || currentCleanEmail.endsWith('@juijui-app.com') || !currentCleanEmail;
+
+                if (cleanNewEmail && cleanNewEmail !== currentCleanEmail && !isMockNewEmail) {
+                    if (isMockCurrentEmail) {
                         // Use our backend admin-bypass route because changing from a mock local email domain
                         // triggers GoTrue/SMTP "Secure email change" verification errors for the non-existent domain.
                         const sessionData = await supabase.auth.getSession();

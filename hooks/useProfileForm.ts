@@ -17,7 +17,13 @@ export const useProfileForm = ({ user, onSave, onClose }: UseProfileFormProps) =
   const [name, setName] = useState(user.name);
   const [position, setPosition] = useState(user.position);
   const [phone, setPhone] = useState(user.phoneNumber || '');
-  const [email, setEmail] = useState(user.email && !user.email.endsWith('@juijui.local') ? user.email : '');
+  const [email, setEmail] = useState(
+    user.email && 
+    !user.email.endsWith('@juijui.local') && 
+    !user.email.endsWith('@juijui-app.com') 
+      ? user.email 
+      : ''
+  );
   const [bio, setBio] = useState(user.bio || ''); 
   const [feeling, setFeeling] = useState(user.feeling || ''); 
   

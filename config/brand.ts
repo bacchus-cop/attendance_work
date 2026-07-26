@@ -49,4 +49,9 @@ export const BRAND_CONFIG = {
   // 1 = แสดงผลปกติ (Show Grade Column)
   // 2 = ปิดการแสดงผลทั้งหมดของคอลัมน์ Grade (Hide Grade Column)
   showGradeMode: 2,
+
+  // โหมดการแสดงผล HP Badge บนหน้าอัปโหลดโปรไฟล์ (Profile Avatar Uploader)
+  // 1 = แสดง HP Badge (ค่าเริ่มต้น)
+  // 2 = ไม่แสดง HP Badge (ซ่อน)
+  showProfileHpBadgeMode: 2,
 };

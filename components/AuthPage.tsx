@@ -253,12 +253,25 @@ const AuthPage: React.FC<AuthPageProps> = ({
 
       const loginEmail = profile.email 
         ? profile.email 
-        : `${cleanUsername}@juijui.local`;
+        : `${cleanUsername}@juijui-app.com`;
 
-      const { error } = await supabase.auth.signInWithPassword({
+      let { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password,
       });
+
+      // If it fails and the email was our default mock domain, let's fallback to the old mock domain for backward compatibility
+      if (error && !profile.email) {
+        const fallbackEmail = `${cleanUsername}@juijui.local`;
+        const { error: fallbackError } = await supabase.auth.signInWithPassword({
+          email: fallbackEmail,
+          password,
+        });
+        if (!fallbackError) {
+          error = null;
+        }
+      }
+
       if (error) throw error;
       onLoginSuccess();
     } catch (err: any) {
@@ -350,7 +363,7 @@ const AuthPage: React.FC<AuthPageProps> = ({
       }
 
       const cleanEmail = email.trim() ? email.toLowerCase().trim() : '';
-      const finalAuthEmail = cleanEmail ? cleanEmail : `${cleanUsername}@juijui.local`;
+      const finalAuthEmail = cleanEmail ? cleanEmail : `${cleanUsername}@juijui-app.com`;
 
       const fullNameCombined = `${firstName.trim()} ${lastName.trim()}`.trim();
 
