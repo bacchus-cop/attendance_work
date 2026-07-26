@@ -39,4 +39,14 @@ export const BRAND_CONFIG = {
   // 1 = ทำงานเต็มรูปแบบ (คำนวณคะแนน หัก HP บล็อกหน้าจอเมื่อ HP <= 0 หรือเข้าสู่สถานะ DEATH)
   // 2 = ปิดระบบการลงโทษและการล็อกหน้าจอทั้งหมด (ข้าม Logic HP <= 0 และข้ามการจำกัดหน้าจอทุกรูปแบบ)
   gamificationMode: 2,
+
+  // โหมดนับสาย (Late Calculation Mode)
+  // 1 = โหมดปกติ (มี Buffer)
+  // 2 = โหมดเข้มงวด (ไม่มี Buffer + อ้างอิงตาราง Multiple Shifts ทันที)
+  lateCalculationMode: 2,
+
+  // โหมดแสดงเกรด (Grade Display Mode)
+  // 1 = แสดงผลปกติ (Show Grade Column)
+  // 2 = ปิดการแสดงผลทั้งหมดของคอลัมน์ Grade (Hide Grade Column)
+  showGradeMode: 2,
 };

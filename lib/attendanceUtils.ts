@@ -3,6 +3,7 @@ import { differenceInMinutes, addMinutes, isBefore, setHours, setMinutes, parse 
 import { isWorkingDay } from '../utils/judgeUtils';
 import { AnnualHoliday, User, ShiftSlotResult } from '../types';
 import { calculateShiftAndActualTime } from '../utils/shiftCalculator';
+import { BRAND_CONFIG } from '../config/brand';
 
 /**
  * Calculates the number of working days between two dates.
@@ -262,11 +263,12 @@ export const checkIsLate = (
 ): boolean => {
     if (!checkInTime) return false;
     try {
+        const actualBuffer = BRAND_CONFIG.lateCalculationMode === 2 ? 0 : bufferMinutes;
         const effectiveStartTime = getEffectiveStartTime(checkInTime, startTimeStr, note, multipleShifts);
         const { totalMinutes } = getICTTime(checkInTime);
         const [sh, sm] = effectiveStartTime.split(':').map(Number);
         const shiftMinutes = sh * 60 + sm;
-        return totalMinutes > (shiftMinutes + bufferMinutes);
+        return totalMinutes > (shiftMinutes + actualBuffer);
     } catch (e) {
         console.error("Error checking is late", e);
         return false; // Default to not late if config error
@@ -287,12 +289,13 @@ export const getLateMinutes = (
 ): number => {
     if (!checkInTime) return 0;
     try {
+        const actualBuffer = BRAND_CONFIG.lateCalculationMode === 2 ? 0 : bufferMinutes;
         const effectiveStartTime = getEffectiveStartTime(checkInTime, startTimeStr, note, multipleShifts);
         const { totalMinutes } = getICTTime(checkInTime);
         const [sh, sm] = effectiveStartTime.split(':').map(Number);
         const shiftMinutes = sh * 60 + sm;
         
-        if (totalMinutes > (shiftMinutes + bufferMinutes)) {
+        if (totalMinutes > (shiftMinutes + actualBuffer)) {
             // Calculated from the official start time
             return totalMinutes - shiftMinutes;
         }
@@ -375,6 +378,7 @@ export const getMatchedShiftSlot = (
     shiftsList: string[],
     bufferMinutes: number = 15
 ): ShiftSlotResult => {
+    const actualBuffer = BRAND_CONFIG.lateCalculationMode === 2 ? 0 : bufferMinutes;
     if (!shiftsList || shiftsList.length === 0) {
         return {
             targetStartTime: '08:00',
@@ -417,7 +421,7 @@ export const getMatchedShiftSlot = (
 
     const diff = currentTotalMinutes - lastShiftTotalMinutes;
     const isLate = diff > 0;
-    const isExceededLastShift = diff > bufferMinutes;
+    const isExceededLastShift = diff > actualBuffer;
     const isBlocked = isExceededLastShift;
 
     return {
@@ -516,7 +520,7 @@ export function getMaxShiftWithBuffer(masterOptions: any[] = []): { maxShiftTime
     const startTimeOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'START_TIME');
     const lateBufferOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_BUFFER');
 
-    const bufferMinutes = parseInt(lateBufferOpt?.label || '15', 10);
+    const bufferMinutes = BRAND_CONFIG.lateCalculationMode === 2 ? 0 : parseInt(lateBufferOpt?.label || '15', 10);
     const shiftsEnabled = shiftsEnabledOpt?.label === 'true';
 
     let maxShiftTimeStr = startTimeOpt?.label || '09:00';
