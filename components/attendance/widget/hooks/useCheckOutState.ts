@@ -435,7 +435,11 @@ export const useCheckOutState = ({
         // Perform the provisional check-out directly first
         const provTag = '[PROVISIONAL_CHECKOUT]';
         const timeTag = checkOutStatus === 'EARLY_LEAVE' ? `[EARLY:${time}]` : `[TIME:${time}]`;
-        const reasonWithProv = `${timeTag} ${finalReason} ${provTag}`;
+        
+        // เพิ่มแท็ก (Location Mismatch) เข้าไปในกรณีที่เป็นการเช็คเอาท์นอกพื้นที่
+        const locationMismatchTag = checkOutStatus !== 'EARLY_LEAVE' ? ' (Location Mismatch)' : '';
+        const reasonWithProv = `${timeTag} ${finalReason}${locationMismatchTag} ${provTag}`;
+        
         await onConfirm(
             { lat: currentLat, lng: currentLng }, 
             matchedLocation?.name || 'Unknown Location', 

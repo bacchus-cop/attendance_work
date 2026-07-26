@@ -161,7 +161,7 @@ export function useCheckInState({
     const shiftResult = useMemo(() => {
         if (!isShiftsEnabled) return null;
         const now = new Date();
-        return getMatchedShiftSlot(now, shiftsList, lateBuffer);
+        return getMatchedShiftSlot(now, shiftsList, lateBuffer, true);
     }, [isShiftsEnabled, shiftsList, lateBuffer, isOpen]);
 
     const isExceededLastShift = useMemo(() => {
@@ -169,15 +169,20 @@ export function useCheckInState({
         if (isShiftsEnabled && shiftResult) {
             return !!shiftResult.isExceededLastShift;
         }
-        return false;
-    }, [isShiftsEnabled, shiftResult, approvedLateTime]);
+        if (!startTime) return false;
+        const effectiveStartTime = approvedLateTime || startTime;
+        const [h, m] = effectiveStartTime.split(':').map(Number);
+        const limitWithBuffer = new Date();
+        limitWithBuffer.setHours(h, m + lateBuffer, 0, 0);
+        return new Date() > limitWithBuffer;
+    }, [isShiftsEnabled, shiftResult, approvedLateTime, startTime, lateBuffer]);
 
     const isUserLate = useMemo(() => {
         if (hasAcceptedLateness) return false;
         if (hasLateRequest && !approvedLateTime) return false;
 
         if (isShiftsEnabled && shiftResult) {
-            return shiftResult.isLate || shiftResult.isBlocked;
+            return !!shiftResult.isRawLate;
         }
 
         if (!startTime) return false;
@@ -199,7 +204,7 @@ export function useCheckInState({
         const effectiveStartTime = approvedLateTime || startTime;
         const [h, m] = effectiveStartTime.split(':').map(Number);
         const limit = new Date();
-        limit.setHours(h, m + lateBuffer, 0, 0);
+        limit.setHours(h, m, 0, 0);
         return now > limit;
     }, [isShiftsEnabled, shiftResult, startTime, lateBuffer, hasLateRequest, approvedLateTime, pendingLateTime, hasAcceptedLateness]);
 
@@ -333,7 +338,7 @@ export function useCheckInState({
                 } else if (effectiveCheckStartTime) {
                     const [h, m] = effectiveCheckStartTime.split(':').map(Number);
                     const limit = new Date();
-                    limit.setHours(h, m + lateBuffer, 0, 0);
+                    limit.setHours(h, m, 0, 0);
                     isLateCheck = now > limit;
                 }
 

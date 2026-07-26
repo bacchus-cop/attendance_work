@@ -99,7 +99,7 @@ const MobileUserHeader: React.FC<MobileUserHeaderProps> = ({
                                 HP
                             </span>
                             <span className={currentHp < 0 ? 'text-red-400 font-black' : ''}>
-                                {hpMode === 2 ? `-${lostHp}` : `${currentHp}/${maxHp}`}
+                                {hpMode === 2 ? `${currentHp}` : `${currentHp}/${maxHp}`}
                             </span>
                         </div>
                         {hpMode !== 2 && (

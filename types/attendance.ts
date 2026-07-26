@@ -4,6 +4,7 @@ import { User } from './core';
 export interface ShiftSlotResult {
     targetStartTime: string;
     isLate: boolean;
+    isRawLate?: boolean;
     isBlocked: boolean;
     isExceededLastShift?: boolean;
     lateMinutes: number;

@@ -376,9 +376,10 @@ export const getAttendanceSummary = (
 export const getMatchedShiftSlot = (
     now: Date,
     shiftsList: string[],
-    bufferMinutes: number = 15
+    bufferMinutes: number = 15,
+    ignoreBrandMode: boolean = false
 ): ShiftSlotResult => {
-    const actualBuffer = BRAND_CONFIG.lateCalculationMode === 2 ? 0 : bufferMinutes;
+    const actualBuffer = (ignoreBrandMode || BRAND_CONFIG.lateCalculationMode !== 2) ? bufferMinutes : 0;
     if (!shiftsList || shiftsList.length === 0) {
         return {
             targetStartTime: '08:00',
@@ -420,16 +421,18 @@ export const getMatchedShiftSlot = (
     const lastShiftTotalMinutes = lastH * 60 + lastM;
 
     const diff = currentTotalMinutes - lastShiftTotalMinutes;
-    const isLate = diff > 0;
     const isExceededLastShift = diff > actualBuffer;
+    const isLate = isExceededLastShift;
+    const isRawLate = diff > 0;
     const isBlocked = isExceededLastShift;
 
     return {
         targetStartTime: lastShift,
         isLate,
+        isRawLate,
         isBlocked,
         isExceededLastShift,
-        lateMinutes: isLate ? diff : 0
+        lateMinutes: diff > 0 ? diff : 0
     };
 };
 

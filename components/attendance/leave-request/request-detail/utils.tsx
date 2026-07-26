@@ -257,6 +257,7 @@ export const parseReason = (
 
     text = text.replace(/\(\s*\)/g, '');
     text = text.replace(/\[\s*\]/g, '');
+    text = removeOrphanedParentheses(text);
     text = text.replace(/\s+/g, ' ').trim();
 
     // Check if the message is a system-generated generic provisional text
@@ -357,3 +358,35 @@ export const getStatusBadge = (status: string) => {
         </span>
     );
 };
+
+// Helper to remove orphaned/unmatched parentheses from cleaned reason strings
+function removeOrphanedParentheses(str: string): string {
+    let result = '';
+    const stack: number[] = [];
+    const chars = Array.from(str);
+    const toRemove = new Set<number>();
+
+    for (let i = 0; i < chars.length; i++) {
+        if (chars[i] === '(') {
+            stack.push(i);
+        } else if (chars[i] === ')') {
+            if (stack.length > 0) {
+                stack.pop();
+            } else {
+                toRemove.add(i);
+            }
+        }
+    }
+
+    while (stack.length > 0) {
+        toRemove.add(stack.pop()!);
+    }
+
+    for (let i = 0; i < chars.length; i++) {
+        if (!toRemove.has(i)) {
+            result += chars[i];
+        }
+    }
+
+    return result.replace(/\(\s*\)/g, '').replace(/\s+/g, ' ').trim();
+}
