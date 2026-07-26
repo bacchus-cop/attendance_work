@@ -338,7 +338,7 @@ export const adminApprovalService = {
             rejection_reason: reason
         });
 
-        if (req && req.type === 'FORGOT_CHECKOUT') {
+        if (req && (req.type === 'FORGOT_CHECKOUT' || req.type === 'EARLY_LEAVE')) {
             await rejectForgotCheckOutRequest({
                 req,
                 reason,

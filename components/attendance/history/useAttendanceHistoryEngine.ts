@@ -352,7 +352,7 @@ export const useAttendanceHistoryEngine = (userId: string, highlightedDate?: str
         const isProvisionalWfh = noteText.includes('[PROVISIONAL_WFH]');
         const isProvisionalOnsite = noteText.includes('[PROVISIONAL_ONSITE]');
         const isProvisionalLate = noteText.includes('[APPEAL_PENDING]') || noteText.includes('[PROVISIONAL_LATE_ENTRY]');
-        const isEarlyLeave = noteText.includes('[REJECTED EARLY_LEAVE_APPEAL]') || noteText.includes('[ACCEPT_PENALTY]');
+        const isEarlyLeave = noteText.includes('[REJECTED EARLY_LEAVE_APPEAL]') || noteText.includes('[ACCEPT_PENALTY]') || noteText.includes('[APPROVED EARLY_LEAVE_APPEAL]') || noteText.includes('[APPROVED EARLY_LEAVE]');
 
         if (isEarlyLeave) {
             return { label: 'กลับก่อนเวลา', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: Clock };

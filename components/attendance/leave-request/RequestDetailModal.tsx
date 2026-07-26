@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { LeaveRequest } from '../../../types/attendance';
 import { getWorkingDaysDifference, getMaxShiftWithBuffer } from '../../../lib/attendanceUtils';
 import { useMasterData } from '../../../hooks/useMasterData';
+import { ApproveRequestParams } from '../../../hooks/useAdminApprovals';
 import { useGlobalDialog } from '../../../context/GlobalDialogContext';
 import { attendanceService } from '../../../services/attendanceService';
 
@@ -17,19 +18,13 @@ import { AdminOtAdjustment } from './request-detail/AdminOtAdjustment';
 import { ActionFooter } from './request-detail/ActionFooter';
 import { parseReason } from './request-detail/utils';
 import { HpPenaltySection } from './request-detail/HpPenaltySection';
+import { getRegistryItem } from '../../../constants/attendanceRegistry';
 
 interface RequestDetailModalProps {
     request: LeaveRequest | null;
     isOpen: boolean;
     onClose: () => void;
-    onApprove: (
-        req: LeaveRequest, 
-        customOtHours?: number, 
-        customStartTime?: string, 
-        customEndTime?: string,
-        adminNote?: string,
-        hpPenalty?: number
-    ) => Promise<void>;
+    onApprove: (params: ApproveRequestParams) => Promise<void>;
     onReject: (id: string, reason: string, customCheckInTime?: string, hpPenalty?: number, rejectionMode?: 'ABSENT' | 'ACTION_REQUIRED' | 'KEEP_WORKING') => Promise<void>;
     initialRejectMode?: boolean;
 }
@@ -194,14 +189,14 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 }
             }
 
-            await onApprove(
+            await onApprove({
                 request,
-                hasCustom ? parseFloat(editOtHours) : undefined,
-                finalStartTime,
-                editEndTime || undefined,
-                adminNote || undefined,
-                hpPenalty || undefined
-            );
+                customOtHours: hasCustom ? parseFloat(editOtHours) : undefined,
+                customStartTime: finalStartTime,
+                customEndTime: editEndTime || undefined,
+                adminNote: adminNote || undefined,
+                hpPenalty: hpPenalty || undefined
+            });
             onClose();
         } catch (e: any) {
             console.error(e);
@@ -223,11 +218,14 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         }
     };
 
-    let defaultCheckInTime = '10:00';
-    if (request && request.type === 'FORGOT_CHECKIN') {
-        const timeMatch = request.reason ? request.reason.match(/\[TIME:(\d{2}:\d{2})\]/) : null;
-        defaultCheckInTime = timeMatch ? timeMatch[1] : '10:00';
-    }
+    const shiftsListOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
+    const shiftsList = (shiftsListOpt?.label || '08:00, 08:30, 09:00')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const registryItem = request ? getRegistryItem(request.type) : undefined;
+    const defaultCheckInTime = parsed.time || parsed.targetShift || registryItem?.rules?.defaultTargetTime || shiftsList[0] || '08:30';
 
     return createPortal(
         <motion.div 

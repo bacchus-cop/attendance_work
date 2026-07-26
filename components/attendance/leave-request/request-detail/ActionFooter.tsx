@@ -41,7 +41,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
 
     const registryItem = requestType ? getRegistryItem(requestType) : undefined;
     const isTimeSpecific = registryItem?.rules?.isTimeSpecific ?? false;
-    const isShiftApplicable = isTimeSpecific && (shiftsEnabled || (requestType && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType)));
+    const isShiftApplicable = isTimeSpecific && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType || '');
 
     const [isRejectMode, setIsRejectMode] = useState(initialRejectMode);
     const [rejectionReason, setRejectionReason] = useState('');
@@ -156,8 +156,10 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 <button
                     type="button"
                     onClick={() => {
-                        const targetTime = isShiftApplicable ? selectedShift : undefined;
-                        if (targetTime) {
+                        const targetTime = isShiftApplicable 
+                            ? selectedShift 
+                            : (isTimeSpecific ? defaultCheckInTime : undefined);
+                        if (targetTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType || '')) {
                             const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
                             if (targetTime > maxAllowedTimeStr) {
                                 showAlert(
@@ -185,9 +187,11 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                         ? `อนุมัติเวลาออกงาน (${defaultCheckInTime})`
                                         : requestType === 'OUT_OF_RANGE_CHECKOUT'
                                             ? `อนุมัติลงเวลานอกพื้นที่ (${defaultCheckInTime})`
-                                            : requestType === 'FORGOT_BOTH'
-                                                ? 'อนุมัติเวลาเข้า-ออกงาน'
-                                                : `อนุมัติตามกะที่เลือก (${isShiftApplicable ? selectedShift : defaultCheckInTime})`}
+                                            : requestType === 'EARLY_LEAVE'
+                                                ? `อนุมัติเวลากลับก่อนเวลา (${defaultCheckInTime})`
+                                                : requestType === 'FORGOT_BOTH'
+                                                    ? `อนุมัติเวลาเข้า-ออกงาน (${defaultCheckInTime.includes('-') ? defaultCheckInTime.replace('-', ' - ') : defaultCheckInTime})`
+                                                    : `อนุมัติตามเวลาที่ขอ (${isShiftApplicable ? selectedShift : defaultCheckInTime})`}
                     </span>
                 </button>
 
@@ -198,13 +202,15 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onSelect={(time) => {
                             setIsAdjustPickerOpen(false);
                             setSelectedShift(time);
-                            const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                            if (time > maxAllowedTimeStr) {
-                                showAlert(
-                                    `ไม่สามารถอนุมัติได้: เวลาที่เลือก (${time} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                                    'เวลาเกินกำหนดสายสุด'
-                                );
-                                return;
+                            if (['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(requestType || '')) {
+                                const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
+                                if (time > maxAllowedTimeStr) {
+                                    showAlert(
+                                        `ไม่สามารถอนุมัติได้: เวลาที่เลือก (${time} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
+                                        'เวลาเกินกำหนดสายสุด'
+                                    );
+                                    return;
+                                }
                             }
                             onApprove(time);
                         }}

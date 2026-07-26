@@ -7,6 +7,7 @@ interface ShiftCardSelectorProps {
     isCustomMode: boolean;
     onSelectShift: (shiftTime: string) => void;
     onSelectCustom: () => void;
+    isDisabled?: boolean;
 }
 
 const getShiftBadgeLabel = (_timeStr: string, index: number): string => {
@@ -18,7 +19,8 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
     selectedShift,
     isCustomMode,
     onSelectShift,
-    onSelectCustom
+    onSelectCustom,
+    isDisabled = false
 }) => {
     return (
         <div className="space-y-3">
@@ -32,6 +34,15 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
                 </span>
             </div>
 
+            {isDisabled && (
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200/50 rounded-2xl flex items-start gap-2.5 shadow-sm text-xs text-amber-800 font-medium animate-in fade-in duration-300">
+                    <span className="text-amber-500 font-bold leading-none mt-0.5">●</span>
+                    <span className="leading-relaxed font-sarabun text-left">
+                        ระบบทำการล็อกตัวเลือกกะงานไว้สำหรับคำขอเข้าสาย (Late Request) คุณสามารถระบุเวลาคาดว่าจะเข้าทำงานสายด้านล่างได้ทันทีค่ะ
+                    </span>
+                </div>
+            )}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {shifts.map((shift, idx) => {
                     const isSelected = !isCustomMode && selectedShift === shift;
@@ -41,11 +52,14 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
                         <button
                             key={shift}
                             type="button"
+                            disabled={isDisabled}
                             onClick={() => onSelectShift(shift)}
                             className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col justify-between overflow-hidden group ${
                                 isSelected
                                     ? 'bg-gradient-to-br from-indigo-50/90 to-teal-50/80 border-indigo-500 shadow-lg shadow-indigo-100/60 ring-2 ring-indigo-400/20'
-                                    : 'bg-white border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/30 hover:shadow-md'
+                                    : isDisabled
+                                        ? 'bg-gray-50 border-gray-150 cursor-not-allowed opacity-60'
+                                        : 'bg-white border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/30 hover:shadow-md'
                             }`}
                         >
                             {isSelected && (
@@ -100,11 +114,16 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
                 {/* Custom Time Option Card */}
                 <button
                     type="button"
+                    disabled={isDisabled}
                     onClick={onSelectCustom}
                     className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col justify-between group ${
                         isCustomMode
-                            ? 'bg-gradient-to-br from-amber-50/90 to-orange-50/80 border-amber-500 shadow-lg shadow-amber-100/60 ring-2 ring-amber-400/20'
-                            : 'bg-white border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/20'
+                            ? isDisabled
+                                ? 'bg-gradient-to-br from-amber-50/40 to-orange-50/40 border-amber-200/50 shadow-sm ring-0'
+                                : 'bg-gradient-to-br from-amber-50/90 to-orange-50/80 border-amber-500 shadow-lg shadow-amber-100/60 ring-2 ring-amber-400/20'
+                            : isDisabled
+                                ? 'bg-gray-50 border-dashed border-gray-150 cursor-not-allowed opacity-60'
+                                : 'bg-white border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50/20'
                     }`}
                 >
                     <div>

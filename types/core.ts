@@ -65,6 +65,7 @@ export interface User {
     firstName?: string;
     lastName?: string;
     nickname?: string;
+    username?: string;
 
     // Policy terms tracking
     acceptedTermsVersion?: number;

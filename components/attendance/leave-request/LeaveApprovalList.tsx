@@ -7,6 +7,7 @@ import { ATTENDANCE_REGISTRY } from '../../../constants/attendanceRegistry';
 import { useGlobalDialog } from '../../../context/GlobalDialogContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMasterData } from '../../../hooks/useMasterData';
+import { ApproveRequestParams } from '../../../hooks/useAdminApprovals';
 import { getMaxShiftWithBuffer } from '../../../lib/attendanceUtils';
 import { parseReason } from './request-detail/utils';
 import { RequestDetailModal } from './RequestDetailModal';
@@ -24,14 +25,7 @@ interface LeaveApprovalListProps {
     isLoading: boolean;
     isLoadingHistorical?: boolean;
     fetchRequestsForRange?: (start?: Date, end?: Date) => Promise<LeaveRequest[]>;
-    onApprove: (
-        req: LeaveRequest, 
-        customOtHours?: number, 
-        customStartTime?: string, 
-        customEndTime?: string,
-        adminNote?: string,
-        hpPenalty?: number
-    ) => Promise<void>;
+    onApprove: (params: ApproveRequestParams) => Promise<void>;
     onReject: (id: string, reason: string, customCheckInTime?: string, hpPenalty?: number, rejectionMode?: 'ABSENT' | 'ACTION_REQUIRED' | 'KEEP_WORKING') => Promise<void>;
 }
 
@@ -379,7 +373,7 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
         try {
             if (customStartTime === 'DIRECT_APPROVE') {
                 if (await showConfirm(`คุณต้องการอนุมัติคำขอลงเวลานี้ตามที่ขอมา${targetTime ? ` (${targetTime} น.)` : ''} ใช่หรือไม่?`)) {
-                    await onApprove(req, undefined, targetTime);
+                    await onApprove({ request: req, customStartTime: targetTime });
                 }
             } else if (customStartTime === 'ADJUST_TIME') {
                 setSelectedRequest(req);
@@ -387,7 +381,7 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
                 setSelectedRequest(req);
             } else {
                 if (await showConfirm(`คุณต้องการอนุมัติคำขอนี้${targetTime ? ` (เวลากะ ${targetTime} น.)` : ''} ใช่หรือไม่?`)) {
-                    await onApprove(req, undefined, targetTime);
+                    await onApprove({ request: req, customStartTime: targetTime });
                 }
             }
         } catch (e: any) {

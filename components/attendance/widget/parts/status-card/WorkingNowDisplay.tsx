@@ -14,6 +14,7 @@ interface WorkingNowDisplayProps {
     onOpenLeave?: (type?: any) => void;
     todayActiveLeave?: LeaveRequest | null;
     isApprovedLeaveToday?: boolean;
+    todayRequests?: any[];
 }
 
 export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
@@ -25,7 +26,8 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
     onNavigateToHistory,
     onOpenLeave,
     todayActiveLeave,
-    isApprovedLeaveToday
+    isApprovedLeaveToday,
+    todayRequests
 }) => {
     const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
 
@@ -38,11 +40,23 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
         }
     };
 
-    const isAppealPending = todayLog?.status === 'APPEAL' || !!todayLog?.note?.includes('[APPEAL_PENDING]');
-    const isProvisionalLate = !!todayLog?.note?.includes('[PROVISIONAL_LATE_ENTRY]');
+    // Calculate approved/pending status of various requests to prevent conflicting banners
+    const isWfhApproved = (isApprovedLeaveToday && todayActiveLeave?.type === 'WFH') || 
+        !!(todayRequests && todayRequests.some(r => r.type === 'WFH' && r.status === 'APPROVED'));
+
+    const isOnsiteApproved = (isApprovedLeaveToday && todayActiveLeave?.type === 'ONSITE') || 
+        !!(todayRequests && todayRequests.some(r => (r.type === 'ONSITE' || r.type === 'OFFSITE') && r.status === 'APPROVED'));
+
+    const isLateApproved = !!(todayRequests && todayRequests.some(r => r.type === 'LATE_ENTRY' && r.status === 'APPROVED'));
+
+    const isAppealPending = (todayLog?.status === 'APPEAL' || !!todayLog?.note?.includes('[APPEAL_PENDING]')) && !isLateApproved;
+    const isProvisionalLate = !!todayLog?.note?.includes('[PROVISIONAL_LATE_ENTRY]') && !isLateApproved;
     const isProvisionalForgotCheckin = !!todayLog?.note?.includes('[PROVISIONAL_FORGOT_CHECKIN]');
-    const isProvisionalWfh = !!todayLog?.note?.includes('[PROVISIONAL_WFH]');
-    const isProvisionalOnsite = !!todayLog?.note?.includes('[PROVISIONAL_ONSITE]');
+    
+    // Suppress provisional warnings if they actually have approved requests
+    const isProvisionalWfh = !!todayLog?.note?.includes('[PROVISIONAL_WFH]') && !isWfhApproved;
+    const isProvisionalOnsite = !!todayLog?.note?.includes('[PROVISIONAL_ONSITE]') && !isOnsiteApproved;
+    
     const isProvisionalGps = !!todayLog?.note?.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') || !!todayLog?.note?.includes('[GPS_SPOOF_APPEAL_PENDING]');
     const isPendingVerify = todayLog?.status === 'PENDING_VERIFY';
 

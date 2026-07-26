@@ -47,17 +47,22 @@ const TimeCorrectionInputs: React.FC<Props> = ({
     const isCheckInCorrection = !selectedType || ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'LATE_ENTRY'].includes(selectedType);
 
     const [isCustomMode, setIsCustomMode] = useState<boolean>(() => {
+        if (selectedType === 'LATE_ENTRY') return true;
         if (!time) return false;
         return !shiftsList.includes(time);
     });
 
     useEffect(() => {
+        if (selectedType === 'LATE_ENTRY') {
+            setIsCustomMode(true);
+            return;
+        }
         if (time && shiftsList.includes(time) && !isCustomMode) {
             // Keep shift matched
         } else if (time && !shiftsList.includes(time)) {
             setIsCustomMode(true);
         }
-    }, [time, shiftsList]);
+    }, [time, shiftsList, selectedType]);
 
     const handleSelectShift = (shiftTime: string) => {
         setIsCustomMode(false);
@@ -113,6 +118,7 @@ const TimeCorrectionInputs: React.FC<Props> = ({
                         isCustomMode={isCustomMode}
                         onSelectShift={handleSelectShift}
                         onSelectCustom={handleSelectCustom}
+                        isDisabled={selectedType === 'LATE_ENTRY'}
                     />
 
                     {isCustomMode && (
@@ -120,7 +126,7 @@ const TimeCorrectionInputs: React.FC<Props> = ({
                             <CustomTimeInput
                                 time={time}
                                 setTime={setTime}
-                                label="เวลาที่ต้องการแจ้งลืมลง"
+                                label={selectedType === 'LATE_ENTRY' ? "เวลาที่คาดว่าจะเข้าทำงานสาย" : "เวลาที่ต้องการแจ้งลืมลง"}
                                 accentColor="amber"
                             />
                             {time && (() => {

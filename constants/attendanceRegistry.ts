@@ -286,7 +286,7 @@ export const ATTENDANCE_REGISTRY: Record<LeaveType, AttendanceRegistryItem> = {
         tags: {
             provisional: '[PROVISIONAL_CHECKOUT]',
             pending: '[EARLY_LEAVE_PENDING]',
-            approved: '[ACCEPT_PENALTY]',
+            approved: '[APPROVED EARLY_LEAVE_APPEAL]',
             rejected: '[REJECTED EARLY_LEAVE_APPEAL]'
         },
         placeholder: 'กรุณาระบุรายละเอียดเหตุจำเป็นที่ทำให้ต้องขอกลับก่อนเวลา เพื่อความรวดเร็วในการพิจารณาอนุมัติย้อนหลัง...',
@@ -324,7 +324,20 @@ export const getTypesByCategory = (category: 'LEAVE' | 'CORRECTION' | 'SPECIAL')
 export const findPendingRegistryItemByNote = (note?: string): AttendanceRegistryItem | undefined => {
     if (!note) return undefined;
     return Object.values(ATTENDANCE_REGISTRY).find(item => {
-        if (item.tags.provisional && note.includes(item.tags.provisional)) return true;
+        if (item.tags.provisional && note.includes(item.tags.provisional)) {
+            if (item.tags.provisional === '[PROVISIONAL_CHECKOUT]') {
+                if (item.id === 'EARLY_LEAVE') {
+                    return note.includes('[EARLY:');
+                }
+                if (item.id === 'OUT_OF_RANGE_CHECKOUT') {
+                    return note.includes('(Location Mismatch)');
+                }
+                if (item.id === 'FORGOT_CHECKOUT') {
+                    return !note.includes('[EARLY:') && !note.includes('(Location Mismatch)');
+                }
+            }
+            return true;
+        }
         if (note.includes(item.tags.pending)) return true;
         return false;
     });

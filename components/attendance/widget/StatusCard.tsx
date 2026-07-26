@@ -39,11 +39,12 @@ interface StatusCardProps {
     onNavigateToHistory?: () => void;
     startTime: string;
     lateBuffer: number;
+    todayRequests?: any[];
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({ 
     user, todayLog, outdatedLogs, stats, todayActiveLeave, onCheckOut, onCheckOutRequest, onOpenCheckIn, onOpenLeave, isDriveReady, isAuthenticated, onConnectDrive, onRetryDrive, onRefresh, availableLocations, onNavigateToHistory,
-    startTime, lateBuffer
+    startTime, lateBuffer, todayRequests
 }) => {
     const { showAlert } = useGlobalDialog(); 
     const { showToast } = useToast();
@@ -318,6 +319,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                     onOpenLeave={onOpenLeave}
                     todayActiveLeave={todayActiveLeave}
                     isApprovedLeaveToday={isApprovedLeaveToday}
+                    todayRequests={todayRequests}
                 />
             ) : (
                 <NotCheckedInDisplay

@@ -112,6 +112,7 @@ const AttendanceWidget: React.FC<AttendanceWidgetProps> = ({ user, onNavigateToH
             <AttendanceControl 
                 user={user}
                 todayActiveLeave={todayActiveLeave}
+                requests={requests}
                 onLeaveSubmit={handleLeaveSubmit}
                 onOpenLeave={(type?: LeaveType, workType?: 'WFH' | 'ONSITE') => {
                     setLeaveModalType(type);

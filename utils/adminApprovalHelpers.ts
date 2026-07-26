@@ -1,7 +1,7 @@
 import { eachDayOfInterval, isValid } from 'date-fns';
 import { isWorkingDay } from './judgeUtils';
 import { LeaveRequest } from '../types/attendance';
-import { mergeAttendanceNotes, resolveAttendanceLogStatus } from '../lib/attendanceUtils';
+import { mergeAttendanceNotes, resolveAttendanceLogStatus, getMaxShiftWithBuffer } from '../lib/attendanceUtils';
 import { supabase } from '../lib/supabase';
 import { getRegistryItem } from '../constants/attendanceRegistry';
 
@@ -364,3 +364,21 @@ export async function processHpRefundIfEligible({
         });
     }
 }
+
+/**
+ * Validates check-in time against the max shift + buffer configuration.
+ */
+export function validateCheckInTime(
+    time: string, 
+    masterOptions: any[]
+): { isValid: boolean; maxAllowedTimeStr: string; maxShiftTimeStr: string; bufferMinutes: number } {
+    const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
+    const isValid = time <= maxAllowedTimeStr;
+    return {
+        isValid,
+        maxAllowedTimeStr,
+        maxShiftTimeStr,
+        bufferMinutes
+    };
+}
+

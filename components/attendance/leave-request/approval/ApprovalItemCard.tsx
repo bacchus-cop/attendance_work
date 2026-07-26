@@ -274,6 +274,7 @@ export const ApprovalCardActions: React.FC<ApprovalCardActionsProps> = ({
     if (isTimeApplicable) {
         const parsed = parseReason(request.reason);
         const requestTime = parsed.time;
+        const formattedRequestTime = requestTime ? (requestTime.includes('-') ? requestTime.replace('-', ' - ') : requestTime) : '';
         return (
             <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 lg:w-44 lg:justify-center border-t lg:border-t-0 lg:border-l border-black/5 pt-4 lg:pt-0 lg:pl-6 mt-2 lg:mt-0" onClick={(e) => e.stopPropagation()}>
                 <button 
@@ -284,7 +285,7 @@ export const ApprovalCardActions: React.FC<ApprovalCardActionsProps> = ({
                     className="flex-1 px-3 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-[10px] font-bold shadow-lg shadow-green-100 transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                     id={`approve-direct-btn-${request.id}`}
                 >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> อนุมัติตามขอ{requestTime ? ` (${requestTime})` : ''}
+                    <CheckCircle2 className="w-3.5 h-3.5" /> อนุมัติตามขอ{formattedRequestTime ? ` (${formattedRequestTime})` : ''}
                 </button>
                 <button 
                     onClick={(e) => { 

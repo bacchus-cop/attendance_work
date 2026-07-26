@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { checkIsLate, getLateMinutes, mergeAttendanceNotes, calculateCheckOutStatus, getMatchedShiftSlot, getICTTime } from '../../lib/attendanceUtils';
+import { checkIsLate, getLateMinutes, mergeAttendanceNotes, calculateCheckOutStatus, getMatchedShiftSlot, getICTTime, resolveAttendanceLogStatus } from '../../lib/attendanceUtils';
 import { parseWorkConfig } from '../../utils/adminApprovalHelpers';
 
 /**
@@ -321,8 +321,8 @@ export async function rejectForgotCheckOutRequest({
     if (freshLog) {
         const noteText = freshLog.note || '';
         const isProvisionalCheckout = noteText.includes('[PROVISIONAL_CHECKOUT]');
-        const isEarlyLeaveAppeal = isProvisionalCheckout && 
-            !req.reason?.includes('(Location Mismatch)');
+        const isEarlyLeaveAppeal = req.type === 'EARLY_LEAVE' || (isProvisionalCheckout && 
+            !req.reason?.includes('(Location Mismatch)'));
 
         if (isEarlyLeaveAppeal) {
             // 1. Calculate missing minutes and apply early leave penalty
@@ -352,9 +352,16 @@ export async function rejectForgotCheckOutRequest({
                 `[REJECTED EARLY_LEAVE_APPEAL] ปฏิเสธการยกเว้นโทษกลับก่อนเวลา (ขาด ${missingMinutes} นาที) ปรับหักคะแนน: ${reason}`
             );
 
-            // 2. Set attendance log status to COMPLETED (since checkout time is kept, but they are subject to penalty)
+            // 2. Set attendance log status dynamically using resolveAttendanceLogStatus
+            const targetStatus = resolveAttendanceLogStatus(
+                freshLog.check_in_time,
+                freshLog.check_out_time,
+                updatedNote,
+                freshLog.status
+            );
+
             await supabase.from('attendance_logs').update({
-                status: 'COMPLETED',
+                status: targetStatus,
                 note: updatedNote
             }).eq('id', freshLog.id);
 

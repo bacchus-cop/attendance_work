@@ -21,6 +21,7 @@ export interface ParsedReason {
     isProvisionalLate: boolean;
     isProvisionalGps: boolean;
     isEarlyLeaveAcceptPenalty: boolean;
+    isEarlyLeaveApproved: boolean;
     earlyLeaveMissingMinutes: number | null;
     proofUrl: string | null;
     linkId: string | null;
@@ -96,7 +97,7 @@ export const parseReason = (
     text = text.replace(/\[EARLY:\s*Missing\s*(\d+)m\]/gi, 'กลับก่อนกำหนด (ขาดอีก $1 นาที)');
 
     // Calculate actual hours and minutes from timestamps when available, fallback to [OK: X.X hrs]
-    const isEarlyLeaveDetected = 
+    const isEarlyLeaveDetected = !!(
         (reason && (
             reason.includes('EARLY_LEAVE') || 
             /\[EARLY:/i.test(reason) || 
@@ -107,7 +108,8 @@ export const parseReason = (
         (text && (
             text.includes('EARLY_LEAVE') || 
             /\[EARLY:/i.test(text)
-        ));
+        ))
+    );
 
     const prefix = isEarlyLeaveDetected ? 'เวลาทำงานจริง' : 'ทำงานปกติ';
 
@@ -185,6 +187,9 @@ export const parseReason = (
     // Extract Early Leave Penalty Acceptance
     const isEarlyLeaveAcceptPenalty = text.includes('[ACCEPT_PENALTY]') || text.includes('[ACCEPTED_PENALTY]') || text.includes('ACCEPT_PENALTY');
     
+    // Extract Early Leave Approved
+    const isEarlyLeaveApproved = text.includes('[APPROVED EARLY_LEAVE]') || text.includes('[APPROVED EARLY_LEAVE_APPEAL]');
+    
     // Extract missing minutes if present in tags or text
     const earlyMatch = text.match(/\[EARLY:\s*Missing\s*(\d+)m?\]/i) || text.match(/ขาด(?:อีก)?\s*(\d+)\s*นาที/i);
     let earlyLeaveMissingMinutes: number | null = null;
@@ -197,6 +202,8 @@ export const parseReason = (
     text = text.replace(/\[ACCEPT_PENALTY\]/gi, '');
     text = text.replace(/\[ACCEPTED_PENALTY\]/gi, '');
     text = text.replace(/ACCEPT_PENALTY/gi, '');
+    text = text.replace(/\[APPROVED EARLY_LEAVE\]/gi, '');
+    text = text.replace(/\[APPROVED EARLY_LEAVE_APPEAL\]/gi, '');
     text = text.replace(/กลับก่อนกำหนด\s*\(ขาดอีก\s*\d+\s*นาที\)/gi, '');
     text = text.replace(/ยอมรับบทลงโทษกลับก่อนเวลา/gi, '');
     text = text.replace(/\[REJECTED EARLY_LEAVE_APPEAL\]/gi, '');
@@ -215,11 +222,15 @@ export const parseReason = (
         text = text.replace(/\[TARGET_SHIFT:\d{2}:\d{2}\]/g, '');
     }
 
-    const timeMatch = text.match(/\[TIME:(\d{2}:\d{2})\]/);
+    const timeMatch = text.match(/\[TIME:([^\]]+)\]/);
+    const earlyTimeMatch = text.match(/\[EARLY:(\d{2}:\d{2})\]/);
     let time: string | null = null;
     if (timeMatch) {
         time = timeMatch[1];
-        text = text.replace(/\[TIME:\d{2}:\d{2}\]/g, '');
+        text = text.replace(/\[TIME:[^\]]+\]/g, '');
+    } else if (earlyTimeMatch) {
+        time = earlyTimeMatch[1];
+        text = text.replace(/\[EARLY:\d{2}:\d{2}\]/g, '');
     }
 
     // Extract [OT:HH:MM-HH:MM]
@@ -292,6 +303,7 @@ export const parseReason = (
         isProvisionalLate,
         isProvisionalGps,
         isEarlyLeaveAcceptPenalty,
+        isEarlyLeaveApproved,
         earlyLeaveMissingMinutes,
         proofUrl,
         linkId,

@@ -466,8 +466,26 @@ export const resolveAttendanceLogStatus = (
         (noteText.includes('[PROVISIONAL_ONSITE]') && !noteText.includes('[APPROVED ONSITE]') && !noteText.includes('[REJECTED_ONSITE]')) ||
         (noteText.includes('[PROVISIONAL_GPS_SPOOF_APPEAL]') && !noteText.includes('[APPROVED GPS_SPOOF_APPEAL]') && !noteText.includes('[REJECTED GPS_SPOOF_APPEAL]') && !noteText.includes('[REJECTED_GPS_SPOOF_APPEAL]')) ||
         (noteText.includes('[GPS_SPOOF_APPEAL_PENDING]') && !noteText.includes('[APPROVED GPS_SPOOF_APPEAL]') && !noteText.includes('[REJECTED GPS_SPOOF_APPEAL]') && !noteText.includes('[REJECTED_GPS_SPOOF_APPEAL]'));
-    const hasProvisionalCheckOut = noteText.includes('[PROVISIONAL_CHECKOUT]') && !noteText.includes('[APPROVED FORGOT_CHECKOUT]') && !noteText.includes('[APPROVED OUT_OF_RANGE_CHECKOUT]') && !noteText.includes('[REJECTED FORGOT_CHECKOUT]') && !noteText.includes('[REJECTED OUT_OF_RANGE_CHECKOUT]');
-    const isPendingVerify = currentStatus === 'PENDING_VERIFY' || hasProvisionalCheckIn || hasProvisionalCheckOut;
+    const hasProvisionalCheckOut = noteText.includes('[PROVISIONAL_CHECKOUT]') && 
+        !noteText.includes('[APPROVED FORGOT_CHECKOUT]') && 
+        !noteText.includes('[APPROVED OUT_OF_RANGE_CHECKOUT]') && 
+        !noteText.includes('[APPROVED EARLY_LEAVE_APPEAL]') &&
+        !noteText.includes('[REJECTED FORGOT_CHECKOUT]') && 
+        !noteText.includes('[REJECTED OUT_OF_RANGE_CHECKOUT]') &&
+        !noteText.includes('[REJECTED EARLY_LEAVE_APPEAL]');
+    const hasEarlyLeaveResolvedTag = noteText.includes('[REJECTED EARLY_LEAVE_APPEAL]') || noteText.includes('[APPROVED EARLY_LEAVE_APPEAL]');
+    const hasProvisionalTags = hasProvisionalCheckIn || hasProvisionalCheckOut;
+
+    let isPendingVerify = false;
+    if (hasProvisionalTags) {
+        isPendingVerify = true;
+    } else if (currentStatus === 'PENDING_VERIFY') {
+        if (!hasProvisionalTags || hasEarlyLeaveResolvedTag) {
+            isPendingVerify = false;
+        } else {
+            isPendingVerify = true;
+        }
+    }
 
     if (isPendingVerify) {
         return 'PENDING_VERIFY';

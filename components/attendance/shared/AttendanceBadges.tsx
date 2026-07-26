@@ -55,7 +55,7 @@ export const AttendanceConditionBadges: React.FC<AttendanceConditionBadgesProps>
     hideEarlyLeave = false,
     hideProvisional = false
 }) => {
-    const isEarlyLeave = !hideEarlyLeave && !hideProvisional && (status === 'EARLY_LEAVE' || parsed.isEarlyLeaveAcceptPenalty);
+    const isEarlyLeave = !hideEarlyLeave && !hideProvisional && (status === 'EARLY_LEAVE' || parsed.isEarlyLeaveAcceptPenalty || parsed.isEarlyLeaveApproved);
 
     const hasAnyBadge = 
         (!hideProvisional && parsed.isProvisionalWfh) ||
@@ -83,6 +83,11 @@ export const AttendanceConditionBadges: React.FC<AttendanceConditionBadgesProps>
                     {parsed.isEarlyLeaveAcceptPenalty && (
                         <span className="ml-0.5 px-1.5 py-0.5 bg-amber-200 text-amber-900 rounded-md text-[9px] font-extrabold uppercase">
                             ยอมรับบทลงโทษ
+                        </span>
+                    )}
+                    {parsed.isEarlyLeaveApproved && (
+                        <span className="ml-0.5 px-1.5 py-0.5 bg-emerald-200 text-emerald-900 rounded-md text-[9px] font-extrabold uppercase border border-emerald-300">
+                            อนุมัติแล้ว
                         </span>
                     )}
                 </span>
