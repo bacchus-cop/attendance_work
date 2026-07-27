@@ -54,4 +54,9 @@ export const BRAND_CONFIG = {
   // 1 = แสดง HP Badge (ค่าเริ่มต้น)
   // 2 = ไม่แสดง HP Badge (ซ่อน)
   showProfileHpBadgeMode: 2,
+
+  // โหมดการแสดงผลแถบสถานะ AI (AI Status Badge) ที่ท้าย Sidebar
+  // 1 = แสดง (ค่าเริ่มต้น)
+  // 2 = ไม่แสดง (ซ่อน/ปิดการแสดงผล)
+  showSidebarAiStatusMode: 2,
 };

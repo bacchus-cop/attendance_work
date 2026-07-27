@@ -254,7 +254,7 @@ export const ApprovalCardDetails: React.FC<ApprovalCardDetailsProps> = ({
         </div>
     );
 };
-
+{/* 
 // 3. ApprovalCardActions
 interface ApprovalCardActionsProps {
     request: LeaveRequest;
@@ -336,7 +336,7 @@ export const ApprovalCardActions: React.FC<ApprovalCardActionsProps> = ({
         </div>
     );
 };
-
+*/}
 // Main Composite component ApprovalItemCard
 export const ApprovalItemCard = React.forwardRef<HTMLDivElement, ApprovalItemCardProps>(({
     request,
@@ -413,12 +413,13 @@ export const ApprovalItemCard = React.forwardRef<HTMLDivElement, ApprovalItemCar
                         />
                     </div>
                 </div>
-
+{/* 
                 <ApprovalCardActions 
                     request={request}
                     onApprove={onApprove}
                     onRejectClick={onRejectClick}
                 />
+*/}
             </div>
         </motion.div>
     );
