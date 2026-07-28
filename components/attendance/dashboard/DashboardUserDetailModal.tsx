@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getAttendanceSummary } from '../../../lib/attendanceUtils';
 import { useUserSession } from '../../../context/UserSessionContext';
 import { useMasterData } from '../../../hooks/useMasterData';
+import { parseReason } from '../leave-request/request-detail/utils';
 
 // Import our new subcomponents
 import { DetailModalHeader } from './modal/DetailModalHeader';
@@ -76,6 +77,7 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
 
     const lateLogs = useMemo(() => {
         return stat.logs.filter(l => {
+            if (l.note?.includes('[FORGOT_BOTH_PENDING]')) return true;
             if (!l.checkInTime) return false;
             const summary = getAttendanceSummary(
                 l.checkInTime,
@@ -295,14 +297,17 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
                                 </div>
                                 <div className="grid grid-cols-1 gap-3">
                                     {lateLogs.map(log => {
+                                        const isForgotBothPending = !!log.note?.includes('[FORGOT_BOTH_PENDING]');
                                         const isProvisionalLate = log.status === 'APPEAL' || !!log.note?.includes('[PROVISIONAL_LATE_ENTRY]');
+                                        const parsed = parseReason(log.note || '', log.checkInTime, log.checkOutTime);
+                                        const timeLabel = isForgotBothPending && parsed.time ? parsed.time : (log.checkInTime ? format(new Date(log.checkInTime), 'HH:mm') : '--:--');
                                         return (
                                             <AttendanceRecordCard 
                                                 key={log.id}
                                                 date={new Date(log.date)}
-                                                variant={isProvisionalLate ? 'appeal' : 'late'}
-                                                timeLabel={log.checkInTime ? format(new Date(log.checkInTime), 'HH:mm') : '--:--'}
-                                                badgeText={isProvisionalLate ? 'APPEAL' : 'LATE'}
+                                                variant={(isForgotBothPending || isProvisionalLate) ? 'appeal' : 'late'}
+                                                timeLabel={timeLabel}
+                                                badgeText={isForgotBothPending ? 'FORGOT BOTH' : isProvisionalLate ? 'APPEAL' : 'LATE'}
                                                 note={log.note}
                                                 onClick={() => setSelectedRecord({ type: 'ATTENDANCE', data: log })}
                                             />

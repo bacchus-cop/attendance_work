@@ -528,6 +528,43 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                 }
             }
 
+            if (type === 'FORGOT_BOTH') {
+                const { data: existingLog } = await supabase
+                    .from('attendance_logs')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('date', startDateStr)
+                    .maybeSingle();
+
+                let finalNote = '[FORGOT_BOTH_PENDING]';
+                if (linkedRemoteType) {
+                    finalNote = `[FORGOT_BOTH_PENDING] [PROVISIONAL_${linkedRemoteType}]`;
+                }
+                if (existingLog?.note) {
+                    if (!existingLog.note.includes('[FORGOT_BOTH_PENDING]')) {
+                        finalNote = `${existingLog.note} ${finalNote}`.trim();
+                    } else {
+                        finalNote = existingLog.note;
+                    }
+                }
+
+                const payload: any = {
+                    user_id: currentUser.id,
+                    date: startDateStr,
+                    check_in_time: startDate.toISOString(), // บันทึกเวลาเข้าจำลองชั่วคราว
+                    check_out_time: null, // ปล่อยเป็น Null ไว้จนกว่าจะอนุมัติ
+                    status: 'WORKING',
+                    note: finalNote,
+                    work_type: linkedRemoteType || existingLog?.work_type || 'OFFICE'
+                };
+
+                await supabase.from('attendance_logs').upsert(payload, { onConflict: 'user_id, date' });
+
+                if (startDateStr === format(new Date(), 'yyyy-MM-dd')) {
+                    await supabase.from('profiles').update({ work_status: 'ONLINE' }).eq('id', currentUser.id);
+                }
+            }
+
             if (type === 'LATE_ENTRY') {
                 const { data: existingLog } = await supabase
                     .from('attendance_logs')

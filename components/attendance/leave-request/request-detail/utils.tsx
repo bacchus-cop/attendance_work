@@ -20,6 +20,7 @@ export interface ParsedReason {
     isProvisionalCheckout: boolean;
     isProvisionalLate: boolean;
     isProvisionalGps: boolean;
+    isForgotBothPending: boolean;
     isEarlyLeaveAcceptPenalty: boolean;
     isEarlyLeaveApproved: boolean;
     earlyLeaveMissingMinutes: number | null;
@@ -185,6 +186,9 @@ export const parseReason = (
     const isProvisionalCheckout = text.includes('[PROVISIONAL_CHECKOUT]');
     text = text.replace(/\[PROVISIONAL_CHECKOUT\]/g, '');
 
+    const isForgotBothPending = text.includes('[FORGOT_BOTH_PENDING]');
+    text = text.replace(/\[FORGOT_BOTH_PENDING\]/g, '');
+
     // Extract Early Leave Penalty Acceptance
     const isEarlyLeaveAcceptPenalty = text.includes('[ACCEPT_PENALTY]') || text.includes('[ACCEPTED_PENALTY]') || text.includes('ACCEPT_PENALTY');
     
@@ -311,6 +315,7 @@ export const parseReason = (
         isProvisionalCheckout,
         isProvisionalLate,
         isProvisionalGps,
+        isForgotBothPending,
         isEarlyLeaveAcceptPenalty,
         isEarlyLeaveApproved,
         earlyLeaveMissingMinutes,

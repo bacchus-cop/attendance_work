@@ -100,8 +100,16 @@ export const RecordDetailModal: React.FC<RecordDetailModalProps> = ({ record, on
                             const checkInTimeVal = data.checkInTime || data.checkIn_time || data.check_in_time;
                             const checkOutTimeVal = data.checkOutTime || data.checkOut_time || data.check_out_time;
                             const parsed = parseReason(note, checkInTimeVal, checkOutTimeVal);
-                            const checkInStr = data.checkInTime ? format(new Date(data.checkInTime), 'HH:mm:ss น.') : (data.checkIn_time || data.check_out_time || '--:--:--');
-                            const checkOutStr = data.checkOutTime ? format(new Date(data.checkOutTime), 'HH:mm:ss น.') : (data.checkOut_time || data.check_out_time || 'ยังไม่ได้เช็คเอาท์');
+                            
+                            const isForgotBothPending = note.includes('[FORGOT_BOTH_PENDING]');
+                            let checkInStr = data.checkInTime ? format(new Date(data.checkInTime), 'HH:mm:ss น.') : (data.checkIn_time || data.check_out_time || '--:--:--');
+                            let checkOutStr = data.checkOutTime ? format(new Date(data.checkOutTime), 'HH:mm:ss น.') : (data.checkOut_time || data.check_out_time || 'ยังไม่ได้เช็คเอาท์');
+
+                            if (isForgotBothPending && parsed.time && parsed.time.includes('-')) {
+                                const parts = parsed.time.split('-');
+                                checkInStr = `${parts[0]} น. (ระบุในคำขอ)`;
+                                checkOutStr = `${parts[1]} น. (ระบุในคำขอ)`;
+                            }
                             const locationName = data.locationName || data.location_name || 'ไม่ได้ระบุสถานที่';
                             const photoUrl = data.photoUrl || data.photo_url || data.image_url;
                             const lat = data.latitude || data.lat;

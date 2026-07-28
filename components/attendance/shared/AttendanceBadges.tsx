@@ -64,6 +64,7 @@ export const AttendanceConditionBadges: React.FC<AttendanceConditionBadgesProps>
         (!hideProvisional && parsed.isProvisionalCheckout) ||
         (!hideProvisional && parsed.isProvisionalLate) ||
         (!hideProvisional && parsed.isProvisionalGps) ||
+        parsed.isForgotBothPending ||
         parsed.isLocationMismatch ||
         parsed.isLateSubmission ||
         parsed.forgotCheckoutPenalty ||
@@ -125,6 +126,11 @@ export const AttendanceConditionBadges: React.FC<AttendanceConditionBadgesProps>
             {parsed.isLocationMismatch && (
                 <span className={`${pad} bg-rose-100 text-rose-800 border border-rose-200 font-bold flex items-center gap-1 shrink-0`}>
                     📍 {isSm ? 'พิกัดไม่ตรง' : 'พิกัดสถานที่สแกนไม่ตรง'}
+                </span>
+            )}
+            {parsed.isForgotBothPending && (
+                <span className={`${pad} bg-amber-100 text-amber-800 border border-amber-200 font-bold flex items-center gap-1 shrink-0`}>
+                    ⏰ {isSm ? 'ลืมทั้งเข้า-ออก' : 'ลืมบันทึกเวลาทั้งเข้าและออก (รออนุมัติ)'}
                 </span>
             )}
             {parsed.isLateSubmission && (
@@ -208,6 +214,7 @@ export const AttendanceProvisionalBanner: React.FC<AttendanceProvisionalBannerPr
     const isProvisionalCheckout = parsed.isProvisionalCheckout && !isOutOfRangeApproved && !isApproved;
     const isProvisionalLate = parsed.isProvisionalLate && !isApproved;
     const isProvisionalGps = parsed.isProvisionalGps && !isGpsApproved;
+    const isForgotBothPending = parsed.isForgotBothPending && !isApproved;
     const isEarlyLeaveAcceptPenalty = parsed.isEarlyLeaveAcceptPenalty;
 
     const hasAnyBanner = 
@@ -217,6 +224,7 @@ export const AttendanceProvisionalBanner: React.FC<AttendanceProvisionalBannerPr
         isProvisionalCheckout || 
         isProvisionalLate || 
         isProvisionalGps || 
+        isForgotBothPending ||
         isEarlyLeaveAcceptPenalty;
 
     if (!hasAnyBanner) return null;
@@ -286,6 +294,19 @@ export const AttendanceProvisionalBanner: React.FC<AttendanceProvisionalBannerPr
                         </h5>
                         <p className="text-[11px] leading-relaxed text-violet-800/80 font-semibold font-sans">
                             พนักงานลงเวลานอกเหนือเกณฑ์เข้างานปกติ โดยอยู่ระหว่างยื่นอุทธรณ์พิจารณาสิทธิ์เข้างานสาย รอผู้ดูแลระบบอนุมัติคำขอ
+                        </p>
+                    </div>
+                </div>
+            )}
+            {isForgotBothPending && (
+                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-amber-800 flex gap-3 items-start shrink-0 animate-pulse shadow-sm">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                        <h5 className="font-bold text-xs text-amber-900 tracking-wide">
+                            ⚠️ ลืมบันทึกเวลาทั้งเข้าและออก (รออนุมัติปรับปรุงเวลา)
+                        </h5>
+                        <p className="text-[11px] leading-relaxed text-amber-800/80 font-semibold font-sans">
+                            อยู่ระหว่างยื่นคำขอลืมสแกนบัตรทั้งเข้างานและออกงาน โดยอยู่ระหว่างรอตรวจสอบและอนุมัติกะเวลาปรับปรุงย้อนหลังตัวจริงจากผู้ดูแลระบบ
                         </p>
                     </div>
                 </div>
