@@ -175,18 +175,8 @@ export const useAdminApprovals = (currentUser?: any, options: { enabled?: boolea
             hpPenalty = legacyHpPenalty;
         }
 
-        // Centralized check-in/start time validation using helper
-        if (customStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'TIME_CORRECTION'].includes(request.type)) {
-            let validationStartTime = customStartTime;
-            if (validationStartTime && validationStartTime.includes('-')) {
-                validationStartTime = validationStartTime.split('-')[0];
-            }
-            const { isValid, maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = validateCheckInTime(validationStartTime, masterOptions);
-            if (!isValid) {
-                showToast(`ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${validationStartTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`, 'error');
-                return;
-            }
-        }
+        // Centralized check-in/start time validation using helper - bypassed for admin overrides
+
 
         const isDedicatedOtRequest = (contextOtRequests || []).some(ot => ot.id === request.id);
 

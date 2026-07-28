@@ -186,17 +186,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 : (editEndTime || undefined);
             const hasCustom = isOvertime && editOtHours !== '' && editOtHours !== originalOtHours;
 
-            if (finalStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'TIME_CORRECTION'].includes(request.type)) {
-                const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                if (finalStartTime > maxAllowedTimeStr) {
-                    showAlert(
-                        `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${finalStartTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                        'เวลาเกินกำหนดสายสุด'
-                    );
-                    setIsSubmitting(false);
-                    return;
-                }
-            }
+            // Centralized check-in/start time validation using helper - bypassed for admin overrides
 
             await onApprove({
                 request,

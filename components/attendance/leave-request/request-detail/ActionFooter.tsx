@@ -8,6 +8,7 @@ import { useGlobalDialog } from '../../../../context/GlobalDialogContext';
 import { getMaxShiftWithBuffer } from '../../../../lib/attendanceUtils';
 import { ShiftCardSelector } from '../form-inputs/ShiftCardSelector';
 import { getRegistryItem } from '../../../../constants/attendanceRegistry';
+import { calculateRequiredCheckOutTime } from '../../../../utils/shiftCalculator';
 
 interface ActionFooterProps {
     isSubmitting: boolean;
@@ -122,32 +123,9 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                 selectedShift={selectedShift}
                                 isCustomMode={false}
                                 onSelectShift={(time) => {
-                                    if (requestType === 'FORGOT_BOTH' && defaultCheckInTime && defaultCheckInTime.includes('-')) {
-                                        const parts = defaultCheckInTime.split('-');
-                                        const origStart = parts[0].trim();
-                                        const origEnd = parts[1].trim();
-
-                                        const timeToMinutes = (t: string) => {
-                                            const [h, m] = t.split(':').map(Number);
-                                            return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
-                                        };
-
-                                        const minutesToTime = (m: number) => {
-                                            const h = Math.floor(m / 60) % 24;
-                                            const mins = m % 60;
-                                            return `${String(h).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-                                        };
-
-                                        const startMin = timeToMinutes(origStart);
-                                        const endMin = timeToMinutes(origEnd);
-                                        let diff = endMin - startMin;
-                                        if (diff < 0) {
-                                            diff += 1440;
-                                        }
-
-                                        const newStartMin = timeToMinutes(time);
-                                        const newEndMin = newStartMin + diff;
-                                        const newEndTime = minutesToTime(newEndMin);
+                                    if (requestType === 'FORGOT_BOTH') {
+                                        const minHours = parseFloat(masterOptions?.find(o => o.key === 'MIN_HOURS')?.label || '9');
+                                        const newEndTime = calculateRequiredCheckOutTime(time, minHours);
                                         setSelectedShift(`${time}-${newEndTime}`);
                                     } else {
                                         setSelectedShift(time);
@@ -194,20 +172,6 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                             : (isShiftApplicable 
                                 ? selectedShift 
                                 : (isTimeSpecific ? defaultCheckInTime : undefined));
-                        if (targetTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH'].includes(requestType || '')) {
-                            const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                            let comparisonTime = targetTime;
-                            if (comparisonTime.includes('-')) {
-                                comparisonTime = comparisonTime.split('-')[0].trim();
-                            }
-                            if (comparisonTime > maxAllowedTimeStr) {
-                                showAlert(
-                                    `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${comparisonTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                                    'เวลาเกินกำหนดสายสุด'
-                                );
-                                return;
-                            }
-                        }
                         onApprove(targetTime);
                     }}
                     disabled={isSubmitting}

@@ -376,7 +376,18 @@ export function validateCheckInTime(
     masterOptions: any[]
 ): { isValid: boolean; maxAllowedTimeStr: string; maxShiftTimeStr: string; bufferMinutes: number } {
     const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-    const isValid = time <= maxAllowedTimeStr;
+    
+    const padTime = (timeStr: string) => {
+        const clean = timeStr.replace(/[^\d:]/g, '').trim();
+        const parts = clean.split(':');
+        if (parts.length < 2) return clean;
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    };
+
+    const normalizedTime = padTime(time);
+    const normalizedMaxAllowed = padTime(maxAllowedTimeStr);
+
+    const isValid = normalizedTime <= normalizedMaxAllowed;
     return {
         isValid,
         maxAllowedTimeStr,

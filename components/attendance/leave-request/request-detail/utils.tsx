@@ -31,6 +31,7 @@ export interface ParsedReason {
     okHoursWorked: number | null;
     okFormatted: string | null;
     isEarlyLeave: boolean;
+    approvedTime: string | null;
 }
 
 export const parseReason = (
@@ -222,6 +223,13 @@ export const parseReason = (
         text = text.replace(/\[TARGET_SHIFT:\d{2}:\d{2}\]/g, '');
     }
 
+    const approvedTimeMatch = text.match(/\[APPROVED_TIME:([^\]]+)\]/);
+    let approvedTime: string | null = null;
+    if (approvedTimeMatch) {
+        approvedTime = approvedTimeMatch[1];
+        text = text.replace(/\[APPROVED_TIME:[^\]]+\]/g, '');
+    }
+
     const timeMatch = text.match(/\[TIME:([^\]]+)\]/);
     const earlyTimeMatch = text.match(/\[EARLY:(\d{2}:\d{2})\]/);
     let time: string | null = null;
@@ -313,7 +321,8 @@ export const parseReason = (
         actualCheckInTime,
         okHoursWorked,
         okFormatted,
-        isEarlyLeave: isEarlyLeaveDetected
+        isEarlyLeave: isEarlyLeaveDetected,
+        approvedTime
     };
 };
 

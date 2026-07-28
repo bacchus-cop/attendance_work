@@ -235,8 +235,13 @@ export async function approveAttendanceCorrection({
         .maybeSingle();
 
     let finalReason = request.reason;
-    if (behavior?.correctionTarget === 'CHECKIN_ONLY' && customStartTime) {
-        finalReason = request.reason.replace(/\[TIME:\d{2}:\d{2}\]/g, `[TIME:${customStartTime}]`);
+    if (customStartTime) {
+        const hasApprovedTimeMatch = request.reason.match(/\[APPROVED_TIME:[^\]]+\]/);
+        if (hasApprovedTimeMatch) {
+            finalReason = request.reason.replace(/\[APPROVED_TIME:[^\]]+\]/g, `[APPROVED_TIME:${customStartTime}]`);
+        } else {
+            finalReason = `${request.reason} [APPROVED_TIME:${customStartTime}]`.replace(/\s+/g, ' ').trim();
+        }
         await supabase.from('leave_requests')
             .update({ reason: finalReason })
             .eq('id', request.id);
