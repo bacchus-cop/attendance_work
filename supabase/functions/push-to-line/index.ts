@@ -84,9 +84,21 @@ Deno.serve(async (req: any) => {
           lineMessagePayload = buildDailySummaryPayload(targetDestination, record);
         } else {
           const isBatch = claimedRecords.length > 1;
+          
+          let effectiveType = record.type;
+          const isAttendanceAlert = record.type === 'OVERDUE' && (
+            record.title?.includes('ลงเวลา') || 
+            record.title?.includes('ผ่อนปรน') || 
+            record.title?.includes('เช็คอิน') || 
+            record.link_path === 'ATTENDANCE'
+          );
+          if (isAttendanceAlert) {
+            effectiveType = 'ATTENDANCE_ALERT';
+          }
+
           const primaryConfig = isBatch
             ? { color: '#4f46e5', emoji: '🔔', label: 'การแจ้งเตือนแบบรวม' }
-            : (TYPE_CONFIG[record.type] || TYPE_CONFIG['INFO']);
+            : (TYPE_CONFIG[effectiveType] || TYPE_CONFIG['INFO']);
 
           const bodyContents = isBatch
             ? buildBatchBodyContents(claimedRecords)

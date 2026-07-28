@@ -69,6 +69,7 @@ DECLARE
     late_buffer_val TEXT := '15';
     late_alert_mode_val TEXT := 'AFTER_LIMIT';
     late_alert_offset_val TEXT := '5';
+    late_alert_target_roles_val TEXT := 'BOTH';
     start_time_parsed TIME;
     late_buffer_minutes INT;
     grace_limit_time TIME;
@@ -113,6 +114,11 @@ BEGIN
         late_alert_offset_val := '5';
     END IF;
 
+    SELECT label INTO late_alert_target_roles_val FROM public.master_options WHERE type = 'WORK_CONFIG' AND key = 'LATE_ALERT_TARGET_ROLES' LIMIT 1;
+    IF late_alert_target_roles_val IS NULL THEN
+        late_alert_target_roles_val := 'BOTH';
+    END IF;
+
     -- Parse start time and buffer
     BEGIN
         start_time_parsed := start_time_val::TIME;
@@ -144,6 +150,11 @@ BEGIN
         SELECT id, full_name 
         FROM public.profiles 
         WHERE is_active = TRUE
+          AND (
+            late_alert_target_roles_val = 'BOTH' OR
+            (late_alert_target_roles_val = 'ADMIN' AND role = 'ADMIN') OR
+            (late_alert_target_roles_val = 'MEMBER' AND role != 'ADMIN')
+          )
     LOOP
         -- Check if today is a working day for this user
         IF public.is_working_day_db(cur_date, profile_rec.id) THEN

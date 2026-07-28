@@ -49,7 +49,11 @@ export const ShiftCardSelector: React.FC<ShiftCardSelectorProps> = ({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {shifts.map((shift, idx) => {
-                    const isSelected = !isCustomMode && selectedShift === shift;
+                    let isSelected = !isCustomMode && selectedShift === shift;
+                    if (!isSelected && !isCustomMode && selectedShift && selectedShift.includes('-')) {
+                        const checkInPart = selectedShift.split('-')[0].trim();
+                        isSelected = checkInPart === shift;
+                    }
                     const badgeLabel = getShiftBadgeLabel(shift, idx);
 
                     return (

@@ -122,10 +122,41 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                 selectedShift={selectedShift}
                                 isCustomMode={false}
                                 onSelectShift={(time) => {
-                                    setSelectedShift(time);
+                                    if (requestType === 'FORGOT_BOTH' && defaultCheckInTime && defaultCheckInTime.includes('-')) {
+                                        const parts = defaultCheckInTime.split('-');
+                                        const origStart = parts[0].trim();
+                                        const origEnd = parts[1].trim();
+
+                                        const timeToMinutes = (t: string) => {
+                                            const [h, m] = t.split(':').map(Number);
+                                            return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+                                        };
+
+                                        const minutesToTime = (m: number) => {
+                                            const h = Math.floor(m / 60) % 24;
+                                            const mins = m % 60;
+                                            return `${String(h).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                                        };
+
+                                        const startMin = timeToMinutes(origStart);
+                                        const endMin = timeToMinutes(origEnd);
+                                        let diff = endMin - startMin;
+                                        if (diff < 0) {
+                                            diff += 1440;
+                                        }
+
+                                        const newStartMin = timeToMinutes(time);
+                                        const newEndMin = newStartMin + diff;
+                                        const newEndTime = minutesToTime(newEndMin);
+                                        setSelectedShift(`${time}-${newEndTime}`);
+                                    } else {
+                                        setSelectedShift(time);
+                                    }
                                     setIsShiftExpanded(false); // หดเก็บอัตโนมัติเมื่อเลือกเสร็จเพื่อประหยัดพื้นที่
                                 }}
                                 onSelectCustom={() => setIsAdjustPickerOpen(true)}
+                                disableCustomMode={requestType === 'FORGOT_BOTH'}
+                                disableCustomModeReason={requestType === 'FORGOT_BOTH' ? 'ไม่สามารถระบุเวลาเองแบบเจาะจงจุดเดียวสำหรับคำขอที่ลืมทั้งเข้าและออกได้ กรุณาเลือกกะเวลาทำงาน' : undefined}
                             />
                         </div>
                     </motion.div>
@@ -143,7 +174,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                     <XCircle className="w-4 h-4" /> ปฏิเสธคำขอ
                 </button>
 
-                {isTimeSpecific && !isFixed && (
+                {isTimeSpecific && !isFixed && requestType !== 'OVERTIME' && requestType !== 'FORGOT_BOTH' && (
                     <button
                         type="button"
                         onClick={() => setIsAdjustPickerOpen(true)}
@@ -158,14 +189,20 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                 <button
                     type="button"
                     onClick={() => {
-                        const targetTime = isShiftApplicable 
-                            ? selectedShift 
-                            : (isTimeSpecific ? defaultCheckInTime : undefined);
+                        const targetTime = requestType === 'OVERTIME'
+                            ? undefined
+                            : (isShiftApplicable 
+                                ? selectedShift 
+                                : (isTimeSpecific ? defaultCheckInTime : undefined));
                         if (targetTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH'].includes(requestType || '')) {
                             const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                            if (targetTime > maxAllowedTimeStr) {
+                            let comparisonTime = targetTime;
+                            if (comparisonTime.includes('-')) {
+                                comparisonTime = comparisonTime.split('-')[0].trim();
+                            }
+                            if (comparisonTime > maxAllowedTimeStr) {
                                 showAlert(
-                                    `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${targetTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
+                                    `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${comparisonTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
                                     'เวลาเกินกำหนดสายสุด'
                                 );
                                 return;
@@ -192,7 +229,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                             : requestType === 'EARLY_LEAVE'
                                                 ? `อนุมัติเวลากลับก่อนเวลา (${defaultCheckInTime})`
                                                 : requestType === 'FORGOT_BOTH'
-                                                    ? `อนุมัติเวลาเข้า-ออกงาน (${defaultCheckInTime.includes('-') ? defaultCheckInTime.replace('-', ' - ') : defaultCheckInTime})`
+                                                    ? `อนุมัติเวลาเข้า-ออกงาน (${selectedShift.includes('-') ? selectedShift.replace('-', ' - ') : selectedShift})`
                                                     : `อนุมัติตามเวลาที่ขอ (${isShiftApplicable ? selectedShift : defaultCheckInTime})`}
                     </span>
                 </button>

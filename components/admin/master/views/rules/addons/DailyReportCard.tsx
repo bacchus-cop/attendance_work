@@ -1,20 +1,7 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, Monitor, Play, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface WorkTimeConfig {
-    start: string;
-    end: string;
-    buffer: string;
-    minHours: string;
-    otThreshold: string;
-    checkoutPenaltyTime: string;
-    dailySummaryDelayHours: string;
-    lineSummaryDestination: string;
-    enableAttendanceRace: string;
-    lateAlertMode?: string;
-    lateAlertOffset?: string;
-}
+import { WorkTimeConfig } from '../WorkTimeCard';
 
 interface DailyReportCardProps {
     tempTimeConfig: WorkTimeConfig;
@@ -34,9 +21,29 @@ const DailyReportCard: React.FC<DailyReportCardProps> = ({
         }));
     };
 
+    const effectiveStartTime = (() => {
+        const shiftsEnabled = tempTimeConfig.multipleShiftsEnabled === 'true';
+        if (shiftsEnabled && tempTimeConfig.multipleShiftsList) {
+            const list = tempTimeConfig.multipleShiftsList
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean);
+            if (list.length > 0) {
+                // เรียงจากกกะที่สายที่สุดขึ้นมาก่อน (มากไปน้อย)
+                const sorted = [...list].sort((a, b) => {
+                    const [ha, ma] = a.split(':').map(Number);
+                    const [hb, mb] = b.split(':').map(Number);
+                    return (hb * 60 + mb) - (ha * 60 + ma);
+                });
+                return sorted[0]; // คืนค่ากะเวลาที่สายที่สุด
+            }
+        }
+        return tempTimeConfig.start || '10:00';
+    })();
+
     const planDTargetTime = (() => {
         try {
-            const [h, m] = tempTimeConfig.start.split(':').map(Number);
+            const [h, m] = effectiveStartTime.split(':').map(Number);
             const delay = parseFloat(tempTimeConfig.dailySummaryDelayHours) || 1.0;
             const date = new Date();
             date.setHours(h, m + Math.round(delay * 60));

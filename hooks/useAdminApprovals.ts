@@ -177,9 +177,13 @@ export const useAdminApprovals = (currentUser?: any, options: { enabled?: boolea
 
         // Centralized check-in/start time validation using helper
         if (customStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'TIME_CORRECTION'].includes(request.type)) {
-            const { isValid, maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = validateCheckInTime(customStartTime, masterOptions);
+            let validationStartTime = customStartTime;
+            if (validationStartTime && validationStartTime.includes('-')) {
+                validationStartTime = validationStartTime.split('-')[0];
+            }
+            const { isValid, maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = validateCheckInTime(validationStartTime, masterOptions);
             if (!isValid) {
-                showToast(`ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${customStartTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`, 'error');
+                showToast(`ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${validationStartTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`, 'error');
                 return;
             }
         }

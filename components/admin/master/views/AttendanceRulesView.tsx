@@ -49,7 +49,9 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         multipleShiftsEnabled: 'false',
         multipleShiftsList: '08:00, 08:30, 09:00',
         lineApprovalMode: 'INTERACTIVE',
-        lineHeaderTitle: 'Juijui Alert Center'
+        lineHeaderTitle: 'Juijui Alert Center',
+        lateAlertTargetRoles: 'BOTH',
+        checkoutPenaltyTargetRoles: 'BOTH'
     });
     const [isStartTimeOpen, setIsStartTimeOpen] = useState(false);
     const [isEndTimeOpen, setIsEndTimeOpen] = useState(false);
@@ -79,8 +81,10 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         const shiftsListOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'MULTIPLE_SHIFTS_LIST');
         const lineApprovalModeOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LINE_APPROVAL_MODE');
         const lineHeaderTitleOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LINE_HEADER_TITLE');
+        const lateAlertTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_ALERT_TARGET_ROLES');
+        const checkoutPenaltyTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_PENALTY_TARGET_ROLES');
         
-        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt) {
+        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt || lateAlertTargetRolesOpt || checkoutPenaltyTargetRolesOpt) {
             setTempTimeConfig({
                 start: startOpt?.label || '10:00',
                 end: endOpt?.label || '19:00',
@@ -96,7 +100,9 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
                 multipleShiftsEnabled: shiftsEnabledOpt?.label || 'false',
                 multipleShiftsList: shiftsListOpt?.label || '08:00, 08:30, 09:00',
                 lineApprovalMode: lineApprovalModeOpt?.label || 'INTERACTIVE',
-                lineHeaderTitle: lineHeaderTitleOpt?.label || 'Juijui Alert Center'
+                lineHeaderTitle: lineHeaderTitleOpt?.label || 'Juijui Alert Center',
+                lateAlertTargetRoles: lateAlertTargetRolesOpt?.label || 'BOTH',
+                checkoutPenaltyTargetRoles: checkoutPenaltyTargetRolesOpt?.label || 'BOTH'
             });
         }
 
@@ -149,6 +155,8 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         await updateOrInsert('MULTIPLE_SHIFTS_LIST', tempTimeConfig.multipleShiftsList || '08:00, 08:30, 09:00');
         await updateOrInsert('LINE_APPROVAL_MODE', tempTimeConfig.lineApprovalMode || 'INTERACTIVE');
         await updateOrInsert('LINE_HEADER_TITLE', tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center');
+        await updateOrInsert('LATE_ALERT_TARGET_ROLES', tempTimeConfig.lateAlertTargetRoles || 'BOTH');
+        await updateOrInsert('CHECKOUT_PENALTY_TARGET_ROLES', tempTimeConfig.checkoutPenaltyTargetRoles || 'BOTH');
         
         const parsedRate = parseInt(otJpRate, 10);
         if (!isNaN(parsedRate)) {

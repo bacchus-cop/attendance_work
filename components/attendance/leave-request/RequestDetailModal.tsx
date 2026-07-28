@@ -177,10 +177,14 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     const handleApprove = async (customStartTimeArg?: string) => {
         setIsSubmitting(true);
         try {
-            const hasCustom = request.type === 'OVERTIME' && editOtHours !== '';
-            const finalStartTime = request.type === 'FORGOT_CHECKIN'
-                ? (customStartTimeArg || editStartTime || undefined)
+            const isOvertime = request.type === 'OVERTIME';
+            const finalStartTime = isOvertime
+                ? (editStartTime !== originalStartTime ? editStartTime : undefined)
                 : (customStartTimeArg || editStartTime || undefined);
+            const finalEndTime = isOvertime
+                ? (editEndTime !== originalEndTime ? editEndTime : undefined)
+                : (editEndTime || undefined);
+            const hasCustom = isOvertime && editOtHours !== '' && editOtHours !== originalOtHours;
 
             if (finalStartTime && ['FORGOT_CHECKIN', 'FORGOT_BOTH', 'TIME_CORRECTION'].includes(request.type)) {
                 const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
@@ -198,7 +202,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 request,
                 customOtHours: hasCustom ? parseFloat(editOtHours) : undefined,
                 customStartTime: finalStartTime,
-                customEndTime: editEndTime || undefined,
+                customEndTime: finalEndTime,
                 adminNote: adminNote || undefined,
                 hpPenalty: hpPenalty || undefined
             });

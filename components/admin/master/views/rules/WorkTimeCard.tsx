@@ -20,6 +20,8 @@ export interface WorkTimeConfig {
     multipleShiftsList?: string;
     lineApprovalMode?: string;
     lineHeaderTitle?: string;
+    lateAlertTargetRoles?: string;
+    checkoutPenaltyTargetRoles?: string;
 }
 
 interface WorkTimeCardProps {

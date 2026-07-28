@@ -205,8 +205,15 @@ export async function approveAttendanceCorrection({
     processAction: (userId: string, actionType: any, payload?: any) => Promise<any>;
 }) {
     const timeMatch = request.reason.match(/\[TIME:(\d{2}:\d{2})(-\d{2}:\d{2})?\]/);
-    const timeStr = customStartTime || (timeMatch ? timeMatch[1] : '00:00');
-    const endTimeStr = timeMatch && timeMatch[2] ? timeMatch[2].substring(1) : null;
+    let timeStr = customStartTime || (timeMatch ? timeMatch[1] : '00:00');
+    let endTimeStr = timeMatch && timeMatch[2] ? timeMatch[2].substring(1) : null;
+
+    // ตรวจจับว่าถ้า customStartTime ที่รับเข้ามา มีการระบุขีด (-) แปลว่าเป็นช่วงเวลาเข้า-ออกคู่กัน
+    if (timeStr && timeStr.includes('-')) {
+        const parts = timeStr.split('-');
+        timeStr = parts[0];       // ดึงเอาเฉพาะเวลาเข้างานจริง เช่น "08:30"
+        endTimeStr = parts[1];    // ดึงเอาเฉพาะเวลาออกงานจริง เช่น "17:30"
+    }
     const shiftDateStr = format(request.startDate, 'yyyy-MM-dd');
 
     const registryItem = getRegistryItem(request.type);
