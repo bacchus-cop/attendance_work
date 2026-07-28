@@ -22,6 +22,10 @@ export interface WorkTimeConfig {
     lineHeaderTitle?: string;
     lateAlertTargetRoles?: string;
     checkoutPenaltyTargetRoles?: string;
+    checkoutAlertEnabled?: string;
+    checkoutAlertMode?: string;
+    checkoutAlertOffset?: string;
+    checkoutAlertTargetRoles?: string;
 }
 
 interface WorkTimeCardProps {

@@ -18,7 +18,8 @@ import {
     rejectLateEntryRequest,
     rejectForgotCheckOutRequest,
     rejectOutOfRangeCheckoutRequest,
-    rejectGpsSpoofAppealRequest
+    rejectGpsSpoofAppealRequest,
+    rejectForgotBothRequest
 } from './admin-approval/rejectionFlows';
 import {
     sendApprovalNotification,
@@ -373,6 +374,15 @@ export const adminApprovalService = {
                 req,
                 reason,
                 customCheckInTime,
+                masterOptions,
+                processAction
+            });
+        }
+
+        if (req && req.type === 'FORGOT_BOTH') {
+            await rejectForgotBothRequest({
+                req,
+                reason,
                 masterOptions,
                 processAction
             });

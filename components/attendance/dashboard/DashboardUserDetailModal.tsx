@@ -64,7 +64,9 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     // Categorize dates
     const onTimeLogs = useMemo(() => {
         return stat.logs.filter(l => {
+            if (l.note?.includes('[FORGOT_BOTH_PENDING]')) return false;
             if (l.status === 'LEAVE' || l.workType === 'LEAVE') return false;
+            if (l.status === 'ABSENT' || l.workType === 'ABSENT') return false;
             if (!l.checkInTime) return false;
             const summary = getAttendanceSummary(
                 l.checkInTime,
@@ -78,6 +80,7 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     const lateLogs = useMemo(() => {
         return stat.logs.filter(l => {
             if (l.note?.includes('[FORGOT_BOTH_PENDING]')) return true;
+            if (l.status === 'ABSENT' || l.workType === 'ABSENT') return false;
             if (!l.checkInTime) return false;
             const summary = getAttendanceSummary(
                 l.checkInTime,
@@ -157,7 +160,11 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
             }
 
             const dateStr = format(day, 'yyyy-MM-dd');
-            return !stat.logs.some(l => l.date === dateStr);
+            const dayLog = stat.logs.find(l => l.date === dateStr);
+            if (dayLog) {
+                return dayLog.status === 'ABSENT' || dayLog.workType === 'ABSENT';
+            }
+            return true;
         }).sort((a, b) => b.getTime() - a.getTime());
     }, [workingDaysInMonth, stat.logs, user.startDate, user.createdAt, startTime, multipleShifts]);
 
@@ -184,12 +191,12 @@ const DashboardUserDetailModal: React.FC<DashboardUserDetailModalProps> = ({
     const totalIssues = lateLogs.length + absentDates.length + leaveLogs.length;
 
     const stats = useMemo(() => ({
-        present: stat.present,
-        late: stat.late,
+        present: onTimeLogs.length + lateLogs.length + leaveLogs.length,
+        late: lateLogs.length,
         absent: absentDates.length,
-        leaves: stat.leaves,
+        leaves: leaveLogs.length,
         otHours: totalOtHours
-    }), [stat, totalOtHours, absentDates]);
+    }), [onTimeLogs, lateLogs, leaveLogs, absentDates, totalOtHours]);
 
     return createPortal(
         <motion.div 

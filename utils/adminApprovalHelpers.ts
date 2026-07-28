@@ -357,7 +357,7 @@ export async function processHpRefundIfEligible({
         ? `คืนค่า HP ${behavior.refundDescriptionPenalized} ${dateStr}` 
         : `คืนค่า HP จากการแก้เวลาออกงานวันที่ ${dateStr}`;
 
-    if (statusBefore === 'ABSENT') {
+    if (statusBefore === 'ABSENT' || noteBefore?.includes('[ORIGINALLY: ABSENT]')) {
         await processAction(userId, 'ATTENDANCE_ABSENT_REFUND', {
             originalDescription: absentDesc
         });

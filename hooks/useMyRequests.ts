@@ -29,7 +29,7 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
     const [isLoading, setIsLoading] = useState(enabled);
     const [isLoadingHistorical, setIsLoadingHistorical] = useState(false);
     const { showToast } = useToast();
-    const { showConfirm } = useGlobalDialog();
+    const { showConfirm, showLoading, hideLoading } = useGlobalDialog();
     const { uploadFileToDrive, isReady: isDriveReady } = useGoogleDrive();
 
     const checkLateSubmissionRule = (
@@ -203,6 +203,7 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
         linkedRemoteType?: 'WFH' | 'ONSITE'
     ): Promise<boolean> => {
         if (!currentUser?.id) return false;
+        showLoading('กำลังอัปโหลดไฟล์และส่งคำขอเข้าระบบ...');
         try {
             const startDateStr = format(startDate, 'yyyy-MM-dd');
             const timestamp = Date.now();
@@ -540,6 +541,9 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                 if (linkedRemoteType) {
                     finalNote = `[FORGOT_BOTH_PENDING] [PROVISIONAL_${linkedRemoteType}]`;
                 }
+
+                const wasAbsent = existingLog?.status === 'ABSENT' || existingLog?.note?.includes('[ORIGINALLY: ABSENT]');
+
                 if (existingLog?.note) {
                     if (!existingLog.note.includes('[FORGOT_BOTH_PENDING]')) {
                         finalNote = `${existingLog.note} ${finalNote}`.trim();
@@ -548,12 +552,16 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                     }
                 }
 
+                if (wasAbsent && !finalNote.includes('[ORIGINALLY: ABSENT]')) {
+                    finalNote = `[ORIGINALLY: ABSENT] ${finalNote}`;
+                }
+                
                 const payload: any = {
                     user_id: currentUser.id,
                     date: startDateStr,
                     check_in_time: startDate.toISOString(), // บันทึกเวลาเข้าจำลองชั่วคราว
-                    check_out_time: null, // ปล่อยเป็น Null ไว้จนกว่าจะอนุมัติ
-                    status: 'WORKING',
+                    check_out_time: endDate.toISOString(), // บันทึกเวลาออกจำลองชั่วคราวตามที่ส่งขอ
+                    status: 'PENDING_VERIFY', // ตั้งเป็น PENDING_VERIFY เพื่อรออนุมัติ
                     note: finalNote,
                     work_type: linkedRemoteType || existingLog?.work_type || 'OFFICE'
                 };
@@ -662,6 +670,8 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
         } catch (err: any) {
             showToast('ส่งคำขอไม่สำเร็จ: ' + err.message, 'error');
             return false;
+        } finally {
+            hideLoading();
         }
     };
 

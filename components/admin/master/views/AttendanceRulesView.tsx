@@ -51,7 +51,11 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         lineApprovalMode: 'INTERACTIVE',
         lineHeaderTitle: 'Juijui Alert Center',
         lateAlertTargetRoles: 'BOTH',
-        checkoutPenaltyTargetRoles: 'BOTH'
+        checkoutPenaltyTargetRoles: 'BOTH',
+        checkoutAlertEnabled: 'true',
+        checkoutAlertMode: 'AFTER_LIMIT',
+        checkoutAlertOffset: '5',
+        checkoutAlertTargetRoles: 'BOTH'
     });
     const [isStartTimeOpen, setIsStartTimeOpen] = useState(false);
     const [isEndTimeOpen, setIsEndTimeOpen] = useState(false);
@@ -83,8 +87,12 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         const lineHeaderTitleOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LINE_HEADER_TITLE');
         const lateAlertTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'LATE_ALERT_TARGET_ROLES');
         const checkoutPenaltyTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_PENALTY_TARGET_ROLES');
+        const checkoutAlertEnabledOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_ENABLED');
+        const checkoutAlertModeOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_MODE');
+        const checkoutAlertOffsetOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_OFFSET');
+        const checkoutAlertTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_TARGET_ROLES');
         
-        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt || lateAlertTargetRolesOpt || checkoutPenaltyTargetRolesOpt) {
+        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt || lateAlertTargetRolesOpt || checkoutPenaltyTargetRolesOpt || checkoutAlertEnabledOpt || checkoutAlertModeOpt || checkoutAlertOffsetOpt || checkoutAlertTargetRolesOpt) {
             setTempTimeConfig({
                 start: startOpt?.label || '10:00',
                 end: endOpt?.label || '19:00',
@@ -102,7 +110,11 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
                 lineApprovalMode: lineApprovalModeOpt?.label || 'INTERACTIVE',
                 lineHeaderTitle: lineHeaderTitleOpt?.label || 'Juijui Alert Center',
                 lateAlertTargetRoles: lateAlertTargetRolesOpt?.label || 'BOTH',
-                checkoutPenaltyTargetRoles: checkoutPenaltyTargetRolesOpt?.label || 'BOTH'
+                checkoutPenaltyTargetRoles: checkoutPenaltyTargetRolesOpt?.label || 'BOTH',
+                checkoutAlertEnabled: checkoutAlertEnabledOpt?.label || 'true',
+                checkoutAlertMode: checkoutAlertModeOpt?.label || 'AFTER_LIMIT',
+                checkoutAlertOffset: checkoutAlertOffsetOpt?.label || '5',
+                checkoutAlertTargetRoles: checkoutAlertTargetRolesOpt?.label || 'BOTH'
             });
         }
 
@@ -157,6 +169,10 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         await updateOrInsert('LINE_HEADER_TITLE', tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center');
         await updateOrInsert('LATE_ALERT_TARGET_ROLES', tempTimeConfig.lateAlertTargetRoles || 'BOTH');
         await updateOrInsert('CHECKOUT_PENALTY_TARGET_ROLES', tempTimeConfig.checkoutPenaltyTargetRoles || 'BOTH');
+        await updateOrInsert('CHECKOUT_ALERT_ENABLED', tempTimeConfig.checkoutAlertEnabled || 'true');
+        await updateOrInsert('CHECKOUT_ALERT_MODE', tempTimeConfig.checkoutAlertMode || 'AFTER_LIMIT');
+        await updateOrInsert('CHECKOUT_ALERT_OFFSET', tempTimeConfig.checkoutAlertOffset || '5');
+        await updateOrInsert('CHECKOUT_ALERT_TARGET_ROLES', tempTimeConfig.checkoutAlertTargetRoles || 'BOTH');
         
         const parsedRate = parseInt(otJpRate, 10);
         if (!isNaN(parsedRate)) {

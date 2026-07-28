@@ -271,6 +271,8 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
 
                 if (log.status === 'LEAVE' || log.workType === 'LEAVE') {
                     stat.leaves++;
+                } else if (log.status === 'ABSENT' || log.workType === 'ABSENT') {
+                    stat.absent++;
                 } else {
                     if (!isProvisional && !isGpsRejected) {
                         stat.present++;

@@ -337,7 +337,7 @@ export async function approveAttendanceCorrection({
     } else if (behavior?.correctionTarget === 'BOTH') {
         const checkInDateTime = new Date(`${shiftDateStr}T${timeStr}:00`);
         const checkOutDateTime = new Date(`${shiftDateStr}T${endTimeStr || '18:00'}:00`);
-        const originalStatusNote = freshLog?.status === 'ABSENT' ? '[ORIGINALLY: ABSENT] ' : '';
+        const originalStatusNote = (freshLog?.status === 'ABSENT' || freshLog?.note?.includes('[ORIGINALLY: ABSENT]')) ? '[ORIGINALLY: ABSENT] ' : '';
 
         // Calculate isLate considering MULTIPLE_SHIFTS_ENABLED
         const { startTime: startTimeStr, lateBuffer: buffer } = parseWorkConfig(masterOptions);
@@ -354,6 +354,9 @@ export async function approveAttendanceCorrection({
             existingWorkType: freshLog?.work_type
         });
 
+        // Clean up existing pending/provisional tags for FORGOT_BOTH
+        const cleanedNote = cleanAttendanceNoteTags(freshLog?.note || '', request.type);
+
         const payload = buildAttendanceCorrectionPayload({
             userId: request.userId,
             date: shiftDateStr,
@@ -363,7 +366,7 @@ export async function approveAttendanceCorrection({
             isLate,
             reason: finalReason,
             originalStatusNote,
-            existingNote: freshLog?.note,
+            existingNote: cleanedNote,
             existingWorkType: freshLog?.work_type,
             targetWorkType
         });

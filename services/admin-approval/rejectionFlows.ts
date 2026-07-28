@@ -480,3 +480,57 @@ export async function rejectGpsSpoofAppealRequest({
     }
 }
 
+/**
+ * Handles rejection logic for Forgot Both (check-in and check-out) requests.
+ */
+export async function rejectForgotBothRequest({
+    req,
+    reason,
+    masterOptions,
+    processAction
+}: {
+    req: any;
+    reason: string;
+    masterOptions: any[];
+    processAction: (userId: string, actionType: any, payload?: any) => Promise<any>;
+}) {
+    const { data: freshLog } = await supabase.from('attendance_logs')
+        .select('*')
+        .eq('user_id', req.user_id)
+        .eq('date', req.start_date)
+        .maybeSingle();
+
+    if (freshLog) {
+        // 1. Try to delete the record entirely
+        const { error: deleteError } = await supabase.from('attendance_logs')
+            .delete()
+            .eq('id', freshLog.id);
+
+        // 2. Fallback: If delete fails, update to clear check-in/out and set to ACTION_REQUIRED
+        if (deleteError) {
+            console.warn("Delete failed for FORGOT_BOTH log, falling back to update:", deleteError);
+            let cleanedNote = freshLog.note || '';
+            cleanedNote = cleanedNote
+                .replace(/\[FORGOT_BOTH_PENDING\]/g, '')
+                .replace(/\[PROVISIONAL_WFH\]/g, '')
+                .replace(/\[PROVISIONAL_ONSITE\]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const updatedNote = mergeAttendanceNotes(
+                cleanedNote,
+                `[REJECTED FORGOT_BOTH] ปฏิเสธคำร้องขอลงเวลาเข้า/ออกงาน: ${reason}`
+            );
+
+            await supabase.from('attendance_logs')
+                .update({
+                    check_in_time: null,
+                    check_out_time: null,
+                    status: 'ACTION_REQUIRED',
+                    note: updatedNote
+                })
+                .eq('id', freshLog.id);
+        }
+    }
+}
+
