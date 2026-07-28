@@ -359,17 +359,7 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
             ? customStartTime
             : (parsed.time || undefined);
 
-        if (targetTime && req.type !== 'LATE_ENTRY') {
-            const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-            if (targetTime > maxAllowedTimeStr) {
-                await showAlert(
-                    `ไม่สามารถอนุมัติได้: เวลาที่ระบุ (${targetTime} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                    'เวลาเกินกำหนดสายสุด'
-                );
-                return;
-            }
-        }
-
+        // Admin override: bypass max shift/buffer time checks to allow full flexibility in manual approval
         try {
             if (customStartTime === 'DIRECT_APPROVE') {
                 if (await showConfirm(`คุณต้องการอนุมัติคำขอลงเวลานี้ตามที่ขอมา${targetTime ? ` (${targetTime} น.)` : ''} ใช่หรือไม่?`)) {

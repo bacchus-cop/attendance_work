@@ -205,16 +205,6 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onSelect={(time) => {
                             setIsAdjustPickerOpen(false);
                             setSelectedShift(time);
-                            if (['FORGOT_CHECKIN', 'FORGOT_BOTH'].includes(requestType || '')) {
-                                const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
-                                if (time > maxAllowedTimeStr) {
-                                    showAlert(
-                                        `ไม่สามารถอนุมัติได้: เวลาที่เลือก (${time} น.) เกินเวลาสายสุดของกะงานรวม Buffer (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`,
-                                        'เวลาเกินกำหนดสายสุด'
-                                    );
-                                    return;
-                                }
-                            }
                             onApprove(time);
                         }}
                         initialTime={selectedShift || defaultCheckInTime}
