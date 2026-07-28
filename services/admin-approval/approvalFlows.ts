@@ -219,8 +219,8 @@ export async function approveAttendanceCorrection({
     const registryItem = getRegistryItem(request.type);
     const behavior = registryItem?.approvalBehavior;
 
-    // Hard lock: check if timeStr exceeds max shift + buffer (Skip this lock for LATE_ENTRY as late entries can be at any time)
-    if (request.type !== 'LATE_ENTRY' && behavior?.correctionTarget !== 'CHECKOUT_ONLY' && timeStr && timeStr !== '00:00') {
+    // Hard lock: check if timeStr exceeds max shift + buffer (Skip this lock for LATE_ENTRY as late entries can be at any time, and bypass if customStartTime is overridden by admin)
+    if (!customStartTime && request.type !== 'LATE_ENTRY' && behavior?.correctionTarget !== 'CHECKOUT_ONLY' && timeStr && timeStr !== '00:00') {
         const { maxAllowedTimeStr, maxShiftTimeStr, bufferMinutes } = getMaxShiftWithBuffer(masterOptions);
         if (timeStr > maxAllowedTimeStr) {
             throw new Error(`ไม่อนุญาตให้อนุมัติ: เวลาที่ระบุ (${timeStr} น.) เกินกำหนดเวลาสายสุดของกะงาน (${maxAllowedTimeStr} น. - คำนวณจากกะสุดท้าย ${maxShiftTimeStr} น. + Buffer ${bufferMinutes} นาที)`);
@@ -236,12 +236,37 @@ export async function approveAttendanceCorrection({
 
     let finalReason = request.reason;
     if (customStartTime) {
-        const hasApprovedTimeMatch = request.reason.match(/\[APPROVED_TIME:[^\]]+\]/);
-        if (hasApprovedTimeMatch) {
-            finalReason = request.reason.replace(/\[APPROVED_TIME:[^\]]+\]/g, `[APPROVED_TIME:${customStartTime}]`);
-        } else {
-            finalReason = `${request.reason} [APPROVED_TIME:${customStartTime}]`.replace(/\s+/g, ' ').trim();
+        // Parse actual entry and exit times from customStartTime
+        let adminEntryTime = customStartTime;
+        let adminExitTime = '';
+        if (customStartTime.includes('-')) {
+            const parts = customStartTime.split('-');
+            adminEntryTime = parts[0].trim();
+            adminExitTime = parts[1].trim();
         }
+
+        // Clean and replace [TARGET_SHIFT:...] tag with the correct admin approved entry/target time
+        if (finalReason.includes('[TARGET_SHIFT:')) {
+            finalReason = finalReason.replace(/\[TARGET_SHIFT:[^\]]+\]/g, `[TARGET_SHIFT:${adminEntryTime}]`);
+        }
+
+        // Clean and replace [TIME:...] tag with the correct range or single time
+        const newTimeTag = adminExitTime 
+            ? `[TIME:${adminEntryTime}-${adminExitTime}]` 
+            : `[TIME:${adminEntryTime}]`;
+            
+        if (finalReason.includes('[TIME:')) {
+            finalReason = finalReason.replace(/\[TIME:[^\]]+\]/g, newTimeTag);
+        }
+
+        // Now update or add [APPROVED_TIME:...] tag
+        const hasApprovedTimeMatch = finalReason.match(/\[APPROVED_TIME:[^\]]+\]/);
+        if (hasApprovedTimeMatch) {
+            finalReason = finalReason.replace(/\[APPROVED_TIME:[^\]]+\]/g, `[APPROVED_TIME:${customStartTime}]`);
+        } else {
+            finalReason = `${finalReason} [APPROVED_TIME:${customStartTime}]`.replace(/\s+/g, ' ').trim();
+        }
+
         await supabase.from('leave_requests')
             .update({ reason: finalReason })
             .eq('id', request.id);
@@ -324,7 +349,7 @@ export async function approveAttendanceCorrection({
         const targetWorkType = await deduceTargetWorkType({
             userId: request.userId,
             dateStr: shiftDateStr,
-            requestReason: request.reason,
+            requestReason: finalReason,
             existingNote: freshLog?.note,
             existingWorkType: freshLog?.work_type
         });
@@ -336,7 +361,7 @@ export async function approveAttendanceCorrection({
             checkInTime: checkInDateTime.toISOString(),
             checkOutTime: checkOutDateTime.toISOString(),
             isLate,
-            reason: request.reason,
+            reason: finalReason,
             originalStatusNote,
             existingNote: freshLog?.note,
             existingWorkType: freshLog?.work_type,
@@ -394,7 +419,7 @@ export async function approveAttendanceCorrection({
             const cleanedNoteStr = cleanAttendanceNoteTags(freshLogCheckout.note || '', request.type);
 
             const approvedTag = registryItem?.tags.approved || '[APPROVED CORRECTION]';
-            const finalNote = mergeAttendanceNotes(cleanedNoteStr, `${approvedTag} ${request.reason}`);
+            const finalNote = mergeAttendanceNotes(cleanedNoteStr, `${approvedTag} ${finalReason}`);
             const resolvedStatus = resolveAttendanceLogStatus(
                 freshLogCheckout.check_in_time,
                 checkOutDateTime.toISOString(),
@@ -417,7 +442,7 @@ export async function approveAttendanceCorrection({
                 statusBefore: freshLogCheckout.status,
                 noteBefore: freshLogCheckout.note,
                 behavior,
-                reason: request.reason,
+                reason: finalReason,
                 processAction
             });
         } else {
@@ -430,7 +455,7 @@ export async function approveAttendanceCorrection({
                 check_out_time: checkOutDateTime.toISOString(),
                 work_type: 'OFFICE',
                 status: 'COMPLETED',
-                note: `[AUTO-CREATED FOR ${request.type}] ${request.reason}`
+                note: `[AUTO-CREATED FOR ${request.type}] ${finalReason}`
             });
         }
     }
@@ -446,7 +471,7 @@ export async function approveAttendanceCorrection({
             statusBefore: freshLog?.status,
             noteBefore: freshLog?.note,
             behavior,
-            reason: request.reason,
+            reason: finalReason,
             processAction
         });
     }
