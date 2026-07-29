@@ -175,7 +175,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onApprove(targetTime);
                     }}
                     disabled={isSubmitting}
-                    className="flex-1 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
+                    className="px-4 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
                     id="approve-requested-trigger-btn"
                 >
                     <CheckCircle2 className="w-4 h-4 shrink-0" />

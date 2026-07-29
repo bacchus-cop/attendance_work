@@ -378,6 +378,13 @@ export const useCheckOutState = ({
         setIsSubmitting(true);
         let finalReason = reason;
 
+        // Dynamically synchronize the time to the actual click-submit moment for real-time checkouts
+        let finalTime = time;
+        if (status !== 'ERROR') {
+            finalTime = format(new Date(), 'HH:mm');
+            setTime(finalTime);
+        }
+
         if (selectedImageFile) {
             setIsUploading(true);
             try {
@@ -434,7 +441,7 @@ export const useCheckOutState = ({
 
         // Perform the provisional check-out directly first
         const provTag = '[PROVISIONAL_CHECKOUT]';
-        const timeTag = checkOutStatus === 'EARLY_LEAVE' ? `[EARLY:${time}]` : `[TIME:${time}]`;
+        const timeTag = checkOutStatus === 'EARLY_LEAVE' ? `[EARLY:${finalTime}]` : `[TIME:${finalTime}]`;
         
         // เพิ่มแท็ก (Location Mismatch) เข้าไปในกรณีที่เป็นการเช็คเอาท์นอกพื้นที่
         const locationMismatchTag = (checkOutStatus !== 'EARLY_LEAVE' || status === 'OUT_OF_RANGE') ? ' (Location Mismatch)' : '';
@@ -453,7 +460,7 @@ export const useCheckOutState = ({
         if (status === 'OUT_OF_RANGE' && !submitReason.includes('(Location Mismatch)')) {
             submitReason = `${submitReason} (Location Mismatch)`.trim();
         }
-        await onRequest(time, submitReason, requestType);
+        await onRequest(finalTime, submitReason, requestType);
 
         setIsSubmitting(false);
         onClose();

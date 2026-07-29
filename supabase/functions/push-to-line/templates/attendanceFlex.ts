@@ -330,7 +330,7 @@ export function buildSingleBodyContents(record: ClaimedNotificationRecord, prima
   );
 
   if (isAttendanceAlert) {
-    const reminderData = parseCheckInReminder(record.message || '');
+    const reminderData = parseCheckInReminder(record.message || '', record.metadata);
     return [
       {
         type: "text",
@@ -474,16 +474,21 @@ export function buildSingleBodyContents(record: ClaimedNotificationRecord, prima
 /**
  * Parses check-in reminder message to extract times and status
  */
-export function parseCheckInReminder(message: string) {
-  let startTime = '10:00 น.';
-  let graceLimit = '10:15 น.';
+export function parseCheckInReminder(message: string, metadata?: any) {
+  let startTime = 'ตามกะงานของคุณ';
+  let graceLimit = '-';
   const status = 'ยังไม่พบข้อมูลเช็คอิน';
   let warmReminder = 'รีบเข้าแอปมาลงเวลาก่อนถูกหักพลังชีวิต (HP) นะคะ';
 
-  // Extract start time, e.g., เลยเวลาเริ่มงานของวันนี้ (10:00)
-  const startTimeMatch = message.match(/เวลาเริ่มงานของวันนี้\s*\(?([0-9]{2}:[0-9]{2})\)?/);
-  if (startTimeMatch && startTimeMatch[1]) {
-    startTime = `${startTimeMatch[1]} น.`;
+  // Extract start time from metadata first
+  if (metadata && metadata.target_shift_time) {
+    startTime = `${metadata.target_shift_time} น.`;
+  } else {
+    // Extract start time, e.g., เลยเวลาเริ่มงานของวันนี้ (10:00)
+    const startTimeMatch = message.match(/เวลาเริ่มงานของวันนี้\s*\(?([0-9]{2}:[0-9]{2})\)?/);
+    if (startTimeMatch && startTimeMatch[1]) {
+      startTime = `${startTimeMatch[1]} น.`;
+    }
   }
 
   // Extract grace limit from message

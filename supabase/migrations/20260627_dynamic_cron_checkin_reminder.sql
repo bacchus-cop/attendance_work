@@ -201,6 +201,7 @@ BEGIN
                             message,
                             is_read,
                             link_path,
+                            metadata,
                             line_status
                         ) VALUES (
                             profile_rec.id,
@@ -209,6 +210,7 @@ BEGIN
                             notification_message,
                             FALSE,
                             'ATTENDANCE',
+                            jsonb_build_object('target_shift_time', start_time_val),
                             NULL
                         );
                     END IF;
