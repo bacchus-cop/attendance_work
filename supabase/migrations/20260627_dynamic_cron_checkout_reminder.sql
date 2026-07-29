@@ -52,7 +52,9 @@ BEGIN
     -- Parse shifts list into array of TIME, sorted ascending
     SELECT array_agg(trim(s)::TIME ORDER BY trim(s)::TIME) INTO shift_array
     FROM unnest(string_to_array(shifts_list_val, ',')) s
-    WHERE s IS NOT NULL AND trim(s) <> '';
+    WHERE s IS NOT NULL 
+      AND trim(s) <> ''
+      AND trim(s) ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$';
     
     IF shift_array IS NULL OR cardinality(shift_array) = 0 THEN
         RETURN '09:00'::TIME;
@@ -200,7 +202,7 @@ BEGIN
                     -- Dynamic END_TIME for this shift: shift start + MIN_HOURS
                     BEGIN
                         end_time_parsed := mapped_shift + (min_hours_val::INT || ' hours')::INTERVAL;
-                        display_time_str := to_char(end_time_parsed, 'HH24:MI');
+                        display_time_str := left(end_time_parsed::text, 5);
                     EXCEPTION WHEN OTHERS THEN
                         display_time_str := end_time_val;
                     END;
@@ -390,11 +392,11 @@ BEGIN
                 cron_expr := utc_minute || ' ' || utc_hour || ' * * *';
                 
                 -- Name of the job: e.g. checkout-reminder-0800
-                job_name := 'checkout-reminder-' || replace(to_char(shift_start_parsed, 'HH24:MI'), ':', '');
+                job_name := 'checkout-reminder-' || replace(left(shift_start_parsed::text, 5), ':', '');
                 
                 -- Schedule pg_cron job to call public.checkout_reminder_cron(shift_start_parsed)
                 BEGIN
-                    PERFORM cron.schedule(job_name, cron_expr, 'SELECT public.checkout_reminder_cron(''' || to_char(shift_start_parsed, 'HH24:MI') || '''::TIME)');
+                    PERFORM cron.schedule(job_name, cron_expr, 'SELECT public.checkout_reminder_cron(''' || left(shift_start_parsed::text, 5) || '''::TIME)');
                 EXCEPTION WHEN OTHERS THEN
                     -- Ignored if cron is not active
                 END;

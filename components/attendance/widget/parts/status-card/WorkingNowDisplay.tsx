@@ -15,6 +15,7 @@ interface WorkingNowDisplayProps {
     todayActiveLeave?: LeaveRequest | null;
     isApprovedLeaveToday?: boolean;
     todayRequests?: any[];
+    isDesktop?: boolean;
 }
 
 export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
@@ -27,7 +28,8 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
     onOpenLeave,
     todayActiveLeave,
     isApprovedLeaveToday,
-    todayRequests
+    todayRequests,
+    isDesktop = false
 }) => {
     const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
 
@@ -208,8 +210,14 @@ export const WorkingNowDisplay: React.FC<WorkingNowDisplayProps> = ({
             )}
 
             <button 
+                disabled={isDesktop}
                 onClick={() => setIsCheckOutModalOpen(true)}
-                className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2
+                    ${isDesktop 
+                        ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none' 
+                        : 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200 active:scale-95'
+                    }
+                `}
             >
                 <LogOut className="w-5 h-5" /> ตอกบัตรออก (Check Out)
             </button>

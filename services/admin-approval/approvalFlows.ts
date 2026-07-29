@@ -234,7 +234,7 @@ export async function approveAttendanceCorrection({
         .eq('date', shiftDateStr)
         .maybeSingle();
 
-    let finalReason = request.reason;
+    let finalReason = (request.reason || '').replace('[PROVISIONAL_CHECKOUT]', '').trim();
     if (customStartTime) {
         // Parse actual entry and exit times from customStartTime
         let adminEntryTime = customStartTime;

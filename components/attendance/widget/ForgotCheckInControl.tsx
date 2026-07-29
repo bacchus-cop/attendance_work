@@ -17,6 +17,7 @@ interface ForgotCheckInControlProps {
     leaveUsage?: LeaveUsage;
     todayActiveLeave?: LeaveRequest | null;
     availableLocations?: LocationDef[];
+    isDesktop?: boolean;
 }
 
 const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
@@ -26,7 +27,8 @@ const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
     onSubmit,
     leaveUsage,
     todayActiveLeave,
-    availableLocations = []
+    availableLocations = [],
+    isDesktop = false
 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -241,10 +243,16 @@ const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
     return (
         <>
             <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleStartForgotCheckIn}
-                className="py-2 px-4 bg-white border border-gray-200 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                disabled={isDesktop}
+                whileHover={isDesktop ? undefined : { scale: 1.02 }}
+                whileTap={isDesktop ? undefined : { scale: 0.98 }}
+                onClick={isDesktop ? undefined : handleStartForgotCheckIn}
+                className={`py-2 px-4 border rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2
+                    ${isDesktop
+                        ? 'bg-slate-50 border-slate-200 text-slate-300 cursor-not-allowed shadow-none'
+                        : 'bg-white border-gray-200 text-gray-400 hover:text-indigo-500 hover:border-indigo-200 cursor-pointer'
+                    }
+                `}
             >
                 <History className="w-4 h-4" /> ลืมลงเวลาเข้า?
             </motion.button>

@@ -22,6 +22,7 @@ interface NotCheckedInDisplayProps {
     todayLog: AttendanceLog | null;
     onOpenLeave?: (type?: any) => void;
     approvedFixedOtToday?: { id: string; reason: string; otHours?: number; fixedAmount?: number } | null;
+    isDesktop?: boolean;
 }
 
 export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
@@ -40,7 +41,8 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
     onNavigateToHistory,
     todayLog,
     onOpenLeave,
-    approvedFixedOtToday
+    approvedFixedOtToday,
+    isDesktop = false
 }) => {
     const isActualLeaveToday = isLeaveLog || (isApprovedLeaveToday && todayActiveLeave && !['WFH', 'ONSITE', 'LATE_ENTRY', 'OVERTIME', 'FORGOT_CHECKIN', 'FORGOT_CHECKOUT', 'FORGOT_BOTH', 'OUT_OF_RANGE_CHECKOUT', 'GPS_SPOOF_APPEAL'].includes(todayActiveLeave.type));
 
@@ -383,10 +385,10 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
                     <div className="flex flex-col gap-3">
                         <div className="relative group w-full">
                             <button 
-                                disabled={isBlockedByHoliday}
+                                disabled={isBlockedByHoliday || isDesktop}
                                 onClick={() => onOpenCheckIn(dayStatus.mode === 'HOLIDAY')}
                                 className={`w-full py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2
-                                    ${isBlockedByHoliday 
+                                    ${isBlockedByHoliday || isDesktop
                                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none' 
                                         : isActualLeaveToday
                                             ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 hover:text-slate-800 active:scale-95 shadow-none'
@@ -435,6 +437,7 @@ export const NotCheckedInDisplay: React.FC<NotCheckedInDisplayProps> = ({
                                 leaveUsage={leaveUsage}
                                 todayActiveLeave={todayActiveLeave}
                                 availableLocations={availableLocations}
+                                isDesktop={isDesktop}
                             />
                         )}
                     </div>

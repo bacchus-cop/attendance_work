@@ -66,6 +66,7 @@ DECLARE
     start_time_val TEXT := '10:00';
     shifts_enabled_val TEXT := 'false';
     shifts_list_val TEXT := '';
+    temp_start_val TEXT;
     late_buffer_val TEXT := '15';
     late_alert_mode_val TEXT := 'AFTER_LIMIT';
     late_alert_offset_val TEXT := '5';
@@ -87,12 +88,18 @@ BEGIN
     END IF;
 
     SELECT label INTO shifts_enabled_val FROM public.master_options WHERE type = 'WORK_CONFIG' AND key = 'MULTIPLE_SHIFTS_ENABLED' LIMIT 1;
-    IF shifts_enabled_val = 'true' THEN
+    IF LOWER(TRIM(shifts_enabled_val)) = 'true' THEN
         SELECT label INTO shifts_list_val FROM public.master_options WHERE type = 'WORK_CONFIG' AND key = 'MULTIPLE_SHIFTS_LIST' LIMIT 1;
-        IF shifts_list_val IS NOT NULL AND shifts_list_val <> '' THEN
+        IF shifts_list_val IS NOT NULL AND TRIM(shifts_list_val) <> '' THEN
             BEGIN
-                SELECT to_char(max(trim(s)::TIME), 'HH24:MI') INTO start_time_val
-                FROM unnest(string_to_array(shifts_list_val, ',')) s;
+                SELECT left(max(NULLIF(trim(s), '')::TIME)::text, 5) INTO temp_start_val
+                FROM unnest(string_to_array(shifts_list_val, ',')) s
+                WHERE NULLIF(trim(s), '') IS NOT NULL 
+                  AND NULLIF(trim(s), '') ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$';
+                
+                IF temp_start_val IS NOT NULL THEN
+                    start_time_val := temp_start_val;
+                END IF;
             EXCEPTION WHEN OTHERS THEN
                 -- Fallback to original START_TIME if parsing fails
             END;
@@ -134,7 +141,7 @@ BEGIN
 
     -- Calculate grace limit time
     grace_limit_time := start_time_parsed + (late_buffer_minutes || ' minutes')::INTERVAL;
-    grace_limit_str := to_char(grace_limit_time, 'HH24:MI');
+    grace_limit_str := left(grace_limit_time::text, 5);
 
     -- Setup dynamic title & message
     IF late_alert_mode_val = 'BEFORE_LIMIT' THEN
@@ -219,6 +226,7 @@ DECLARE
     start_time_val TEXT;
     shifts_enabled_val TEXT;
     shifts_list_val TEXT;
+    temp_start_val TEXT;
     late_buffer_val TEXT;
     late_alert_mode_val TEXT;
     late_alert_offset_val TEXT;
@@ -271,18 +279,31 @@ BEGIN
         END IF;
 
         -- Override start_time_val with max shift if multiple shifts are enabled
-        IF shifts_enabled_val = 'true' AND shifts_list_val IS NOT NULL AND shifts_list_val <> '' THEN
+        IF LOWER(TRIM(shifts_enabled_val)) = 'true' AND shifts_list_val IS NOT NULL AND TRIM(shifts_list_val) <> '' THEN
             BEGIN
-                SELECT to_char(max(trim(s)::TIME), 'HH24:MI') INTO start_time_val
-                FROM unnest(string_to_array(shifts_list_val, ',')) s;
+                SELECT left(max(NULLIF(trim(s), '')::TIME)::text, 5) INTO temp_start_val
+                FROM unnest(string_to_array(shifts_list_val, ',')) s
+                WHERE NULLIF(trim(s), '') IS NOT NULL 
+                  AND NULLIF(trim(s), '') ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$';
+                
+                IF temp_start_val IS NOT NULL THEN
+                    start_time_val := temp_start_val;
+                END IF;
             EXCEPTION WHEN OTHERS THEN
                 -- Keep start_time_val if parse error
             END;
         END IF;
 
+        IF start_time_val IS NULL THEN
+            start_time_val := '10:00';
+        END IF;
+
         -- Parse START_TIME as TIME
         BEGIN
             start_time_parsed := start_time_val::TIME;
+            IF start_time_parsed IS NULL THEN
+                start_time_parsed := '10:00'::TIME;
+            END IF;
         EXCEPTION WHEN OTHERS THEN
             start_time_parsed := '10:00'::TIME;
         END;
@@ -355,6 +376,7 @@ DECLARE
     start_time_val TEXT;
     shifts_enabled_val TEXT;
     shifts_list_val TEXT;
+    temp_start_val TEXT;
     late_buffer_val TEXT;
     late_alert_mode_val TEXT;
     late_alert_offset_val TEXT;
@@ -393,18 +415,31 @@ BEGIN
     END IF;
 
     -- Override start_time_val with max shift if multiple shifts are enabled
-    IF shifts_enabled_val = 'true' AND shifts_list_val IS NOT NULL AND shifts_list_val <> '' THEN
+    IF LOWER(TRIM(shifts_enabled_val)) = 'true' AND shifts_list_val IS NOT NULL AND TRIM(shifts_list_val) <> '' THEN
         BEGIN
-            SELECT to_char(max(trim(s)::TIME), 'HH24:MI') INTO start_time_val
-            FROM unnest(string_to_array(shifts_list_val, ',')) s;
+            SELECT left(max(NULLIF(trim(s), '')::TIME)::text, 5) INTO temp_start_val
+            FROM unnest(string_to_array(shifts_list_val, ',')) s
+            WHERE NULLIF(trim(s), '') IS NOT NULL 
+              AND NULLIF(trim(s), '') ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$';
+            
+            IF temp_start_val IS NOT NULL THEN
+                start_time_val := temp_start_val;
+            END IF;
         EXCEPTION WHEN OTHERS THEN
             -- Keep start_time_val if parse error
         END;
     END IF;
 
+    IF start_time_val IS NULL THEN
+        start_time_val := '10:00';
+    END IF;
+
     -- Parse START_TIME as TIME
     BEGIN
         start_time_parsed := start_time_val::TIME;
+        IF start_time_parsed IS NULL THEN
+            start_time_parsed := '10:00'::TIME;
+        END IF;
     EXCEPTION WHEN OTHERS THEN
         start_time_parsed := '10:00'::TIME;
     END;

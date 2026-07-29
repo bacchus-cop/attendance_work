@@ -437,7 +437,7 @@ export const useCheckOutState = ({
         const timeTag = checkOutStatus === 'EARLY_LEAVE' ? `[EARLY:${time}]` : `[TIME:${time}]`;
         
         // เพิ่มแท็ก (Location Mismatch) เข้าไปในกรณีที่เป็นการเช็คเอาท์นอกพื้นที่
-        const locationMismatchTag = checkOutStatus !== 'EARLY_LEAVE' ? ' (Location Mismatch)' : '';
+        const locationMismatchTag = (checkOutStatus !== 'EARLY_LEAVE' || status === 'OUT_OF_RANGE') ? ' (Location Mismatch)' : '';
         const reasonWithProv = `${timeTag} ${finalReason}${locationMismatchTag} ${provTag}`;
         
         await onConfirm(
@@ -448,7 +448,12 @@ export const useCheckOutState = ({
 
         // Also submit the formal request for admin review/approval
         const requestType = checkOutStatus === 'EARLY_LEAVE' ? 'EARLY_LEAVE' : 'OUT_OF_RANGE_CHECKOUT';
-        await onRequest(time, finalReason, requestType);
+        
+        let submitReason = finalReason;
+        if (status === 'OUT_OF_RANGE' && !submitReason.includes('(Location Mismatch)')) {
+            submitReason = `${submitReason} (Location Mismatch)`.trim();
+        }
+        await onRequest(time, submitReason, requestType);
 
         setIsSubmitting(false);
         onClose();

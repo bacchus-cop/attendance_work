@@ -287,7 +287,7 @@ export async function rejectLateEntryRequest({
             .replace(/\s+/g, ' ')
             .trim();
 
-        const updatedNote = mergeAttendanceNotes(cleanedNote, `[REJECTED LATE_ENTRY] ปฏิเสธคำร้องเข้าสาย (สายจริงจากเกณฑ์ปกติ: ${lateMinutes} นาที) เหตุ flow-ปกติ: ${reason}`);
+        const updatedNote = mergeAttendanceNotes(cleanedNote, `[REJECTED LATE_ENTRY] ปฏิเสธคำร้องเข้าสาย (สายจริงจากเกณฑ์ปกติ: ${lateMinutes} นาที) เหตุผล: ${reason}`);
         
         const targetLogStatus = calculatedStatus === 'LATE' ? 'LATE' : (freshLog.check_out_time ? 'COMPLETED' : 'WORKING');
 
@@ -322,7 +322,7 @@ export async function rejectForgotCheckOutRequest({
         const noteText = freshLog.note || '';
         const isProvisionalCheckout = noteText.includes('[PROVISIONAL_CHECKOUT]');
         const isEarlyLeaveAppeal = req.type === 'EARLY_LEAVE' || (isProvisionalCheckout && 
-            !req.reason?.includes('(Location Mismatch)'));
+            !req.reason?.includes('(Location Mismatch)') && req.type !== 'FORGOT_CHECKOUT');
 
         if (isEarlyLeaveAppeal) {
             // 1. Calculate missing minutes and apply early leave penalty
@@ -390,6 +390,7 @@ export async function rejectForgotCheckOutRequest({
             );
 
             await supabase.from('attendance_logs').update({
+                check_out_time: null,
                 status: 'ACTION_REQUIRED',
                 note: updatedNote
             }).eq('id', freshLog.id);

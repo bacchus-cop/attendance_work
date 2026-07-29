@@ -214,6 +214,12 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                 finalReasonWithLink = `[REMOTE:${linkedRemoteType}] ${finalReasonWithLink}`;
             }
 
+            if (type === 'FORGOT_CHECKOUT' || type === 'OUT_OF_RANGE_CHECKOUT') {
+                if (!finalReasonWithLink.includes('[PROVISIONAL_CHECKOUT]')) {
+                    finalReasonWithLink = `[PROVISIONAL_CHECKOUT] ${finalReasonWithLink}`;
+                }
+            }
+
             // --- OT Request Handling ---
             if (type === 'OVERTIME') {
                 const isFixedOt = reason.includes('[OT:FIXED]');
@@ -610,7 +616,33 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
             }
 
             if (type === 'FORGOT_CHECKOUT' || type === 'OUT_OF_RANGE_CHECKOUT') {
-                await supabase.from('attendance_logs').update({ status: 'PENDING_VERIFY' }).eq('user_id', currentUser.id).eq('date', startDateStr);
+                const { data: existingLog } = await supabase
+                    .from('attendance_logs')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .eq('date', startDateStr)
+                    .maybeSingle();
+
+                let finalNote = '[PROVISIONAL_CHECKOUT]';
+                if (existingLog?.note) {
+                    if (!existingLog.note.includes('[PROVISIONAL_CHECKOUT]')) {
+                        finalNote = `${existingLog.note} ${finalNote}`.trim();
+                    } else {
+                        finalNote = existingLog.note;
+                    }
+                }
+
+                const payload: any = {
+                    status: 'PENDING_VERIFY',
+                    note: finalNote,
+                    check_out_time: endDate.toISOString()
+                };
+
+                await supabase
+                    .from('attendance_logs')
+                    .update(payload)
+                    .eq('user_id', currentUser.id)
+                    .eq('date', startDateStr);
             }
 
             if (type === 'WFH' || type === 'ONSITE') {

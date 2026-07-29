@@ -152,7 +152,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                     <XCircle className="w-4 h-4" /> ปฏิเสธคำขอ
                 </button>
 
-                {isTimeSpecific && !isFixed && requestType !== 'OVERTIME' && requestType !== 'FORGOT_BOTH' && (
+                {isTimeSpecific && !isFixed && requestType !== 'OVERTIME' && requestType !== 'FORGOT_BOTH' && requestType !== 'FORGOT_CHECKIN' && (
                     <button
                         type="button"
                         onClick={() => setIsAdjustPickerOpen(true)}
@@ -175,7 +175,7 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                         onApprove(targetTime);
                     }}
                     disabled={isSubmitting}
-                    className="px-4 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
+                    className="flex-1 py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-2xl text-xs sm:text-sm font-semibold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-green-100 cursor-pointer"
                     id="approve-requested-trigger-btn"
                 >
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -307,13 +307,6 @@ export const ActionFooter: React.FC<ActionFooterProps> = ({
                                                     desc: 'เปลี่ยนสถานะเป็น ต้องการดำเนินการ เพื่อแจ้งเตือนใบแดงให้พนักงานยื่นประวัติใหม่',
                                                     color: 'border-slate-200 hover:border-amber-300 hover:bg-amber-50/20 bg-white text-slate-700',
                                                     activeColor: 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/40 text-amber-950',
-                                                },
-                                                {
-                                                    id: 'KEEP_WORKING',
-                                                    title: 'ปรับเวลาและปฏิบัติงานต่อ (Adjust Time & Keep Working)',
-                                                    desc: 'รักษาสถานะเข้าทำงานตามเดิม แต่แอดมินขอปรับเปลี่ยนเวลาเช็คอินจริงตามเอกสารประกอบ',
-                                                    color: 'border-slate-200 hover:border-sky-300 hover:bg-sky-50/20 bg-white text-slate-700',
-                                                    activeColor: 'ring-2 ring-sky-500 border-sky-500 bg-sky-50/40 text-sky-950',
                                                 }
                                             ].map(option => (
                                                 <button
