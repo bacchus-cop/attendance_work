@@ -53,6 +53,10 @@ export const compressImage = async (file: File, maxWidth = 1920, quality = 0.8):
                     return;
                 }
                 
+                // Fill white background to prevent black background on transparent/HEIC images
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, width, height);
+
                 ctx.drawImage(img, 0, 0, width, height);
 
                 canvas.toBlob(
