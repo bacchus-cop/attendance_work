@@ -27,12 +27,12 @@ export function buildFooterButtons(
     record.link_path === 'ATTENDANCE'
   );
 
-  // For ADMIN notifications (APPROVAL_REQ) -> send to leave-requests or ot-requests
+  // For ADMIN notifications (APPROVAL_REQ, APPROVAL_SUMMARY) -> send to leave-requests or ot-requests
   // For Employee notifications (e.g. approval results, rejections) -> send to history
   // For Check-In reminders -> send to CHECK_IN
   let tab = 'history';
-  if (record.type === 'APPROVAL_REQ') {
-    tab = (reqType === 'OT') ? 'ot-requests' : 'leave-requests';
+  if (record.type === 'APPROVAL_REQ' || record.type === 'APPROVAL_SUMMARY') {
+    tab = (reqType === 'OT' || reqType === 'OVERTIME') ? 'ot-requests' : 'leave-requests';
   } else if (isAttendanceAlert) {
     tab = 'CHECK_IN';
   } else {

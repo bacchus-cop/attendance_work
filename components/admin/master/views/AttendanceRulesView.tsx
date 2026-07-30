@@ -24,7 +24,7 @@ interface AttendanceRulesViewProps {
 type TabType = 'time' | 'location' | 'selfie' | 'types';
 
 const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({ 
-    masterOptions, onUpdate, onAdd, onCreate, onEdit, onDelete 
+    masterOptions, onUpdate, onAdd, onCreate, onEdit, onDelete, saveMasterOptionsBulk
 }) => {
     // Game Config Context (For Syncing Scores)
     const { config, updateConfigValue } = useGameConfig();
@@ -144,15 +144,16 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
     }, [masterOptions, config]);
 
     const handleSaveTimeConfig = async () => {
-        const updateOrInsert = async (key: string, val: string) => {
+        const optionsToSave: any[] = [];
+        const prepareUpdateOrInsert = (key: string, val: string) => {
             const existing = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === key);
             if (existing) {
                 // อัปเดตเฉพาะกรณีที่ค่ามีการเปลี่ยนแปลงจริง (Dirty Checking)
                 if (existing.label !== val) {
-                    await onUpdate({ ...existing, label: val });
+                    optionsToSave.push({ ...existing, label: val });
                 }
             } else {
-                 await onAdd({
+                 optionsToSave.push({
                     type: 'WORK_CONFIG',
                     key: key,
                     label: val,
@@ -163,39 +164,55 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
             }
         };
 
-        await updateOrInsert('START_TIME', tempTimeConfig.start);
-        await updateOrInsert('END_TIME', tempTimeConfig.end);
-        await updateOrInsert('LATE_BUFFER', tempTimeConfig.buffer);
-        await updateOrInsert('MIN_HOURS', tempTimeConfig.minHours);
-        await updateOrInsert('OT_THRESHOLD_HOURS', tempTimeConfig.otThreshold);
-        await updateOrInsert('CHECKOUT_PENALTY_TIME', tempTimeConfig.checkoutPenaltyTime);
-        await updateOrInsert('DAILY_SUMMARY_DELAY_HOURS', tempTimeConfig.dailySummaryDelayHours);
-        await updateOrInsert('DAILY_SUMMARY_TIME', tempTimeConfig.dailySummaryTime || '18:00');
-        await updateOrInsert('LINE_SUMMARY_DESTINATION', tempTimeConfig.lineSummaryDestination);
-        await updateOrInsert('ENABLE_ATTENDANCE_RACE', tempTimeConfig.enableAttendanceRace);
-        await updateOrInsert('LATE_ALERT_MODE', tempTimeConfig.lateAlertMode || 'AFTER_LIMIT');
-        await updateOrInsert('LATE_ALERT_OFFSET', tempTimeConfig.lateAlertOffset || '5');
-        await updateOrInsert('MULTIPLE_SHIFTS_ENABLED', tempTimeConfig.multipleShiftsEnabled || 'false');
-        await updateOrInsert('MULTIPLE_SHIFTS_LIST', tempTimeConfig.multipleShiftsList || '08:00, 08:30, 09:00');
-        await updateOrInsert('LINE_APPROVAL_MODE', tempTimeConfig.lineApprovalMode || 'INTERACTIVE');
-        await updateOrInsert('LINE_HEADER_TITLE', tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center');
-        await updateOrInsert('LATE_ALERT_TARGET_ROLES', tempTimeConfig.lateAlertTargetRoles || 'BOTH');
-        await updateOrInsert('CHECKOUT_PENALTY_TARGET_ROLES', tempTimeConfig.checkoutPenaltyTargetRoles || 'BOTH');
-        await updateOrInsert('CHECKOUT_ALERT_ENABLED', tempTimeConfig.checkoutAlertEnabled || 'true');
-        await updateOrInsert('CHECKOUT_ALERT_MODE', tempTimeConfig.checkoutAlertMode || 'AFTER_LIMIT');
-        await updateOrInsert('CHECKOUT_ALERT_OFFSET', tempTimeConfig.checkoutAlertOffset || '5');
-        await updateOrInsert('CHECKOUT_ALERT_TARGET_ROLES', tempTimeConfig.checkoutAlertTargetRoles || 'BOTH');
-        await updateOrInsert('ADMIN_ABSENT_PENALTY_ENABLED', tempTimeConfig.adminAbsentPenaltyEnabled || 'false');
-        await updateOrInsert('FORGOT_CHECKIN_LIMIT_HOURS', tempTimeConfig.forgotCheckInLimitHours || '12');
-        await updateOrInsert('LINE_SUBMISSION_ALERT_MODE', tempTimeConfig.lineSubmissionAlertMode || 'ADMIN_PRIVATE');
+        prepareUpdateOrInsert('START_TIME', tempTimeConfig.start);
+        prepareUpdateOrInsert('END_TIME', tempTimeConfig.end);
+        prepareUpdateOrInsert('LATE_BUFFER', tempTimeConfig.buffer);
+        prepareUpdateOrInsert('MIN_HOURS', tempTimeConfig.minHours);
+        prepareUpdateOrInsert('OT_THRESHOLD_HOURS', tempTimeConfig.otThreshold);
+        prepareUpdateOrInsert('CHECKOUT_PENALTY_TIME', tempTimeConfig.checkoutPenaltyTime);
+        prepareUpdateOrInsert('DAILY_SUMMARY_DELAY_HOURS', tempTimeConfig.dailySummaryDelayHours);
+        prepareUpdateOrInsert('DAILY_SUMMARY_TIME', tempTimeConfig.dailySummaryTime || '18:00');
+        prepareUpdateOrInsert('LINE_SUMMARY_DESTINATION', tempTimeConfig.lineSummaryDestination);
+        prepareUpdateOrInsert('ENABLE_ATTENDANCE_RACE', tempTimeConfig.enableAttendanceRace);
+        prepareUpdateOrInsert('LATE_ALERT_MODE', tempTimeConfig.lateAlertMode || 'AFTER_LIMIT');
+        prepareUpdateOrInsert('LATE_ALERT_OFFSET', tempTimeConfig.lateAlertOffset || '5');
+        prepareUpdateOrInsert('MULTIPLE_SHIFTS_ENABLED', tempTimeConfig.multipleShiftsEnabled || 'false');
+        prepareUpdateOrInsert('MULTIPLE_SHIFTS_LIST', tempTimeConfig.multipleShiftsList || '08:00, 08:30, 09:00');
+        prepareUpdateOrInsert('LINE_APPROVAL_MODE', tempTimeConfig.lineApprovalMode || 'INTERACTIVE');
+        prepareUpdateOrInsert('LINE_HEADER_TITLE', tempTimeConfig.lineHeaderTitle || 'Juijui Alert Center');
+        prepareUpdateOrInsert('LATE_ALERT_TARGET_ROLES', tempTimeConfig.lateAlertTargetRoles || 'BOTH');
+        prepareUpdateOrInsert('CHECKOUT_PENALTY_TARGET_ROLES', tempTimeConfig.checkoutPenaltyTargetRoles || 'BOTH');
+        prepareUpdateOrInsert('CHECKOUT_ALERT_ENABLED', tempTimeConfig.checkoutAlertEnabled || 'true');
+        prepareUpdateOrInsert('CHECKOUT_ALERT_MODE', tempTimeConfig.checkoutAlertMode || 'AFTER_LIMIT');
+        prepareUpdateOrInsert('CHECKOUT_ALERT_OFFSET', tempTimeConfig.checkoutAlertOffset || '5');
+        prepareUpdateOrInsert('CHECKOUT_ALERT_TARGET_ROLES', tempTimeConfig.checkoutAlertTargetRoles || 'BOTH');
+        prepareUpdateOrInsert('ADMIN_ABSENT_PENALTY_ENABLED', tempTimeConfig.adminAbsentPenaltyEnabled || 'false');
+        prepareUpdateOrInsert('FORGOT_CHECKIN_LIMIT_HOURS', tempTimeConfig.forgotCheckInLimitHours || '12');
+        prepareUpdateOrInsert('LINE_SUBMISSION_ALERT_MODE', tempTimeConfig.lineSubmissionAlertMode || 'ADMIN_PRIVATE');
+        
+        if (optionsToSave.length > 0) {
+            if (saveMasterOptionsBulk) {
+                await saveMasterOptionsBulk(optionsToSave);
+            } else {
+                for (const opt of optionsToSave) {
+                    if (opt.id) {
+                        await onUpdate(opt as MasterOption);
+                    } else {
+                        await onAdd(opt);
+                    }
+                }
+            }
+        }
         
         const parsedRate = parseInt(otJpRate, 10);
         if (!isNaN(parsedRate)) {
             const currentMultipliers = config.GLOBAL_MULTIPLIERS || {};
-            await updateConfigValue('GLOBAL_MULTIPLIERS', {
-                ...currentMultipliers,
-                OT_JP_RATE_PER_HOUR: parsedRate
-            });
+            if (currentMultipliers.OT_JP_RATE_PER_HOUR !== parsedRate) {
+                await updateConfigValue('GLOBAL_MULTIPLIERS', {
+                    ...currentMultipliers,
+                    OT_JP_RATE_PER_HOUR: parsedRate
+                });
+            }
         }
         
         await showAlert('บันทึกเวลาทำการเรียบร้อย ✅', 'สำเร็จ');
@@ -204,14 +221,15 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
     const handleSaveSelfieConfig = async () => {
         setIsSavingSelfie(true);
         try {
-            const updateOrInsert = async (key: string, val: string) => {
+            const optionsToSave: any[] = [];
+            const prepareUpdateOrInsert = (key: string, val: string) => {
                 const existing = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === key);
                 if (existing) {
                     if (existing.label !== val) {
-                        await onUpdate({ ...existing, label: val });
+                        optionsToSave.push({ ...existing, label: val });
                     }
                 } else {
-                    await onAdd({
+                    optionsToSave.push({
                         type: 'WORK_CONFIG',
                         key: key,
                         label: val,
@@ -222,8 +240,22 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
                 }
             };
 
-            await updateOrInsert('SELFIE_VERIFICATION_MODE', selfieMode);
-            await updateOrInsert('SELFIE_VERIFICATION_DAYS', selfieDays);
+            prepareUpdateOrInsert('SELFIE_VERIFICATION_MODE', selfieMode);
+            prepareUpdateOrInsert('SELFIE_VERIFICATION_DAYS', selfieDays);
+
+            if (optionsToSave.length > 0) {
+                if (saveMasterOptionsBulk) {
+                    await saveMasterOptionsBulk(optionsToSave);
+                } else {
+                    for (const opt of optionsToSave) {
+                        if (opt.id) {
+                            await onUpdate(opt as MasterOption);
+                        } else {
+                            await onAdd(opt);
+                        }
+                    }
+                }
+            }
 
             await showAlert('บันทึกการตั้งค่าการถ่ายรูปเรียบร้อย 📸', 'สำเร็จ');
         } catch (e: any) {

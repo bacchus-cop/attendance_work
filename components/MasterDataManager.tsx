@@ -196,6 +196,7 @@ const MasterDataManager: React.FC = () => {
                                         masterOptions={masterOptions}
                                         onUpdate={updateMasterOption}
                                         onAdd={addMasterOption}
+                                        saveMasterOptionsBulk={saveMasterOptionsBulk}
                                     />
                                 ) : activeTab === 'YEARLY' ? (
                                     <AnnualHolidayManager masterOptions={masterOptions} />

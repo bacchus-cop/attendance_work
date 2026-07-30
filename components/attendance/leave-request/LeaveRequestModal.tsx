@@ -170,6 +170,10 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
     }, [isOpen, fixedType, isForgotCheckInAllowed, isForgotCheckOutAllowed, startTime, lateBuffer, forgotCheckInWindow, onClose, showAlert]);
 
     const handleSelectType = (key: string) => {
+        if (!isDriveConnected) {
+            connectDrive();
+            return;
+        }
         setDirection('forward');
         setSelectedType(key);
         setStep('FORM');

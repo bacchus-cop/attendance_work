@@ -200,7 +200,9 @@ export const adminApprovalService = {
             translateRequestType('OVERTIME'),
             currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
             'อนุมัติแล้ว ✅',
-            adminNote
+            adminNote,
+            otReq.id,
+            { request_type: 'OT' }
         );
 
         return { success: true, checkOutMsg };
@@ -314,7 +316,9 @@ export const adminApprovalService = {
             translateRequestType(request.type),
             currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
             'อนุมัติแล้ว ✅',
-            adminNote
+            adminNote,
+            request.id,
+            { request_type: request.type }
         );
 
         return { success: true, type: request.type };
@@ -357,7 +361,9 @@ export const adminApprovalService = {
                 translateRequestType('OVERTIME'),
                 currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
                 'ถูกปฏิเสธ ❌',
-                reason
+                reason,
+                otReq.id,
+                { request_type: 'OT' }
             );
 
             return { success: true };
@@ -458,7 +464,9 @@ export const adminApprovalService = {
                 translateRequestType(targetReq.type),
                 currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
                 'ถูกปฏิเสธ ❌',
-                reason
+                reason,
+                targetReq.id,
+                { request_type: targetReq.type }
             );
         }
 

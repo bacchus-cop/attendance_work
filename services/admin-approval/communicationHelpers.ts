@@ -42,6 +42,7 @@ export async function sendGroupSummaryNotification(
     adminName: string, 
     statusText: string, 
     reason: string = '',
+    relatedId?: string,
     metadata?: any
 ) {
     let message = `พนักงาน: ${employeeName}\nประเภทคำขอ: ${requestType}\nสถานะ: ${statusText}\nผู้พิจารณา: ${adminName}`;
@@ -56,6 +57,7 @@ export async function sendGroupSummaryNotification(
         message,
         is_read: false,
         link_path: 'ATTENDANCE',
+        related_id: relatedId || null,
         metadata: metadata || null
     });
 }

@@ -79,21 +79,45 @@ Deno.serve(async (req: any) => {
 
         // Handle GROUP_ONLY Deduplication: If this is an APPROVAL_REQ, we only send it once to the group.
         if (record.type === 'APPROVAL_REQ' && submissionAlertMode === 'GROUP_ONLY' && record.related_id) {
-          const { data: alreadySent } = await supabaseAdmin
+          const { data: siblings, error: siblingError } = await supabaseAdmin
             .from('notifications')
-            .select('id')
+            .select('id, line_status')
             .eq('related_id', record.related_id)
-            .eq('type', 'APPROVAL_REQ')
-            .eq('line_status', 'SUCCESS')
-            .limit(1);
+            .eq('type', 'APPROVAL_REQ');
 
-          if (alreadySent && alreadySent.length > 0) {
-            console.log(`Deduplication: Notification for related_id ${record.related_id} was already sent to group successfully. Marking sibling notifications as ABANDONED.`);
-            await supabaseAdmin.from('notifications').update({
-              line_status: 'ABANDONED',
-              last_error: 'Duplicate request notification for group already sent'
-            }).in('id', claimedIds);
-            return;
+          if (siblingError) {
+            console.error("Error fetching sibling notifications for deduplication:", siblingError);
+          }
+
+          if (siblings && siblings.length > 0) {
+            // Check if any sibling is already marked as SUCCESS
+            const hasSuccess = siblings.some((s: any) => s.line_status === 'SUCCESS');
+            if (hasSuccess) {
+              console.log(`Deduplication: Notification for related_id ${record.related_id} was already sent to group successfully. Marking sibling notifications as ABANDONED.`);
+              await supabaseAdmin.from('notifications').update({
+                line_status: 'ABANDONED',
+                last_error: 'Duplicate request notification for group already sent'
+              }).in('id', claimedIds);
+              return;
+            }
+
+            // Sort sibling IDs lexicographically to find the smallest UUID (Elected Representative)
+            const sortedIds = siblings.map((s: any) => s.id).sort();
+            const smallestId = sortedIds[0];
+
+            // Only the notification with the smallest ID proceeds to send to the LINE group
+            const isElected = record.id === smallestId;
+
+            if (!isElected) {
+              console.log(`Deduplication: Notification ${record.id} is NOT the elected leader (Elected: ${smallestId}). Abandoning to avoid duplicate group send.`);
+              await supabaseAdmin.from('notifications').update({
+                line_status: 'ABANDONED',
+                last_error: 'Deduplicated: Sibling notification will handle group alert'
+              }).in('id', claimedIds);
+              return;
+            } else {
+              console.log(`Deduplication: Notification ${record.id} IS the elected leader. Proceeding to send the group alert.`);
+            }
           }
         }
 

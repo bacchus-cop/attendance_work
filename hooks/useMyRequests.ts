@@ -389,12 +389,18 @@ export const useMyRequests = (currentUser?: any, options: { enabled?: boolean } 
                     if (pendingLeave) {
                         const originalTypeName = ATTENDANCE_REGISTRY[pendingLeave.type as LeaveType]?.label || pendingLeave.type;
                         const newTypeName = ATTENDANCE_REGISTRY[type]?.label || type;
+                        
+                        // Hide loading overlay so the user can interact with the confirmation dialog
+                        hideLoading();
+
                         const confirmReplace = await showConfirm(
                             `ในระบบมีคำขอลา [${originalTypeName}] ที่อยู่ระหว่างรออนุมัติอยู่แล้วในวันนี้\nคุณต้องการ ยกเลิกคำขอเดิม แล้วยื่นคำขอ [${newTypeName}] นี้เข้าไปแทนที่หรือไม่?`,
                             'ตรวจพบคำขอลาซ้ำซ้อน'
                         );
 
                         if (confirmReplace) {
+                            // Re-show loading as the process resumes
+                            showLoading('กำลังอัปโหลดไฟล์และส่งคำขอเข้าระบบ...');
                             await supabase
                                 .from('leave_requests')
                                 .update({ 
