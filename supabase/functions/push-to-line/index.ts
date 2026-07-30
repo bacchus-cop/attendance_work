@@ -11,7 +11,8 @@ import {
   getWorkConfigOptions,
   markAsAbandoned,
   markAsSuccess,
-  markAsFailed
+  markAsFailed,
+  getSubmissionAlertMode
 } from './services/database.ts';
 import { sendLineMessages } from './services/lineService.ts';
 import { buildFlexHeader } from './templates/flexBase.ts';
@@ -63,8 +64,41 @@ Deno.serve(async (req: any) => {
 
         claimedIds = claimedRecords.map((r: any) => r.id);
 
-        // 1. Get Target LINE ID / Destination
-        const { targetDestination } = await getTargetDestination(supabaseAdmin, record);
+        // Fetch LINE submission alert mode config
+        const submissionAlertMode = await getSubmissionAlertMode(supabaseAdmin);
+
+        // Handle NONE Mode: Suppress notification entirely
+        if (record.type === 'APPROVAL_REQ' && submissionAlertMode === 'NONE') {
+          console.log(`Notification ${record.id} bypassed because LINE_SUBMISSION_ALERT_MODE is set to NONE.`);
+          await supabaseAdmin.from('notifications').update({
+            line_status: 'ABANDONED',
+            last_error: 'Submission notifications disabled by LINE_SUBMISSION_ALERT_MODE = NONE'
+          }).in('id', claimedIds);
+          return;
+        }
+
+        // Handle GROUP_ONLY Deduplication: If this is an APPROVAL_REQ, we only send it once to the group.
+        if (record.type === 'APPROVAL_REQ' && submissionAlertMode === 'GROUP_ONLY' && record.related_id) {
+          const { data: alreadySent } = await supabaseAdmin
+            .from('notifications')
+            .select('id')
+            .eq('related_id', record.related_id)
+            .eq('type', 'APPROVAL_REQ')
+            .eq('line_status', 'SUCCESS')
+            .limit(1);
+
+          if (alreadySent && alreadySent.length > 0) {
+            console.log(`Deduplication: Notification for related_id ${record.related_id} was already sent to group successfully. Marking sibling notifications as ABANDONED.`);
+            await supabaseAdmin.from('notifications').update({
+              line_status: 'ABANDONED',
+              last_error: 'Duplicate request notification for group already sent'
+            }).in('id', claimedIds);
+            return;
+          }
+        }
+
+        // 1. Get Target LINE ID / Destination (passing submissionAlertMode)
+        const { targetDestination } = await getTargetDestination(supabaseAdmin, record, submissionAlertMode);
 
         // CASE: No LINE ID or Destination Linked
         if (!targetDestination) {

@@ -145,10 +145,16 @@ const ForgotCheckInControl: React.FC<ForgotCheckInControlProps> = ({
 
             const [latestHour, latestMinute] = latestStartTimeStr.split(':').map(Number);
             const latestWorkStartTime = setMinutes(setHours(now, latestHour), latestMinute);
-            const hideAfterTime = addHours(latestWorkStartTime, 12);
+
+            const limitHoursOpt = masterOptions?.find(o => o.type === 'WORK_CONFIG' && o.key === 'FORGOT_CHECKIN_LIMIT_HOURS');
+            const limitHours = limitHoursOpt && limitHoursOpt.label && !isNaN(parseInt(limitHoursOpt.label, 10))
+                ? parseInt(limitHoursOpt.label, 10)
+                : 12;
+
+            const hideAfterTime = addHours(latestWorkStartTime, limitHours);
 
             try {
-                // Check if NOW is within the window (Starts after first shift buffer, ends 12 hours after last shift)
+                // Check if NOW is within the window (Starts after first shift buffer, ends dynamic limit hours after last shift)
                 const shouldShow = isWithinInterval(now, { start: showAfterTime, end: hideAfterTime });
                 setIsVisible(shouldShow);
             } catch (e) {

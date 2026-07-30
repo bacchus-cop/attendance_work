@@ -192,16 +192,8 @@ const LeaveApprovalList: React.FC<LeaveApprovalListProps> = ({
             setActiveCategory('ALL');
             const matchingReq = combinedRequests.find(r => r.id === highlightReqId);
             if (matchingReq) {
-                if (matchingReq.status === 'PENDING') {
-                    setFilterStatus('PENDING');
-                } else {
-                    setFilterStatus('HISTORY');
-                    if (matchingReq.status === 'APPROVED') {
-                        setHistorySubFilter('APPROVED');
-                    } else if (matchingReq.status === 'REJECTED') {
-                        setHistorySubFilter('REJECTED');
-                    }
-                }
+                // Option 1: Always stay on the PENDING tab to let the admin work on remaining pending items
+                setFilterStatus('PENDING');
                 
                 // Auto-open modal if not already open for this request
                 if (!selectedRequest || selectedRequest.id !== highlightReqId) {

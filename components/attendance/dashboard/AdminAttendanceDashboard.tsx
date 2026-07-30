@@ -58,9 +58,11 @@ interface UserStat {
 }
 
 import { useMasterData } from '../../../hooks/useMasterData';
+import { BRAND_CONFIG } from '../../../config/brand';
 
 const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ users }) => {
     const { masterOptions } = useMasterData();
+    const shouldHideAdmins = BRAND_CONFIG.hideAdminFromAttendanceDashboardMode === 2;
     const { otRequests } = useUserSession();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [dateFilterMode, setDateFilterMode] = useState<'MONTH' | 'CUSTOM'>('MONTH');
@@ -230,7 +232,7 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
         const today = new Date();
 
         // Initialize for all active users
-        users.filter(u => u.isActive).forEach(u => {
+        users.filter(u => u.isActive && !(shouldHideAdmins && u.role === 'ADMIN')).forEach(u => {
             statsMap[u.id] = {
                 userId: u.id,
                 present: 0,
@@ -390,7 +392,7 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
         });
 
         return Object.values(statsMap);
-    }, [users, logs, startTime, lateBuffer, workingDaysInMonth, otRequests, currentMonth, dateFilterMode, customStartDate, customEndDate, multipleShifts]);
+    }, [users, logs, startTime, lateBuffer, workingDaysInMonth, otRequests, currentMonth, dateFilterMode, customStartDate, customEndDate, multipleShifts, shouldHideAdmins]);
 
     // Index users by ID for O(1) lookups
     const userMap = useMemo(() => {
@@ -399,15 +401,21 @@ const AdminAttendanceDashboard: React.FC<AdminAttendanceDashboardProps> = ({ use
 
     // Compute unique positions from active users
     const positions = useMemo(() => {
-        const unique = new Set(users.filter(u => u.isActive && u.position).map(u => u.position));
+        const unique = new Set(
+            users
+                .filter(u => u.isActive && u.position && !(shouldHideAdmins && u.role === 'ADMIN'))
+                .map(u => u.position)
+        );
         return Array.from(unique).sort();
-    }, [users]);
+    }, [users, shouldHideAdmins]);
 
     // Filtering (Two-Phase Filtering)
     const filteredStats = useMemo(() => {
         const baseFiltered = userStats.filter(stat => {
             const user = userMap.get(stat.userId);
             if (!user) return false;
+
+            if (shouldHideAdmins && user.role === 'ADMIN') return false;
 
             const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesEmploymentType = selectedEmploymentType === 'ALL' || user.employmentType === selectedEmploymentType;

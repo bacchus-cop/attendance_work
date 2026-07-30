@@ -252,6 +252,32 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
                 {/* Header Profile Panel */}
                 <RequestHeader request={request} onClose={onClose} />
 
+                {/* Friendly Status Banner if the request is not pending */}
+                {request.status !== 'PENDING' && (
+                    <div className={`px-6 py-3 flex items-center justify-between gap-3 text-sm font-bold shadow-sm ${
+                        request.status === 'APPROVED' 
+                            ? 'bg-emerald-50 text-emerald-800 border-b border-emerald-100' 
+                            : 'bg-rose-50 text-rose-800 border-b border-rose-100'
+                    }`} id="request-status-friendly-banner">
+                        <div className="flex items-center gap-2">
+                            {request.status === 'APPROVED' ? (
+                                <>
+                                    <span className="text-lg">✅</span>
+                                    <span>คำขอนี้ได้รับการอนุมัติเรียบร้อยแล้ว</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-lg">❌</span>
+                                    <span>คำขอนี้ถูกปฏิเสธแล้ว</span>
+                                </>
+                            )}
+                        </div>
+                        <span className="text-xs bg-white px-2.5 py-1 rounded-full border shadow-xs font-black">
+                            {request.status === 'APPROVED' ? 'APPROVED' : 'REJECTED'}
+                        </span>
+                    </div>
+                )}
+
                 {/* Main Content Area */}
                 <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
                     

@@ -19,10 +19,12 @@ import ExportSettingsModal from './ExportSettingsModal';
 import { useMasterDataContext } from '../../../context/MasterDataContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
+import { BRAND_CONFIG } from '../../../config/brand';
 
 // --- Main Dashboard ---
 const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
     const { masterOptions } = useMasterDataContext();
+    const shouldHideAdmins = BRAND_CONFIG.hideAdminFromAttendanceDashboardMode === 2;
     
     // Toast state
     const [exportToast, setExportToast] = useState<{ filename: string; id: string } | null>(null);
@@ -208,12 +210,18 @@ const AdminWeeklyTimesheet: React.FC<{ users: User[] }> = ({ users }) => {
 
     // Department Grouping Logic
     const departments = useMemo(() => {
-        const set = new Set(users.map(u => u.position || 'General'));
+        const set = new Set(
+            users
+                .filter(u => !(shouldHideAdmins && u.role === 'ADMIN'))
+                .map(u => u.position || 'General')
+        );
         return Array.from(set).sort();
-    }, [users]);
+    }, [users, shouldHideAdmins]);
 
     const filteredAndGroupedUsers = useMemo(() => {
         const filtered = users.filter(u => {
+            if (shouldHideAdmins && u.role === 'ADMIN') return false;
+
             const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesDept = filterDepartment === 'ALL' || u.position === filterDepartment;
             const matchesActive = showInactive || u.isActive;
