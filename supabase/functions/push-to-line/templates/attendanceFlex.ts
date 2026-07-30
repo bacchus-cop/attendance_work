@@ -154,7 +154,99 @@ export function buildDailySummaryPayload(targetDestination: string, record: Clai
  */
 export function buildSingleBodyContents(record: ClaimedNotificationRecord, primaryConfig: { label: string; color: string; emoji: string }) {
   const isApprovalReq = record.type === 'APPROVAL_REQ';
+  const isApprovalSummary = record.type === 'APPROVAL_SUMMARY';
   const parsed = parseNotificationPayload(record);
+
+  if (isApprovalSummary) {
+    const msgLines = (record.message || '').split('\n');
+    const boxContents = msgLines.map(line => {
+        const parts = line.split(':');
+        if (parts.length < 2) {
+            return {
+                type: "text",
+                text: line,
+                size: "xs",
+                color: "#334155",
+                wrap: true,
+                margin: "xs"
+            };
+        }
+        const key = parts[0];
+        const val = parts.slice(1).join(':').trim();
+        return {
+            type: "box",
+            layout: "horizontal",
+            margin: "xs",
+            contents: [
+                { type: "text", text: key + ":", size: "xs", color: "#64748b", flex: 3, weight: "bold" },
+                { type: "text", text: val, size: "xs", color: "#0f172a", flex: 5, wrap: true }
+            ]
+        };
+    });
+
+    return [
+      {
+        type: "box",
+        layout: "horizontal",
+        backgroundColor: "#f0fdf4",
+        borderColor: "#bbf7d0",
+        borderWidth: "1px",
+        cornerRadius: "md",
+        paddingAll: "10px",
+        alignItems: "center",
+        contents: [
+          { type: "text", text: "📋", size: "md", flex: 0 },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "sm",
+            flex: 1,
+            contents: [
+              {
+                type: "text",
+                text: record.title || "สรุปผลการพิจารณา",
+                weight: "bold",
+                size: "sm",
+                color: "#166534"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        type: "box",
+        layout: "vertical",
+        margin: "md",
+        backgroundColor: "#ffffff",
+        borderColor: "#e2e8f0",
+        borderWidth: "1px",
+        cornerRadius: "md",
+        paddingAll: "12px",
+        contents: boxContents
+      },
+      {
+        type: "box",
+        layout: "horizontal",
+        margin: "md",
+        contents: [
+          {
+            type: "text",
+            text: primaryConfig.label,
+            size: "xxs",
+            color: "#94a3b8",
+            flex: 1
+          },
+          {
+            type: "text",
+            text: formatThaiTime(record.created_at),
+            size: "xxs",
+            color: "#cbd5e1",
+            align: "end"
+          }
+        ]
+      }
+    ];
+  }
 
   if (isApprovalReq) {
     return [

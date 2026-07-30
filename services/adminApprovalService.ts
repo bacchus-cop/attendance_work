@@ -24,7 +24,8 @@ import {
 import {
     sendApprovalNotification,
     sendRejectionNotification,
-    publishToTeamChannel
+    publishToTeamChannel,
+    sendGroupSummaryNotification
 } from './admin-approval/communicationHelpers';
 
 export function translateRequestType(type: string): string {
@@ -193,6 +194,15 @@ export const adminApprovalService = {
 
         await publishToTeamChannel(`✅ คำขอ OT ของ **${otReq.user?.name || 'พนักงาน'}** วันที่ ${dateDisplay} (${finalHours} ชม.) ได้รับการอนุมัติแล้ว${checkOutMsg}${adminNote ? `\n📝 บันทึก: ${adminNote}` : ''}`);
 
+        await sendGroupSummaryNotification(
+            otReq.userId,
+            otReq.user?.name || 'พนักงาน',
+            translateRequestType('OVERTIME'),
+            currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
+            'อนุมัติแล้ว ✅',
+            adminNote
+        );
+
         return { success: true, checkOutMsg };
     },
 
@@ -296,7 +306,16 @@ export const adminApprovalService = {
 
         await sendApprovalNotification(request.userId, notifTitle, notifMsg, request.id, { request_type: request.type });
 
-        await publishToTeamChannel(`✅ คำขอของ **${request.user?.name}** (${translateRequestType(request.type)}) ได้รับการอนุมัติแล้ว`);
+        await publishToTeamChannel(`✅ คำขอของ **${request.user?.name || 'พนักงาน'}** (${translateRequestType(request.type)}) ได้รับการอนุมัติแล้ว`);
+
+        await sendGroupSummaryNotification(
+            request.userId,
+            request.user?.name || 'พนักงาน',
+            translateRequestType(request.type),
+            currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
+            'อนุมัติแล้ว ✅',
+            adminNote
+        );
 
         return { success: true, type: request.type };
     },
@@ -331,6 +350,15 @@ export const adminApprovalService = {
 
             const dateDisplay = format(new Date(otReq.date), 'd MMM yyyy');
             await sendRejectionNotification(otReq.userId, '❌ ปฏิเสธคำขอพิเศษ (OT)', `คำขอ OT วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`, otReq.id, { request_type: 'OT' });
+
+            await sendGroupSummaryNotification(
+                otReq.userId,
+                otReq.user?.name || 'พนักงาน',
+                translateRequestType('OVERTIME'),
+                currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
+                'ถูกปฏิเสธ ❌',
+                reason
+            );
 
             return { success: true };
         }
@@ -423,6 +451,15 @@ export const adminApprovalService = {
             await sendRejectionNotification(targetReq.userId, '❌ ปฏิเสธคำขอ', `คำขอประเภท: ${translateRequestType(targetReq.type)} วันที่: ${dateDisplay} ถูกปฏิเสธ\nเหตุผล: ${reason}`, targetReq.id, { request_type: targetReq.type });
 
             await publishToTeamChannel(`❌ คำขอของ **${targetReq.user?.name || 'พนักงาน'}** (${translateRequestType(targetReq.type)}) ถูกปฏิเสธ`);
+
+            await sendGroupSummaryNotification(
+                targetReq.userId,
+                targetReq.user?.name || 'พนักงาน',
+                translateRequestType(targetReq.type),
+                currentUser.name || currentUser.full_name || 'ผู้พิจารณา (Admin)',
+                'ถูกปฏิเสธ ❌',
+                reason
+            );
         }
 
         return { success: true };
