@@ -67,7 +67,7 @@ const LateInterventionOverlay: React.FC<LateInterventionOverlayProps> = ({
                         if (onSwitchToLeave) onSwitchToLeave();
                         else onClose();
                     }}
-                    className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-2"
                 >
                     <Clock className="w-5 h-5" /> ยื่นคำขอเข้าสาย (Late Request) / ขออนุญาตลา
                 </motion.button>
