@@ -55,7 +55,8 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         checkoutAlertEnabled: 'true',
         checkoutAlertMode: 'AFTER_LIMIT',
         checkoutAlertOffset: '5',
-        checkoutAlertTargetRoles: 'BOTH'
+        checkoutAlertTargetRoles: 'BOTH',
+        adminAbsentPenaltyEnabled: 'false'
     });
     const [isStartTimeOpen, setIsStartTimeOpen] = useState(false);
     const [isEndTimeOpen, setIsEndTimeOpen] = useState(false);
@@ -91,8 +92,9 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         const checkoutAlertModeOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_MODE');
         const checkoutAlertOffsetOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_OFFSET');
         const checkoutAlertTargetRolesOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'CHECKOUT_ALERT_TARGET_ROLES');
+        const adminAbsentPenaltyEnabledOpt = masterOptions.find(o => o.type === 'WORK_CONFIG' && o.key === 'ADMIN_ABSENT_PENALTY_ENABLED');
         
-        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt || lateAlertTargetRolesOpt || checkoutPenaltyTargetRolesOpt || checkoutAlertEnabledOpt || checkoutAlertModeOpt || checkoutAlertOffsetOpt || checkoutAlertTargetRolesOpt) {
+        if (startOpt || endOpt || bufferOpt || minHoursOpt || otThresholdOpt || checkoutPenaltyTimeOpt || dailySummaryDelayHoursOpt || lineSummaryDestinationOpt || enableRaceOpt || lateAlertModeOpt || lateAlertOffsetOpt || shiftsEnabledOpt || shiftsListOpt || lineApprovalModeOpt || lineHeaderTitleOpt || lateAlertTargetRolesOpt || checkoutPenaltyTargetRolesOpt || checkoutAlertEnabledOpt || checkoutAlertModeOpt || checkoutAlertOffsetOpt || checkoutAlertTargetRolesOpt || adminAbsentPenaltyEnabledOpt) {
             setTempTimeConfig({
                 start: startOpt?.label || '10:00',
                 end: endOpt?.label || '19:00',
@@ -114,7 +116,8 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
                 checkoutAlertEnabled: checkoutAlertEnabledOpt?.label || 'true',
                 checkoutAlertMode: checkoutAlertModeOpt?.label || 'AFTER_LIMIT',
                 checkoutAlertOffset: checkoutAlertOffsetOpt?.label || '5',
-                checkoutAlertTargetRoles: checkoutAlertTargetRolesOpt?.label || 'BOTH'
+                checkoutAlertTargetRoles: checkoutAlertTargetRolesOpt?.label || 'BOTH',
+                adminAbsentPenaltyEnabled: adminAbsentPenaltyEnabledOpt?.label || 'false'
             });
         }
 
@@ -173,6 +176,7 @@ const AttendanceRulesView: React.FC<AttendanceRulesViewProps> = ({
         await updateOrInsert('CHECKOUT_ALERT_MODE', tempTimeConfig.checkoutAlertMode || 'AFTER_LIMIT');
         await updateOrInsert('CHECKOUT_ALERT_OFFSET', tempTimeConfig.checkoutAlertOffset || '5');
         await updateOrInsert('CHECKOUT_ALERT_TARGET_ROLES', tempTimeConfig.checkoutAlertTargetRoles || 'BOTH');
+        await updateOrInsert('ADMIN_ABSENT_PENALTY_ENABLED', tempTimeConfig.adminAbsentPenaltyEnabled || 'false');
         
         const parsedRate = parseInt(otJpRate, 10);
         if (!isNaN(parsedRate)) {

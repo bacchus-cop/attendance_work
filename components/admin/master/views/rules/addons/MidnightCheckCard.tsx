@@ -128,6 +128,44 @@ const MidnightCheckCard: React.FC<MidnightCheckCardProps> = ({
                         })}
                     </div>
                 </div>
+
+                {/* 🛡️ กฎแอดมินโดนหักคะแนนขาดงาน */}
+                <div className="mt-4 space-y-2">
+                    <label className="text-xs font-black text-gray-700 tracking-tight flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" /> หักคะแนนแอดมินขาดงาน
+                        </span>
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                            (tempTimeConfig.adminAbsentPenaltyEnabled === 'true') 
+                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                : 'bg-slate-50 text-slate-500 border border-slate-100'
+                        }`}>
+                            {(tempTimeConfig.adminAbsentPenaltyEnabled === 'true') ? 'เปิด (Active)' : 'ปิด (Bypassed)'}
+                        </span>
+                    </label>
+                    <div className="flex items-center justify-between p-3 bg-slate-50/60 border border-slate-200/50 rounded-2xl">
+                        <div className="space-y-0.5 pr-2">
+                            <p className="text-[11px] font-bold text-gray-700 leading-tight">ลงโทษ/แจ้งเตือนเมื่อแอดมินขาดงาน</p>
+                            <p className="text-[9.5px] font-medium text-gray-400 leading-snug">เมื่อ ADMIN ขาดงาน จะไม่หักคะแนนและไม่แจ้งเตือนใน LINE/Notification</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setTempTimeConfig(prev => ({ 
+                                ...prev, 
+                                adminAbsentPenaltyEnabled: prev.adminAbsentPenaltyEnabled === 'true' ? 'false' : 'true' 
+                            }))}
+                            className={`w-10 h-6 shrink-0 rounded-full transition-colors relative focus:outline-none ${
+                                (tempTimeConfig.adminAbsentPenaltyEnabled === 'true') ? 'bg-amber-600' : 'bg-slate-200'
+                            }`}
+                        >
+                            <span 
+                                className={`block w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                                    (tempTimeConfig.adminAbsentPenaltyEnabled === 'true') ? 'left-5' : 'left-1'
+                                }`} 
+                            />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Interactive Simulator Section */}

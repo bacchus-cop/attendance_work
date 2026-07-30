@@ -49,6 +49,7 @@ export const DEFAULT_OPTIONS = [
     { type: 'WORK_CONFIG', key: 'HP_PENALTY_LATE_RATE', label: '1', color: '', sort_order: 15, description: 'จำนวน HP ที่จะหักต่อรอบนาทีสาย (เช่น หักรอบละ 1 HP)' },
     { type: 'WORK_CONFIG', key: 'LINE_APPROVAL_MODE', label: 'INTERACTIVE', color: '', sort_order: 16, description: 'รูปแบบการอนุมัติผ่าน LINE Chat (INTERACTIVE หรือ SIMPLE_NOTIF)' },
     { type: 'WORK_CONFIG', key: 'LINE_HEADER_TITLE', label: 'Juijui Alert Center', color: '', sort_order: 17, description: 'หัวข้อหลักการ์ดแจ้งเตือนใน LINE Flex Message' },
+    { type: 'WORK_CONFIG', key: 'ADMIN_ABSENT_PENALTY_ENABLED', label: 'false', color: '', sort_order: 18, description: 'กำหนดให้แอดมิน (ADMIN) โดนหักคะแนนและรับแจ้งเตือนเมื่อขาดงานหรือไม่' },
     { type: 'ATTENDANCE_TYPE', key: 'OFFICE', label: 'เข้าออฟฟิศ', color: 'bg-indigo-600', sort_order: 10 },
     { type: 'ATTENDANCE_TYPE', key: 'ON_TIME', label: 'มาตรงเวลา (On Time)', color: 'bg-emerald-600', sort_order: 15, description: '{"icon": "CheckCircle", "category": "STANDARD"}' },
     { type: 'ATTENDANCE_TYPE', key: 'WFH', label: 'ทำงานที่บ้าน (WFH)', color: 'bg-blue-600', sort_order: 10, description: '{"icon": "Home", "category": "STANDARD"}' },

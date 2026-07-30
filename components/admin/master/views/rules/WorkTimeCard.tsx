@@ -26,6 +26,7 @@ export interface WorkTimeConfig {
     checkoutAlertMode?: string;
     checkoutAlertOffset?: string;
     checkoutAlertTargetRoles?: string;
+    adminAbsentPenaltyEnabled?: string;
 }
 
 interface WorkTimeCardProps {
