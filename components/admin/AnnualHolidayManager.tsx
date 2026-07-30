@@ -323,7 +323,7 @@ const AnnualHolidayManager: React.FC<AnnualHolidayManagerProps> = ({ masterOptio
                                     onChange={setSelectedTypeFilter}
                                     showAllOption={false}
                                     clearable={false}
-                                    align="left"
+                                    align="right"
                                     placeholder="ทุกประเภท"
                                 />
                             </div>

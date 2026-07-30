@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -132,42 +132,52 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
         return outdatedLogs && outdatedLogs.length > 0;
     }, [outdatedLogs]);
 
+    const prevIsOpenRef = useRef(false);
+
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
-            if (fixedType) {
-                if (fixedType === 'FORGOT_CHECKIN' && !isForgotCheckInAllowed) {
-                    onClose();
-                    showAlert(
-                        `การแจ้งลืมลงเวลาเข้างาน จะสามารถส่งคำขอได้หลังจากเวลาเริ่มงานไปแล้ว ${earliestStartTimeStr} + ${lateBuffer} นาที จนถึงไม่เกิน 12 ชั่วโมงหลังเริ่มงานเท่านั้น (ช่วงเวลาที่กำหนดคือ ${forgotCheckInWindow.showStr} น. - ${forgotCheckInWindow.hideStr} น.) ในเวลอนอกเหนือจากนี้กรุณาทำการลงเวลาเข้างานตามปกติครับ`,
-                        "เงื่อนไขการส่งคำร้อง"
-                    );
-                    return;
+            
+            // Only initialize step and selectedType when the modal is transitioning from closed to open
+            if (!prevIsOpenRef.current) {
+                if (fixedType) {
+                    if (fixedType === 'FORGOT_CHECKIN' && !isForgotCheckInAllowed) {
+                        prevIsOpenRef.current = isOpen;
+                        onClose();
+                        showAlert(
+                            `การแจ้งลืมลงเวลาเข้างาน จะสามารถส่งคำขอได้หลังจากเวลาเริ่มงานไปแล้ว ${earliestStartTimeStr} + ${lateBuffer} นาที จนถึงไม่เกิน 12 ชั่วโมงหลังเริ่มงานเท่านั้น (ช่วงเวลาที่กำหนดคือ ${forgotCheckInWindow.showStr} น. - ${forgotCheckInWindow.hideStr} น.) ในเวลอนอกเหนือจากนี้กรุณาทำการลงเวลาเข้างานตามปกติครับ`,
+                            "เงื่อนไขการส่งคำร้อง"
+                        );
+                        return;
+                    }
+                    if (fixedType === 'FORGOT_CHECKOUT' && !isForgotCheckOutAllowed) {
+                        prevIsOpenRef.current = isOpen;
+                        onClose();
+                        showAlert(
+                            "การแจ้งลืมลงเวลาออกงานของวันก่อนๆ กรุณากดแจ้งที่กล่องแจ้งเตือนสีส้มที่หน้าหลักของระบบ หรือหากต้องการยื่นย้อนหลังเป็นกรณีพิเศษ กรุณาติดต่อผู้ดูแลระบบครับ",
+                            "เงื่อนไขการส่งคำร้อง"
+                        );
+                        return;
+                    }
+                    setSelectedType(fixedType);
+                    setDirection('forward');
+                    setStep('FORM');
+                } else {
+                    setSelectedType(null);
+                    setDirection('forward');
+                    setStep('SELECT');
                 }
-                if (fixedType === 'FORGOT_CHECKOUT' && !isForgotCheckOutAllowed) {
-                    onClose();
-                    showAlert(
-                        "การแจ้งลืมลงเวลาออกงานของวันก่อนๆ กรุณากดแจ้งที่กล่องแจ้งเตือนสีส้มที่หน้าหลักของระบบ หรือหากต้องการยื่นย้อนหลังเป็นกรณีพิเศษ กรุณาติดต่อผู้ดูแลระบบครับ",
-                        "เงื่อนไขการส่งคำร้อง"
-                    );
-                    return;
-                }
-                setSelectedType(fixedType);
-                setDirection('forward');
-                setStep('FORM');
-            } else {
-                setSelectedType(null);
-                setDirection('forward');
-                setStep('SELECT');
             }
         } else {
             document.body.style.overflow = 'unset';
         }
 
+        prevIsOpenRef.current = isOpen;
+
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isOpen, fixedType, isForgotCheckInAllowed, isForgotCheckOutAllowed, startTime, lateBuffer, forgotCheckInWindow, onClose, showAlert]);
+    }, [isOpen, fixedType, isForgotCheckInAllowed, isForgotCheckOutAllowed, startTime, lateBuffer, forgotCheckInWindow.showStr, forgotCheckInWindow.hideStr, onClose, showAlert]);
 
     const handleSelectType = (key: string) => {
         if (!isDriveConnected) {
