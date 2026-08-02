@@ -35,7 +35,7 @@ const cacheMap = new Map<string, {
     timestamp: number;
 }>();
 
-const isStorageRequiredStatus = (status: string): boolean => {
+export const isStorageRequiredStatus = (status: string): boolean => {
     if (!status) return false;
     const s = status.toUpperCase();
     return s.includes('EDIT') || 

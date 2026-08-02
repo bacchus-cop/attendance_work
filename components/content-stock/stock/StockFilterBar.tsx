@@ -34,6 +34,8 @@ interface StockFilterBarProps {
 
     showStockOnly: boolean;
     setShowStockOnly: (val: boolean) => void;
+    onlyOverdue?: boolean;
+    onlyMissingStorage?: boolean;
     clearFilters: () => void;
     
     // Data
@@ -56,6 +58,8 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
     filterShootDateEnd, setFilterShootDateEnd,
 
     showStockOnly, setShowStockOnly,
+    onlyOverdue,
+    onlyMissingStorage,
     clearFilters,
     channels, masterOptions,
     tasks
@@ -87,23 +91,31 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
 
     const categoryOptions = useMemo(() => {
         const base = masterOptions.filter(o => o.type === 'CATEGORY' && o.isActive);
-        const filtered = filterChannel.length === 0 
-            ? base 
-            : base.filter(o => !o.parentKey || filterChannel.includes(o.parentKey));
+        
+        let filtered = base;
+        if (filterPillar.length > 0) {
+            filtered = base.filter(o => o.parentKey && filterPillar.includes(o.parentKey));
+        } else if (filterChannel.length > 0) {
+            const channelPillars = masterOptions.filter(
+                o => o.type === 'PILLAR' && o.parentKey && filterChannel.includes(o.parentKey)
+            );
+            const pillarKeys = channelPillars.map(p => p.key);
+            filtered = base.filter(o => o.parentKey && pillarKeys.includes(o.parentKey));
+        }
             
         return filtered.map(o => {
             if (o.parentKey) {
-                const channel = channels.find(c => c.id === o.parentKey);
-                if (channel) {
+                const parentPillar = masterOptions.find(p => p.type === 'PILLAR' && p.key === o.parentKey);
+                if (parentPillar) {
                     return {
                         ...o,
-                        label: `${o.label} (${channel.name})`
+                        label: `${o.label} (${parentPillar.label})`
                     };
                 }
             }
             return o;
         }).sort((a, b) => a.sortOrder - b.sortOrder);
-    }, [masterOptions, channels, filterChannel]);
+    }, [masterOptions, channels, filterChannel, filterPillar]);
 
     const statusOptions = useMemo(() => 
         masterOptions.filter(o => o.type === 'STATUS' && o.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -138,6 +150,20 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
                         tasks={tasks}
+                        activeFilters={{
+                            status: filterStatuses,
+                            channelId: filterChannel,
+                            format: filterFormat,
+                            pillar: filterPillar,
+                            category: filterCategory,
+                            contentSubTab: contentSubTab,
+                            showStockOnly: showStockOnly,
+                            onlyOverdue: onlyOverdue,
+                            onlyMissingStorage: onlyMissingStorage,
+                            hasShootDate: filterHasShootDate,
+                            shootDateStart: filterShootDateStart,
+                            shootDateEnd: filterShootDateEnd
+                        }}
                     />
 
                     {/* Shoot Date Picker Component */}

@@ -187,6 +187,8 @@ const ContentStock: React.FC<ContentStockProps> = ({ tasks: globalTasks, channel
                     
                     showStockOnly={showStockOnly}
                     setShowStockOnly={setShowStockOnly}
+                    onlyOverdue={filterOnlyOverdue}
+                    onlyMissingStorage={filterOnlyMissingStorage}
                     clearFilters={clearFilters}
                     channels={channels}
                     masterOptions={masterOptions}
@@ -221,6 +223,7 @@ const ContentStock: React.FC<ContentStockProps> = ({ tasks: globalTasks, channel
                         onAddToWorkbox={onAddToWorkbox}
                         onEditScript={onEditScript}
                         onOpenAnalytics={(content) => setSelectedContentForAnalytics(content)}
+                        onTagClick={(tag) => setSearchQuery(`#${tag} `)}
                     />
 
                     {/* Scanning Ray effect during transitions */}
