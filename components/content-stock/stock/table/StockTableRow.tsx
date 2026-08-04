@@ -1,13 +1,17 @@
-
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Package, ClipboardList, Tag, FileText, MoreHorizontal, CalendarPlus, Inbox, Video, BarChart3, AlertCircle, Zap } from 'lucide-react';
-import { format, differenceInDays, startOfToday } from 'date-fns';
-import th from 'date-fns/locale/th';
-import { Task, Channel, User, MasterOption } from '../../../../types';
+import { Video, Zap, AlertCircle } from 'lucide-react';
+import { differenceInDays, startOfToday } from 'date-fns';
+import { Task, Channel, MasterOption } from '../../../../types';
 import { ColumnKey } from './StockTableSettings';
-import { useGlobalDialog } from '../../../../context/GlobalDialogContext';
 import { isStockTerminalStatus } from '../../../../config/status';
+
+// Imported Parts
+import { StockSubChecklist } from './parts/StockSubChecklist';
+import { StockRowMetadata } from './parts/StockRowMetadata';
+import { StockStorageBadge } from './parts/StockStorageBadge';
+import { StockDynamicCell } from './parts/StockDynamicCell';
+import { StockRowActions } from './parts/StockRowActions';
 
 interface StockTableRowProps {
     task: Task;
@@ -31,6 +35,9 @@ interface StockTableRowProps {
     getPillarLabel: (key?: string) => string;
     getCategoryLabel: (key?: string) => string;
     onTagClick?: (tag: string) => void;
+    onUpdateLocalTask?: (task: Task, isDelete?: boolean) => void;
+    onUpdateSubChecklist?: (id: string, progress: Record<string, boolean>) => Promise<boolean>;
+    masterOptions?: MasterOption[];
 }
 
 const StockTableRow = React.memo(React.forwardRef<HTMLTableRowElement, StockTableRowProps>(({
@@ -54,11 +61,12 @@ const StockTableRow = React.memo(React.forwardRef<HTMLTableRowElement, StockTabl
     getFormatLabel,
     getPillarLabel,
     getCategoryLabel,
-    onTagClick
+    onTagClick,
+    onUpdateLocalTask,
+    onUpdateSubChecklist,
+    masterOptions = []
 }, ref) => {
-    const { showConfirm } = useGlobalDialog();
-    const channelStyle = channel ? channel.color : 'bg-gray-100 text-gray-500 border-gray-200';
-
+    
     const isInsightOverdue = useMemo(() => {
         const isTerminal = isStockTerminalStatus(task.status);
             
@@ -153,256 +161,67 @@ const StockTableRow = React.memo(React.forwardRef<HTMLTableRowElement, StockTabl
                         task.isInShootQueue ? 'to-indigo-50 group-hover:to-indigo-100' : 'to-white group-hover:to-indigo-50'
                     }`} />
                 </div>
+                
+                {/* Meta Tags & Storage Badges */}
                 <div className="flex flex-wrap items-center gap-1.5">
-                    {channel ? (
-                        <div 
-                            className="flex items-center justify-center p-0.5 rounded-full bg-white border border-slate-100 shadow-sm hover:border-indigo-200 transition-colors"
-                            title={channel.name}
-                        >
-                            {channel.logoUrl ? (
-                                <img src={channel.logoUrl} alt={channel.name} className="w-6 h-6 rounded-full object-cover shadow-sm" referrerPolicy="no-referrer" />
-                            ) : (
-                                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-sm" style={{ backgroundColor: channel.color || '#6366f1' }}>
-                                    {channel.name.charAt(0)}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <span className="text-[9px] px-2 py-0.5 rounded-full border border-slate-100 text-slate-400 uppercase tracking-tight">-</span>
-                    )}
-                    {task.contentFormats && task.contentFormats.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                            <span className="text-[9px] text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100 font-bold flex items-center">
-                                {getFormatLabel(task.contentFormats[0])}
-                            </span>
-                            {task.contentFormats.length > 1 && (
-                                <div className="relative group/tooltip">
-                                    <motion.span 
-                                        whileHover={{ scale: 1.2, rotate: [0, -10, 10, -10, 0] }}
-                                        transition={{ 
-                                            scale: { type: "spring", stiffness: 400, damping: 10 },
-                                            rotate: { duration: 0.4, ease: "easeInOut" }
-                                        }}
-                                        className="text-[9px] text-purple-500 bg-purple-100/50 px-2 py-0.5 rounded-full border border-purple-200 font-bold cursor-help flex items-center justify-center"
-                                    >
-                                        +{task.contentFormats.length - 1}
-                                    </motion.span>
-                                    
-                                    {/* Custom Animated Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-all duration-300 translate-y-2 group-hover/tooltip:translate-y-0 z-50">
-                                        <div className="bg-white/90 backdrop-blur-xl text-purple-900 text-[10px] font-bold px-3 py-2 rounded-2xl shadow-2xl shadow-purple-200/50 border border-purple-100 flex flex-col gap-1.5 min-w-max">
-                                            <div className="text-[8px] text-purple-500 uppercase tracking-widest mb-0.5 opacity-70">Format อื่นๆ</div>
-                                            {task.contentFormats.slice(1).map(f => (
-                                                <div key={f} className="flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.4)]" />
-                                                    {getFormatLabel(f)}
-                                                </div>
-                                            ))}
-                                            {/* Arrow */}
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-[6px] border-transparent border-t-white/90" />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        null
-                    )}
-                    {task.pillar && <span className="text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 font-bold flex items-center">{getPillarLabel(task.pillar)}</span>}
-                    {task.category && <span className="text-[9px] text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100 font-bold flex items-center"><Tag className="w-2.5 h-2.5 mr-1 opacity-50" />{getCategoryLabel(task.category)}</span>}
-                    {task.tags && task.tags.length > 0 && (
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                            {task.tags.slice(0, 2).map((tag) => (
-                                <motion.span 
-                                    key={tag} 
-                                    whileHover={{ scale: 1.05, y: -0.5 }}
-                                    onClick={() => onTagClick?.(tag)}
-                                    className="text-[9px] font-bold inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/5 to-purple-500/5 hover:from-indigo-500/10 hover:to-purple-500/10 text-indigo-650 hover:text-indigo-700 border border-indigo-500/20 shadow-[0_2px_4px_rgba(99,102,241,0.03)] hover:shadow-[0_6px_12px_rgba(99,102,241,0.12)] hover:border-indigo-400/50 transition-all duration-300 cursor-pointer"
-                                >
-                                    <span className="text-[10px] text-indigo-400 font-extrabold leading-none animate-pulse">#</span>
-                                    {tag}
-                                </motion.span>
-                            ))}
-                            {task.tags.length > 2 && (
-                                <div className="relative group/tag-tooltip">
-                                    <motion.span 
-                                        whileHover={{ scale: 1.1 }}
-                                        className="text-[9px] text-indigo-500 bg-white px-1.5 py-0.5 rounded-full border border-indigo-100 font-extrabold cursor-help flex items-center justify-center shadow-[0_2px_4px_rgba(99,102,241,0.02)] hover:shadow-[0_4px_8px_rgba(99,102,241,0.08)] transition-all"
-                                    >
-                                        +{task.tags.length - 2}
-                                    </motion.span>
-                                    
-                                    {/* Custom Animated Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover/tag-tooltip:opacity-100 pointer-events-none transition-all duration-300 translate-y-2 group-hover/tag-tooltip:translate-y-0 z-50">
-                                        <div className="bg-white/95 backdrop-blur-xl text-indigo-900 text-[10px] font-bold px-3 py-2 rounded-2xl shadow-xl border border-indigo-100 flex flex-col gap-1.5 min-w-max">
-                                            <div className="text-[8px] text-indigo-400 uppercase tracking-widest mb-0.5 opacity-80">แท็กทั้งหมด</div>
-                                            {task.tags.slice(2).map(t => (
-                                                <div 
-                                                    key={t} 
-                                                    onClick={() => onTagClick?.(t)}
-                                                    className="flex items-center gap-1.5 text-indigo-700 font-extrabold cursor-pointer hover:underline"
-                                                >
-                                                    <span className="text-indigo-400">#</span>
-                                                    {t}
-                                                </div>
-                                            ))}
-                                            {/* Arrow */}
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-[6px] border-transparent border-t-white" />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    <StockRowMetadata
+                        task={task}
+                        channel={channel}
+                        getFormatLabel={getFormatLabel}
+                        getPillarLabel={getPillarLabel}
+                        getCategoryLabel={getCategoryLabel}
+                        onTagClick={onTagClick}
+                    />
+                    <StockStorageBadge
+                        driveLabel={task.driveLabel}
+                        localPath={task.localPath}
+                    />
                 </div>
+
+                {/* Sub-checklist Progress Section */}
+                <StockSubChecklist
+                    taskId={task.id}
+                    currentStatus={task.status}
+                    subChecklistProgress={task.subChecklistProgress}
+                    masterOptions={masterOptions}
+                    onUpdateSubChecklist={onUpdateSubChecklist}
+                    onUpdateLocalTask={onUpdateLocalTask}
+                    task={task}
+                />
             </td>
 
             {/* Dynamic Columns */}
             {columnOrder.map((key) => {
                 if (!visibleColumns.includes(key)) return null;
                 const width = columnWidths[key] || 150;
-
-                switch (key) {
-                    case 'shortNote':
-                        return (
-                            <td key={key} className="px-4 py-5 align-top hidden md:table-cell" style={{ width }}>
-                                <div className="flex items-start gap-2">
-                                    <FileText className="w-3.5 h-3.5 text-slate-300 mt-0.5 flex-shrink-0" />
-                                    <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed italic">
-                                        {task.description || task.remark || 'ไม่มีรายละเอียดเพิ่มเติม...'}
-                                    </p>
-                                </div>
-                            </td>
-                        );
-                    case 'status':
-                        const bgClass = statusInfo.color.split(' ').find(c => c.startsWith('bg-')) || 'bg-gray-200';
-                        const textClass = statusInfo.color.split(' ').find(c => c.startsWith('text-')) || 'text-gray-700';
-                        
-                        return (
-                            <td key={key} className="px-4 py-5 text-center align-middle hidden md:table-cell" style={{ width }}>
-                                <div className="relative w-full h-7 bg-gray-100 rounded-full overflow-hidden border border-gray-200 shadow-inner group/status">
-                                    {/* Progress Fill */}
-                                    <motion.div 
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${statusProgress}%` }}
-                                        transition={{ duration: 0.8, ease: "easeOut" }}
-                                        className={`absolute inset-y-0 left-0 ${bgClass} `}
-                                    />
-                                    
-
-
-                                    {/* Status Label */}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className={`text-[9px] font-bold uppercase tracking-[0.15em] drop-shadow-sm ${textClass}`}>
-                                            {statusInfo.label}
-                                        </span>
-                                    </div>
-
-                                    {/* Percentage Tooltip on Hover */}
-                                    <div className="absolute inset-0 opacity-0 group-hover/status:opacity-100 transition-opacity bg-white/40 backdrop-blur-[1px] flex items-center justify-center">
-                                        <span className="text-[10px] font-bold text-indigo-600">{statusProgress}%</span>
-                                    </div>
-                                </div>
-                            </td>
-                        );
-                    case 'publishDate':
-                        return (
-                            <td key={key} className="px-4 py-5 text-center align-middle whitespace-nowrap hidden md:table-cell" style={{ width }}>
-                                {task.isUnscheduled ? (
-                                    <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-1 rounded-lg font-bold uppercase tracking-tighter">Unscheduled</span>
-                                ) : (
-                                    <div className="flex flex-col items-center">
-                                        {formatDateDisplay(task.endDate, 'PUBLISH')}
-                                    </div>
-                                )}
-                            </td>
-                        );
-                    case 'shootDate':
-                        return (
-                            <td key={key} className="px-4 py-5 text-center align-middle whitespace-nowrap hidden md:table-cell" style={{ width }}>
-                                {task.shootDate ? (
-                                    <div className="flex flex-col items-center">
-                                        <div className="flex items-center gap-1 text-[10px] text-indigo-500 font-bold bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
-                                            <Video className="w-3 h-3" />
-                                            {format(new Date(task.shootDate), 'd MMM yy', { locale: th })}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <span className="text-gray-300 text-xs">-</span>
-                                )}
-                            </td>
-                        );
-                    case 'ideaOwner':
-                        return <td key={key} className="px-2 py-5 text-center align-middle hidden md:table-cell" style={{ width }}>{renderUserAvatars(task.ideaOwnerIds)}</td>;
-                    case 'editor':
-                        return <td key={key} className="px-2 py-5 text-center align-middle hidden md:table-cell" style={{ width }}>{renderUserAvatars(task.editorIds)}</td>;
-                    case 'helper':
-                        return <td key={key} className="px-2 py-5 text-center align-middle hidden md:table-cell" style={{ width }}>{renderUserAvatars(task.assigneeIds)}</td>;
-                    default:
-                        return null;
-                }
+                return (
+                    <StockDynamicCell
+                        key={key}
+                        columnKey={key}
+                        task={task}
+                        width={width}
+                        statusInfo={statusInfo}
+                        statusProgress={statusProgress}
+                        renderUserAvatars={renderUserAvatars}
+                        formatDateDisplay={formatDateDisplay}
+                    />
+                );
             })}
 
             {/* 7. Actions (Fixed) */}
             <td className={`px-4 py-5 text-right sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] align-middle border-l border-gray-100 transition-colors hidden lg:table-cell ${
                 task.isInShootQueue ? 'bg-[#f5f7ff] group-hover:bg-[#ebf0ff]' : 'bg-white group-hover:bg-indigo-50'
             }`}>
-                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {onToggleQueue && (
-                        <button 
-                            onClick={async (e) => { 
-                                e.stopPropagation(); 
-                                if (!task.isInShootQueue) {
-                                    const confirmed = await showConfirm(
-                                        `คุณต้องการเพิ่ม "${task.title}" เข้าสู่คิวถ่ายใช่หรือไม่?`,
-                                        "ยืนยันการเพิ่มเข้าคิวถ่าย"
-                                    );
-                                    if (!confirmed) return;
-                                }
-                                onToggleQueue(task.id, task.isInShootQueue || false); 
-                            }} 
-                            className={`p-2 rounded-xl transition-all shadow-sm ${
-                                task.isInShootQueue 
-                                    ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' 
-                                    : 'text-gray-400 hover:text-indigo-600 hover:bg-white'
-                            }`}
-                            title={task.isInShootQueue ? "เอาออกจากคิวถ่าย" : "เพิ่มเข้าคิวถ่าย"}
-                        >
-                            <Video className={`w-4 h-4 ${task.isInShootQueue ? 'fill-current' : ''}`} />
-                        </button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm">
-                        <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onSchedule(task); }} className="p-2 text-gray-400 hover:text-green-600 hover:bg-white rounded-xl transition-all shadow-sm" title="ลงตาราง">
-                        <CalendarPlus className="w-4 h-4" />
-                    </button>
-                    {onOpenAnalytics && (
-                        <button 
-                            onClick={(e) => { 
-                                e.stopPropagation(); 
-                                onOpenAnalytics(task); 
-                            }} 
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-white rounded-xl transition-all shadow-sm"
-                            title="สถิติคอนเทนต์"
-                        >
-                            <BarChart3 className="w-4 h-4" />
-                        </button>
-                    )}
-                    {onAddToWorkbox && (
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onAddToWorkbox(task); }} 
-                            className={`p-2 rounded-xl transition-all shadow-sm ${
-                                isInWorkbox 
-                                    ? 'text-amber-600 bg-amber-50 border border-amber-100' 
-                                    : 'text-gray-400 hover:text-amber-600 hover:bg-white'
-                            }`}
-                            title={isInWorkbox ? "อยู่ใน WorkBox แล้ว" : "เก็บเข้า WorkBox"}
-                        >
-                            <Inbox className={`w-4 h-4 ${isInWorkbox ? 'fill-current' : ''}`} />
-                        </button>
-                    )}
-                </div>
+                <StockRowActions
+                    task={task}
+                    isInWorkbox={isInWorkbox}
+                    onEdit={onEdit}
+                    onSchedule={onSchedule}
+                    onToggleQueue={onToggleQueue}
+                    onAddToWorkbox={onAddToWorkbox}
+                    onOpenAnalytics={onOpenAnalytics}
+                    taskInShootQueue={!!task.isInShootQueue}
+                />
             </td>
         </motion.tr>
     );

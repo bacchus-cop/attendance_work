@@ -68,5 +68,11 @@ export const BRAND_CONFIG = {
   // โหมดซ่อนผู้ใช้ที่เป็น ADMIN ออกจากตารางรายงานลงเวลาทำงานและสถิติ ขาด ลา มาสาย ของทีม
   // 1 = แสดง ADMIN ตามปกติ (ค่าเริ่มต้น)
   // 2 = ซ่อน ADMIN ออกจากตารางและตัวเลขสถิติภาพรวม (ทำให้ตารางแสดงเฉพาะระดับ MEMBER เท่านั้น)
-  hideAdminFromAttendanceDashboardMode: 2,
-};
+  hideAdminFromAttendanceDashboardMode: 2,  
+  
+    // โหมดแสดงรายการคำขออนุมัติเข้าร่วมทีมในหน้าตารางลงเวลาทำงาน (AdminWeeklyTimesheet)
+    // 1 = ไม่แสดง (แสดงเฉพาะในหน้า TeamView ปกติ)
+    // 2 = แสดง (เพิ่มกล่องรออนุมัติก่อนถึง TimesheetHeader)
+    showPendingMembersInTimesheetMode: 2,
+  };
+  

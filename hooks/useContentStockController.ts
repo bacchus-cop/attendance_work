@@ -30,6 +30,7 @@ export const useContentStockController = ({ globalTasks, channels, users, master
     const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
     const [filterOnlyOverdue, setFilterOnlyOverdue] = useState(false);
     const [filterOnlyMissingStorage, setFilterOnlyMissingStorage] = useState(false);
+    const [filterChecklistProgress, setFilterChecklistProgress] = useState<string[]>([]);
     
     // Range Filter
     const [filterHasShootDate, setFilterHasShootDate] = useState(false);
@@ -101,7 +102,7 @@ export const useContentStockController = ({ globalTasks, channels, users, master
     // Reset pagination when filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, filterChannel, filterFormat, filterPillar, filterCategory, filterStatuses, filterHasShootDate, filterShootDateStart, filterShootDateEnd, showStockOnly, sortConfig, filterOnlyMissingStorage]);
+    }, [searchQuery, filterChannel, filterFormat, filterPillar, filterCategory, filterStatuses, filterHasShootDate, filterShootDateStart, filterShootDateEnd, showStockOnly, sortConfig, filterOnlyMissingStorage, filterChecklistProgress]);
 
     const filters = useMemo(() => ({
         channelId: filterChannel,
@@ -115,8 +116,9 @@ export const useContentStockController = ({ globalTasks, channels, users, master
         showStockOnly,
         onlyOverdue: filterOnlyOverdue,
         onlyMissingStorage: filterOnlyMissingStorage,
-        contentSubTab
-    }), [filterChannel, filterFormat, filterPillar, filterCategory, filterStatuses, filterHasShootDate, filterShootDateStart, filterShootDateEnd, showStockOnly, filterOnlyOverdue, filterOnlyMissingStorage, contentSubTab]);
+        contentSubTab,
+        checklistProgress: filterChecklistProgress
+    }), [filterChannel, filterFormat, filterPillar, filterCategory, filterStatuses, filterHasShootDate, filterShootDateStart, filterShootDateEnd, showStockOnly, filterOnlyOverdue, filterOnlyMissingStorage, contentSubTab, filterChecklistProgress]);
 
     useEffect(() => {
         setIsFiltering(true);
@@ -124,12 +126,42 @@ export const useContentStockController = ({ globalTasks, channels, users, master
         return () => clearTimeout(timer);
     }, [filters]);
 
-    const { contents: paginatedTasks, totalCount, overdueCount, missingStorageCount, isLoading, isRefreshing, fetchContents, updateLocalItem, toggleShootQueue } = useContentStock({
+    // Reset checklist filter if it's a specific step but we are no longer in a single status
+    useEffect(() => {
+        const isSingleStatus = filterStatuses.length === 1;
+        if (!isSingleStatus) {
+            // If not single status, specific step filters are not valid.
+            // Reset to keep only standard metrics ('COMPLETED', 'INCOMPLETE')
+            const validFilters = filterChecklistProgress.filter(
+                f => f === 'COMPLETED' || f === 'INCOMPLETE'
+            );
+            if (validFilters.length !== filterChecklistProgress.length) {
+                setFilterChecklistProgress(validFilters);
+            }
+        } else {
+            // If it is single status, check if the currently selected specific steps still belong to the selected status
+            const selectedStatus = filterStatuses[0];
+            const activeSteps = masterOptions.filter(
+                o => o.type === 'STATUS_CHECKLIST' && o.parentKey === selectedStatus && o.isActive
+            );
+            const stepKeys = activeSteps.map(s => s.key);
+            
+            const validFilters = filterChecklistProgress.filter(
+                f => f === 'COMPLETED' || f === 'INCOMPLETE' || stepKeys.includes(f)
+            );
+            if (validFilters.length !== filterChecklistProgress.length) {
+                setFilterChecklistProgress(validFilters);
+            }
+        }
+    }, [filterStatuses, filterChecklistProgress, masterOptions]);
+
+    const { contents: paginatedTasks, totalCount, overdueCount, missingStorageCount, isLoading, isRefreshing, fetchContents, updateLocalItem, toggleShootQueue, updateSubChecklistProgress } = useContentStock({
         page: currentPage,
         pageSize: ITEMS_PER_PAGE,
         searchQuery,
         filters,
-        sortConfig
+        sortConfig,
+        masterOptions
     });
 
     const handleSort = useCallback((key: SortKey) => {
@@ -154,6 +186,7 @@ export const useContentStockController = ({ globalTasks, channels, users, master
         setFilterStatuses([]);
         setFilterOnlyOverdue(false);
         setFilterOnlyMissingStorage(false);
+        setFilterChecklistProgress([]);
     }, []);
 
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,6 +238,7 @@ export const useContentStockController = ({ globalTasks, channels, users, master
         filterStatuses, setFilterStatuses,
         filterOnlyOverdue, setFilterOnlyOverdue,
         filterOnlyMissingStorage, setFilterOnlyMissingStorage,
+        filterChecklistProgress, setFilterChecklistProgress,
         filterHasShootDate, setFilterHasShootDate,
         filterShootDateStart, setFilterShootDateStart,
         filterShootDateEnd, setFilterShootDateEnd,
@@ -240,6 +274,7 @@ export const useContentStockController = ({ globalTasks, channels, users, master
         fetchContents,
         updateLocalItem,
         toggleShootQueue,
+        updateSubChecklistProgress,
         searchParams,
         setSearchParams
     };

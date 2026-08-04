@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { supabase } from '../lib/supabase';
-import { Task } from '../types';
+import { Task, MasterOption } from '../types';
 import { isStockTerminalStatus } from '../config/status';
 
 interface UseContentStockProps {
@@ -22,8 +22,10 @@ interface UseContentStockProps {
         shootDateStart?: string; // Changed to Start
         shootDateEnd?: string;   // Changed to End
         contentSubTab?: 'ACTIVE' | 'ARCHIVE';
+        checklistProgress?: string[];
     };
     sortConfig: { key: string; direction: 'asc' | 'desc' } | null;
+    masterOptions?: MasterOption[];
 }
 
 // Global cache map to persist query results across unmount/remount (SWR-like behavior)
@@ -48,7 +50,7 @@ export const isStorageRequiredStatus = (status: string): boolean => {
            s.includes('SUCCESS');
 };
 
-export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConfig }: UseContentStockProps) => {
+export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConfig, masterOptions = [] }: UseContentStockProps) => {
     const [contents, setContents] = useState<Task[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [overdueCount, setOverdueCount] = useState(0);
@@ -100,6 +102,7 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
         
         remark: data.remark,
         assets: Array.isArray(data.assets) ? data.assets : [],
+        subChecklistProgress: data.sub_checklist_progress || {},
         
         assigneeType: data.assignee_type || 'TEAM',
         difficulty: data.difficulty || 'MEDIUM',
@@ -112,6 +115,7 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
         localPath: data.local_path,
         driveLabel: data.drive_label,
         isInShootQueue: data.is_in_shoot_queue || false,
+        isSoftFinished: data.is_soft_finished || false,
         hasAnalytics: !!data.content_analytics && (Array.isArray(data.content_analytics) ? data.content_analytics.length > 0 : !!data.content_analytics.id),
         analyticsStatus: (() => {
             if (!data.content_analytics) return 'NONE';
@@ -238,8 +242,47 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
              if (activeFilters.shootDateStart || activeFilters.shootDateEnd) return false;
         }
 
+        // Checklist Progress Filter Match
+        if (activeFilters.checklistProgress && activeFilters.checklistProgress.length > 0) {
+            const statusSteps = masterOptions
+                .filter(o => o.type === 'STATUS_CHECKLIST' && o.parentKey === task.status && o.isActive)
+                .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+                
+            // Task matches if it satisfies AT LEAST ONE of the selected filters (OR-logic)
+            const matchedAny = activeFilters.checklistProgress.some((filterKey: string) => {
+                if (statusSteps.length === 0) {
+                    // If there are no sub-steps defined for this status, it shouldn't match any filter except INCOMPLETE
+                    return filterKey === 'INCOMPLETE';
+                }
+                
+                const progress = task.subChecklistProgress || {};
+                
+                if (filterKey === 'STEPS_1_3') {
+                    // First 3 steps must be completed
+                    const stepsToVerify = statusSteps.slice(0, 3);
+                    return stepsToVerify.length > 0 && stepsToVerify.every(s => !!progress[s.key]);
+                } else if (filterKey === 'STEPS_4_5') {
+                    // Steps 4-5 (index 3 and onwards) must be completed
+                    if (statusSteps.length <= 3) return false; // No steps 4-5 exist
+                    const stepsToVerify = statusSteps.slice(3);
+                    return stepsToVerify.every(s => !!progress[s.key]);
+                } else if (filterKey === 'COMPLETED') {
+                    // All active steps must be completed
+                    return statusSteps.every(s => !!progress[s.key]);
+                } else if (filterKey === 'INCOMPLETE') {
+                    // At least one active step is NOT completed
+                    return statusSteps.some(s => !progress[s.key]);
+                } else {
+                    // It must be a specific step key!
+                    return !!progress[filterKey];
+                }
+            });
+
+            if (!matchedAny) return false;
+        }
+
         return true;
-    }, []);
+    }, [masterOptions]);
 
     const fetchContents = useCallback(async (isBackground = false) => {
         const cacheKey = JSON.stringify({ page, pageSize, searchQuery, filters, sortConfig });
@@ -264,7 +307,7 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
         try {
             let query = supabase
                 .from('contents')
-                .select(`id, title, status, start_date, end_date, created_at, channel_id, tags, target_platform, pillar, content_formats, category, is_unscheduled, description, remark, shoot_date, shoot_location, is_in_shoot_queue, assignee_ids, idea_owner_ids, editor_ids, local_path, drive_label, content_analytics(id, platform)`, { count: 'exact' });
+                .select(`id, title, status, start_date, end_date, created_at, channel_id, tags, target_platform, pillar, content_formats, category, is_unscheduled, description, remark, shoot_date, shoot_location, is_in_shoot_queue, assignee_ids, idea_owner_ids, editor_ids, local_path, drive_label, sub_checklist_progress, content_analytics(id, platform)`, { count: 'exact' });
 
             // 1. Search
             if (searchQuery) {
@@ -387,9 +430,12 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
             }
 
             // 4. Pagination
-            const from = (page - 1) * pageSize;
-            const to = from + pageSize - 1;
-            query = query.range(from, to);
+            const isUsingMemoryFilter = filters.checklistProgress && filters.checklistProgress.length > 0;
+            if (!isUsingMemoryFilter) {
+                const from = (page - 1) * pageSize;
+                const to = from + pageSize - 1;
+                query = query.range(from, to);
+            }
 
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -434,10 +480,20 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
             if (missingStorageError) throw missingStorageError;
 
             if (data) {
-                const mapped = data.map(mapSupabaseToTask);
-                // Fully database-driven pagination & filtering!
+                let mapped = data.map(mapSupabaseToTask);
+                let finalCount = count || 0;
+
+                if (isUsingMemoryFilter) {
+                    // Filter in memory
+                    mapped = mapped.filter(task => checkDoesItMatchFilters(task, filters));
+                    finalCount = mapped.length;
+                    
+                    const from = (page - 1) * pageSize;
+                    mapped = mapped.slice(from, from + pageSize);
+                }
+
                 setContents(mapped);
-                setTotalCount(count || 0);
+                setTotalCount(finalCount);
                 if (overdueDbCount !== null) {
                     setOverdueCount(overdueDbCount);
                 }
@@ -448,7 +504,7 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
                 // Save to SWR Cache
                 cacheMap.set(cacheKey, {
                     contents: mapped,
-                    totalCount: count || 0,
+                    totalCount: finalCount,
                     overdueCount: overdueDbCount !== null ? overdueDbCount : 0,
                     missingStorageCount: missingStorageDbCount !== null ? missingStorageDbCount : 0,
                     timestamp: Date.now()
@@ -535,7 +591,7 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
 
             const { data, error } = await supabase
                 .from('contents')
-                .select(`id, title, status, start_date, end_date, created_at, channel_id, tags, target_platform, pillar, content_formats, category, is_unscheduled, description, remark, shoot_date, shoot_location, is_in_shoot_queue, assignee_ids, idea_owner_ids, editor_ids, local_path, drive_label, content_analytics(id, platform)`)
+                .select(`id, title, status, start_date, end_date, created_at, channel_id, tags, target_platform, pillar, content_formats, category, is_unscheduled, description, remark, shoot_date, shoot_location, is_in_shoot_queue, assignee_ids, idea_owner_ids, editor_ids, local_path, drive_label, sub_checklist_progress, content_analytics(id, platform)`)
                 .eq('id', targetId)
                 .maybeSingle();
 
@@ -693,5 +749,24 @@ export const useContentStock = ({ page, pageSize, searchQuery, filters, sortConf
         }
     };
 
-    return { contents, totalCount, overdueCount, missingStorageCount, isLoading, isRefreshing, fetchContents, updateLocalItem, toggleShootQueue };
+    const updateSubChecklistProgress = async (id: string, progress: Record<string, boolean>): Promise<boolean> => {
+        cacheMap.clear();
+        try {
+            const { error } = await supabase
+                .from('contents')
+                .update({ sub_checklist_progress: progress })
+                .eq('id', id);
+            
+            if (error) throw error;
+            
+            // Optimistic update
+            setContents(prev => prev.map(item => item.id === id ? { ...item, subChecklistProgress: progress } : item));
+            return true;
+        } catch (err) {
+            console.error('Update sub checklist progress failed:', err);
+            return false;
+        }
+    };
+
+    return { contents, totalCount, overdueCount, missingStorageCount, isLoading, isRefreshing, fetchContents, updateLocalItem, toggleShootQueue, updateSubChecklistProgress };
 };

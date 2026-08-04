@@ -33,6 +33,9 @@ export interface WorkTimeConfig {
     absentPenaltyTargetRoles?: string;
     forgotCheckInLimitHours?: string;
     lineSubmissionAlertMode?: string;
+    monthlySummaryTime?: string;
+    monthlySummaryDay?: string;
+    monthlySummaryMode?: string;
 }
 
 interface WorkTimeCardProps {

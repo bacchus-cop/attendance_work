@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react';
-import { ListFilter, Layout, Trash2, Film, Landmark, BarChart3 } from 'lucide-react';
+import React, { useMemo, useState, useRef } from 'react';
+import { ListFilter, Layout, Trash2, SlidersHorizontal } from 'lucide-react';
 import { Channel, MasterOption, Task } from '../../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import MultiSelectFilter from '../../common/MultiSelectFilter';
+import { isStockTerminalStatus } from '../../../config/status';
+import { isStorageRequiredStatus } from '../../../hooks/useContentStock';
 
-// Import our new modular components
-import { SearchWithSuggestions } from './SearchWithSuggestions';
-import { ShootDatePicker } from './ShootDatePicker';
+// Import our modular components
+import { SearchWithSuggestions } from './search';
 import { ActiveFilterChipsRow } from './ActiveFilterChipsRow';
+import { StockSecondaryFilterBar } from './StockSecondaryFilterBar';
 
 interface StockFilterBarProps {
     searchQuery: string;
@@ -22,6 +23,8 @@ interface StockFilterBarProps {
     setFilterCategory: React.Dispatch<React.SetStateAction<string[]>>;
     filterStatuses: string[];
     setFilterStatuses: React.Dispatch<React.SetStateAction<string[]>>;
+    filterChecklistProgress?: string[];
+    setFilterChecklistProgress?: (val: string[]) => void;
     contentSubTab?: 'ACTIVE' | 'ARCHIVE';
     
     // Updated for Range
@@ -51,6 +54,8 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
     filterPillar, setFilterPillar,
     filterCategory, setFilterCategory,
     filterStatuses, setFilterStatuses,
+    filterChecklistProgress = [],
+    setFilterChecklistProgress = () => {},
     contentSubTab = 'ACTIVE',
     
     filterHasShootDate, setFilterHasShootDate,
@@ -64,6 +69,9 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
     channels, masterOptions,
     tasks
 }) => {
+    // Local state for toggling advanced secondary filter bar
+    const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+
     // Derive Options with useMemo for Performance
     const formatOptions = useMemo(() => 
         masterOptions.filter(o => o.type === 'FORMAT' && o.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
@@ -121,6 +129,7 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
         masterOptions.filter(o => o.type === 'STATUS' && o.isActive).sort((a, b) => a.sortOrder - b.sortOrder),
     [masterOptions]);
 
+    // Check if any filter (primary or advanced) is active
     const hasActiveFilters = useMemo(() => {
         return searchQuery || 
                filterChannel.length > 0 || 
@@ -130,26 +139,42 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
                filterStatuses.length > 0 || 
                filterHasShootDate || 
                filterShootDateStart || 
-               filterShootDateEnd;
+               filterShootDateEnd ||
+               filterChecklistProgress.length > 0;
     }, [
         searchQuery, filterChannel, filterFormat, filterPillar, 
         filterCategory, filterStatuses, filterHasShootDate, 
-        filterShootDateStart, filterShootDateEnd
+        filterShootDateStart, filterShootDateEnd, filterChecklistProgress
     ]);
+
+    // Calculate active advanced filters count
+    const activeAdvancedFiltersCount = useMemo(() => {
+        let count = 0;
+        if (filterFormat.length > 0) count++;
+        if (filterPillar.length > 0) count++;
+        if (filterCategory.length > 0) count++;
+        if (filterStatuses.length > 0) count++;
+        if (filterHasShootDate) count++;
+        if (filterChecklistProgress.length > 0) count++;
+        return count;
+    }, [filterFormat, filterPillar, filterCategory, filterStatuses, filterHasShootDate, filterChecklistProgress]);
+
+
 
     return (
         <motion.div 
             layout
-            className="bg-white p-4 rounded-3xl shadow-sm border border-gray-200/60 flex flex-col gap-3.5 relative z-50 transition-all hover:shadow-md"
+            className="bg-white p-5 rounded-3xl shadow-sm border border-gray-200/60 flex flex-col gap-4 relative z-50 transition-all hover:shadow-md"
         >
-            <div className="flex flex-col xl:flex-row gap-4 items-stretch xl:items-center w-full">
-                {/* Left: Search & Date Range */}
-                <motion.div layout className="flex flex-col sm:flex-row gap-3 flex-1 items-stretch">
-                    {/* Search Component */}
+            {/* Level 1: Primary Search & High-Frequency Toggles */}
+            <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between w-full">
+                {/* Search occupies the major left side */}
+                <div className="flex-1 min-w-0">
                     <SearchWithSuggestions 
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
                         tasks={tasks}
+                        showPopularTagsInline={false}
                         activeFilters={{
                             status: filterStatuses,
                             channelId: filterChannel,
@@ -165,109 +190,70 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
                             shootDateEnd: filterShootDateEnd
                         }}
                     />
+                </div>
 
-                    {/* Shoot Date Picker Component */}
-                    <ShootDatePicker 
-                        filterHasShootDate={filterHasShootDate}
-                        setFilterHasShootDate={setFilterHasShootDate}
-                        filterShootDateStart={filterShootDateStart}
-                        setFilterShootDateStart={setFilterShootDateStart}
-                        filterShootDateEnd={filterShootDateEnd}
-                        setFilterShootDateEnd={setFilterShootDateEnd}
-                    />
-                </motion.div>
-
-                {/* Right: Dropdowns & Actions */}
-                <motion.div layout className="flex flex-wrap gap-2 items-center">
-                    
-                    {/* Format Filter */}
-                    <motion.div layout>
-                        <MultiSelectFilter 
-                            label="Format"
-                            values={filterFormat}
-                            options={formatOptions}
-                            onChange={setFilterFormat}
-                            icon={<Film className="w-4 h-4" />}
-                            activeColorClass="bg-pink-50 border-pink-200 text-pink-700 shadow-sm ring-2 ring-pink-100 ring-offset-1"
-                        />
-                    </motion.div>
-
-                    {/* Pillar Filter */}
-                    <motion.div layout>
-                        <MultiSelectFilter 
-                            label="Pillar"
-                            values={filterPillar}
-                            options={pillarOptions}
-                            onChange={setFilterPillar}
-                            icon={<Landmark className="w-4 h-4" />}
-                            activeColorClass="bg-blue-50 border-blue-200 text-blue-700 shadow-sm ring-2 ring-blue-100 ring-offset-1"
-                        />
-                    </motion.div>
-
-                    {/* Category Filter */}
-                    <motion.div layout>
-                        <MultiSelectFilter 
-                            label="Category"
-                            values={filterCategory}
-                            options={categoryOptions}
-                            onChange={setFilterCategory}
-                            icon={<BarChart3 className="w-4 h-4" />} // Note: Category originally used 'Tags' / 'BarChart3' interchangeably, checking original code we retain visual parity
-                            activeColorClass="bg-emerald-50 border-emerald-200 text-emerald-700 shadow-sm ring-2 ring-emerald-100 ring-offset-1"
-                        />
-                    </motion.div>
-
-                    {/* Status Multi-Select Filter - Hidden in Archive */}
-                    {contentSubTab === 'ACTIVE' && (
-                        <motion.div layout>
-                            <MultiSelectFilter 
-                                label="สถานะ"
-                                values={filterStatuses}
-                                options={statusOptions}
-                                onChange={setFilterStatuses}
-                                icon={<BarChart3 className="w-4 h-4" />}
-                            />
-                        </motion.div>
-                    )}
-
-                    <motion.div layout className="w-px h-8 bg-gray-200 mx-1 hidden xl:block"></motion.div>
-
+                {/* Main Action buttons: Stock Toggle, Advanced Filters, and Clear Button */}
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                     {/* Stock Toggle */}
                     <motion.button
                         layout
                         onClick={() => setShowStockOnly(!showStockOnly)}
                         className={`
-                            px-4 py-3 rounded-2xl text-sm font-bold transition-all border flex items-center whitespace-nowrap active:scale-95
+                            px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all border flex items-center whitespace-nowrap active:scale-95 min-h-[50px]
                             ${showStockOnly 
-                                ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-200 ring-2 ring-orange-100 ring-offset-1' 
-                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700'}
+                                ? 'bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-100 ring-2 ring-orange-100 ring-offset-1 font-extrabold' 
+                                : 'bg-gray-50/50 text-gray-600 border-gray-200 hover:bg-gray-50 hover:text-gray-700'}
                         `}
                         title={showStockOnly ? "แสดงทั้งหมด" : "แสดงเฉพาะ Stock"}
                     >
-                        {showStockOnly ? <Layout className="w-4 h-4 mr-2 fill-white/20" /> : <ListFilter className="w-4 h-4 mr-2" />}
+                        {showStockOnly ? <Layout className="w-4 h-4 mr-2 fill-white/20" /> : <ListFilter className="w-4 h-4 mr-2 text-gray-400" />}
                         {showStockOnly ? 'Stock Only' : 'All Items'}
                     </motion.button>
 
-                    {/* Clear All */}
+                    {/* Advanced Filters Toggle Button */}
+                    <motion.button
+                        layout
+                        onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                        className={`
+                            px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all border flex items-center gap-2 active:scale-95 min-h-[50px] relative shadow-sm
+                            ${isAdvancedOpen
+                                ? 'bg-amber-50 text-amber-900 border-amber-200/90 ring-2 ring-amber-100/50 font-extrabold'
+                                : 'bg-stone-50/60 text-stone-600 border-stone-200/80 hover:bg-stone-100/80 hover:text-stone-800'}
+                        `}
+                    >
+                        <SlidersHorizontal className="w-4 h-4 transition-colors" />
+                        <span>ตัวกรอง</span>
+                        
+                        {/* Filter Badge counter */}
+                        {activeAdvancedFiltersCount > 0 && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-700 text-[10px] font-black text-amber-50 ring-2 ring-amber-50">
+                                {activeAdvancedFiltersCount}
+                            </span>
+                        )}
+                    </motion.button>
+
+                    {/* Clear All Filters */}
                     <AnimatePresence>
                         {hasActiveFilters && (
                             <motion.button 
                                 layout
-                                initial={{ opacity: 0, scale: 0.5, x: 20 }}
-                                animate={{ opacity: 1, scale: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.5, x: 20 }}
-                                transition={{ duration: 0.2 }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.15 }}
                                 onClick={clearFilters}
-                                className="p-3 text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-2xl transition-all shadow-sm active:scale-90"
+                                className="p-3 text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 hover:border-red-200 rounded-2xl transition-all shadow-sm active:scale-90 flex items-center justify-center min-w-[50px] min-h-[50px]"
                                 title="ล้างตัวกรองทั้งหมด"
                             >
-                                <Trash2 className="w-5 h-5" />
+                                <Trash2 className="w-4 h-4" />
                             </motion.button>
                         )}
                     </AnimatePresence>
-                </motion.div>
+                </div>
             </div>
 
-            {/* Active Filter Chips Summary Row */}
+
+            {/* Active Filter Chips Row - placed right beneath the primary controls */}
             <ActiveFilterChipsRow 
                 filterChannel={filterChannel}
                 setFilterChannel={setFilterChannel}
@@ -288,8 +274,42 @@ const StockFilterBar: React.FC<StockFilterBarProps> = React.memo(({
                 channels={channels}
                 masterOptions={masterOptions}
             />
+
+            {/* Level 2: Advanced Secondary Filter Bar */}
+            <AnimatePresence>
+                {isAdvancedOpen && (
+                    <StockSecondaryFilterBar 
+                        filterFormat={filterFormat}
+                        setFilterFormat={setFilterFormat}
+                        filterPillar={filterPillar}
+                        setFilterPillar={setFilterPillar}
+                        filterCategory={filterCategory}
+                        setFilterCategory={setFilterCategory}
+                        filterStatuses={filterStatuses}
+                        setFilterStatuses={setFilterStatuses}
+                        filterChecklistProgress={filterChecklistProgress}
+                        setFilterChecklistProgress={setFilterChecklistProgress}
+                        contentSubTab={contentSubTab}
+                        filterHasShootDate={filterHasShootDate}
+                        setFilterHasShootDate={setFilterHasShootDate}
+                        filterShootDateStart={filterShootDateStart}
+                        setFilterShootDateStart={setFilterShootDateStart}
+                        filterShootDateEnd={filterShootDateEnd}
+                        setFilterShootDateEnd={setFilterShootDateEnd}
+                        formatOptions={formatOptions}
+                        pillarOptions={pillarOptions}
+                        categoryOptions={categoryOptions}
+                        statusOptions={statusOptions}
+                        masterOptions={masterOptions}
+                        isOpen={isAdvancedOpen}
+                        tasks={tasks}
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 });
+
+StockFilterBar.displayName = 'StockFilterBar';
 
 export default StockFilterBar;
